@@ -1,16 +1,17 @@
 # compareMS2gui
+
 Compare samples by MS2 spectra
 
 ## Install
 
 Install nodejs:
 
-On Linux <code>apt install nodejs</code>
+* On Linux `apt install nodejs`
+* On windows download from: <https://nodejs.org/en/download/>
 
-On windows https://nodejs.org/en/download/
+From the command promp:
 
-From the command promp (in Windows, start "node.js command prompt"):
-```bash
+```text
 npm install -g electron-forge
 git clone https://github.com/524D/compareMS2gui
 cd compareMS2gui
@@ -19,14 +20,17 @@ npm install
 
 ## Run in development mode
 
-```bash
-electron-forge start</code>
+```text
+electron-forge start
 ```
 
 ## Building
 
 To build a distributable package (for the platform where this command is executed from):
-```bash
+
+```text
 electron-forge make
 ```
 
+The resulting installer can than be found (relative to the compareMS2gui source directory) in:
+`out\make\squirrel.windows\x64\comparems2gui-x.y.z Setup.exe` for windows.
