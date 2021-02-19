@@ -37,6 +37,7 @@ window.addEventListener('DOMContentLoaded', () => {
       let win = new BrowserWindow({ width: 1200, height: 1000 })
 
       win.on('close', () => { win = null })
+      win.removeMenu()
       win.loadURL(modalPath)
       win.show()
   })
