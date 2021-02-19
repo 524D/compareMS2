@@ -1,7 +1,7 @@
 {
   "name": "compare-ms2-gui",
   "productName": "comparems2gui",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
   "scripts": {
