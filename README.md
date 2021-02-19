@@ -1,11 +1,19 @@
 # compareMS2gui
 Compare samples by MS2 spectra
 
-## Installing dependencies
+## Install
 
+Install nodejs:
 
-## Running
-<code> electron-forge start </code>
+On Linux <code>apt install nodejs</code>
+
+On windows https://nodejs.org/en/download/
+
+From the node command promp:
+<code>npm install -g electron-forge</code>
+
+## Run in development mode
+<code>electron-forge start</code>
 
 ## Building
-<code> electron-forge make </code>
+To build a distributable package (for the platform where this command is executed from): <code>electron-forge make</code>
