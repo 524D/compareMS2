@@ -13,12 +13,11 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Set initial values for MGF directory and species file
-  const app = require('electron').remote.app
-  var basepath = app.getAppPath();
-  document.getElementById("mgfdir").value = basepath
-  document.getElementById("s2sfile").value = basepath
+  const homedir = require('os').homedir();
+  document.getElementById("mgfdir").value = homedir
+  document.getElementById("s2sfile").value = homedir
 
-  // Handle directory brows button
+  // Handle directory browse button
   const {ipcRenderer} = require('electron')
   const selectDirBtn = document.getElementById('select-directory')
   selectDirBtn.addEventListener('click', (event) => {
@@ -27,6 +26,7 @@ window.addEventListener('DOMContentLoaded', () => {
   ipcRenderer.on('selected-directory', (event, path) => {
     document.getElementById("mgfdir").value = `${path}`
   })
+
 
   // Handle submit button
   const {BrowserWindow} = require('electron').remote
@@ -41,6 +41,38 @@ window.addEventListener('DOMContentLoaded', () => {
       win.loadURL(modalPath)
       win.show()
   })
+
+
+const fs = require('fs');
+fs.readdir(__dirname, function (err, files) {
+    //handling error
+    if (err) {
+        return console.log('Unable to scan directory: ' + err);
+    } 
+    //listing all files using forEach
+    files.forEach(function (file) {
+        if (file.search(/\.mgf$/i) == -1) {
+        // Do whatever you want to do with the file
+        console.log(file); 
+        }
+    });
+});
+  // const {spawn} = require('electron').remote.require('spawn')
+
+  // const { spawn } = require('child_process');
+  // const ls = spawn('ls', ['-lh', '/usr']);
+  
+  // ls.stdout.on('data', (data) => {
+  //   console.log(`stdout: ${data}`);
+  // });
+  
+  // ls.stderr.on('data', (data) => {
+  //   console.error(`stderr: ${data}`);
+  // });
+  
+  // ls.on('close', (code) => {
+  //   console.log(`child process exited with code ${code}`);
+  // });
 
 
 })
