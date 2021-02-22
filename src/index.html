@@ -24,53 +24,76 @@
           width: 50%;
           padding: 10px;
         }
-        .input-select {
+        .input-label2 {
+          width: 50%;
           padding: 10px;
+          padding-bottom: 0px;
         }
+        .input-label3 {
+          width: 50%;
+          padding: 10px;
+          padding-top: 0px;
+        }
+        .input-select {
+          margin: 10px;
+        }
+        .param-section {
+           width: 95%;
+           border: 3px solid #c0c0c0;
+           padding: 10px;
+           margin: 20px;
+           border-radius: 10px;
+         }
+
     </style>
 
-    <h3>Specify inputs to CompareMS2</h3><br/>
+    <div class="param-section">
+        <h3>CompareMS2 parameters</h3><br/>
 
-    <span><label class="input-label">Directory of MGF files:</label>
-        <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;<button type="button" id="select-directory">Select dir</button></span><br/>
-    <span><label class="input-label"></label>        
-        <span id=mgfinfo></span></span><br/>
-    <span><label class="input-label">Maximum precursor mass difference:</label>
-        <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001" value="2.05">&nbsp;(<it>m/z</it>)</span><br/>
-    <span><label class="input-label">Maximum chromatographic peak width:</label>
-        <input class="input-value" type="number" id="chrompeakw" min="0" max="100000"value="1500">&nbsp;(scans)</span><br/>
-    <span>
-        <input class="input-select" type="checkbox" id="capturelog" name="capture" checked>
-        <label> Capture log</label>&nbsp;
-        <input class="input-select" type="checkbox" id="richoutput" name="richout">
-        <label> Rich output</label>
-    </span><br/>
+        <div><label class="input-label2">Directory of MGF files:</label>
+            <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;<button type="button" id="select-directory">Select dir</button></div>
+        <div><label class="input-label3 small"></label>        
+            <span id=mgfinfo class="small"></span></div>
+        <div><label class="input-label">Maximum precursor mass difference:</label>
+            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001" value="2.05">&nbsp;(<it>m/z</it>)</div>
+        <div><label class="input-label">Maximum chromatographic peak width:</label>
+            <input class="input-value" type="number" id="chrompeakw" min="0" max="100000"value="1500">&nbsp;(scans)</div>
+        <div>
+            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="capturelog" name="capture" checked>
+            <label> Capture log</label>&nbsp;
+            <input class="input-select" type="checkbox" id="richoutput" name="richout">
+            <label> Rich output</label>
+        </div>
+    </div>
 
 
-
-    <h3>Specify inputs for distance matrix calculation</h3><br/>
+    <div class="param-section">
+        <h3>Distance matrix calculation</h3><br/>
     
-    <span><label class="input-label">Table with sample to species relationship:</label>
-        <input class="input-value" type="text" id="s2sfile" >&nbsp;<button type="button" id="select-file">Select file</button></span><br/>
-    <span><label class="input-label">Output filename root:</label>
-        <input class="input-value" type="text" id="outbasename" value="comp"></span><br/>
-    <span><label class="input-label">Score cosine cutoff:</label>
-        <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.7"></span><br/>
-    <span>
-        <input class="input-select" type="checkbox" id="avgspecie" name="average">
-        <label> Average all output per specie</label>&nbsp;
-    </span><br/>
-    <span>
-        <input class="input-select" type="checkbox" id="outnexus" name="output-nexus" checked>
-        <label> NEXUS output</label>&nbsp;
-        <input class="input-select" type="checkbox" id="outmega" name="output-mega">
-        <label> MEGA output</label>
-        <input class="input-select" type="checkbox" id="outneely" name="output-neely">
-        <label> NEELY output</label>&nbsp;
-        <input class="input-select" type="checkbox" id="impmiss" name="impute-missing">
-        <label> Impute missing values</label>
-    </span><br/>
-    <input id="submit" type="submit" value="Submit">
+        <div><label class="input-label">Table with sample to species relationship:</label>
+            <input class="input-value" type="text" id="s2sfile" >&nbsp;<button type="button" id="select-file">Select file</button></div>
+        <div><label class="input-label">Output filename root:</label>
+            <input class="input-value" type="text" id="outbasename" value="comp"></div>
+        <div><label class="input-label">Score cosine cutoff:</label>
+            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.7"></div>
+        <div>
+            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="avgspecie" name="average">
+            <label> Average all output per specie</label>&nbsp;
+        </div>
+        <div>
+            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="outnexus" name="output-nexus" checked>
+            <label> NEXUS output</label>&nbsp;
+            <input class="input-select" type="checkbox" id="outmega" name="output-mega">
+            <label> MEGA output</label>
+            <input class="input-select" type="checkbox" id="outneely" name="output-neely">
+            <label> NEELY output</label>&nbsp;
+            <input class="input-select" type="checkbox" id="impmiss" name="impute-missing">
+            <label> Impute missing values</label>
+        </div>
+    </div>
+    <div class="text-center">
+        <input class="btn-lg" id="submit" type="submit" value="Submit">
+    </div>
     </body>
 
 </html>
