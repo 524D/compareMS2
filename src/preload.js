@@ -1,7 +1,4 @@
 // All of the Node.js APIs are available in the preload process.
-// It has the same sandbox as a Chrome extension.
-
-
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector)
@@ -23,24 +20,35 @@ window.addEventListener('DOMContentLoaded', () => {
   // Update MGF files info
   const mgfinfo = document.getElementById('mgfinfo');
   
-  const inputHandler = function(e) {
-    mgfFiles = getMgfFiles(e.target.value);
+  // FIXME: update info only after waiting some time
+  function updateMgfInfo(path) {
+    mgfFiles = getMgfFiles(path);
     nMgf = mgfFiles.length;
-    mgfinfo.innerHTML = nMgf + " files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
+    mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
   }
-  
+
+  // Set initial value
+  updateMgfInfo(document.getElementById("mgfdir").value);
+
+  // Update on manual input
+  const inputHandler = function(e) {
+    updateMgfInfo(e.target.value);
+  }
   mgfdir.addEventListener('input', inputHandler);
   
   // Handle directory browse button
   const {ipcRenderer} = require('electron')
   const selectDirBtn = document.getElementById('select-directory')
+  
   selectDirBtn.addEventListener('click', (event) => {
     ipcRenderer.send('open-dir-dialog')
   })
-  ipcRenderer.on('selected-directory', (event, path) => {
-    document.getElementById("mgfdir").value = `${path}`
-  })
 
+  ipcRenderer.on('selected-directory', (event, path) => {
+    p=`${path}`;
+    document.getElementById("mgfdir").value = p;
+    updateMgfInfo(p);
+  })
 
   // Handle submit button
   const {BrowserWindow} = require('electron').remote
