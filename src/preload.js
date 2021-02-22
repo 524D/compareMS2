@@ -14,9 +14,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Set initial values for MGF directory and species file
   const homedir = require('os').homedir();
-  document.getElementById("mgfdir").value = homedir
-  document.getElementById("s2sfile").value = homedir
+  const mgfdir = document.getElementById("mgfdir");
+  const s2sfile = document.getElementById("s2sfile");
+  mgfdir.value = homedir
+  s2sfile.value = homedir
 
+  
+  // Update MGF files info
+  const mgfinfo = document.getElementById('mgfinfo');
+  
+  const inputHandler = function(e) {
+    mgfFiles = getMgfFiles(e.target.value);
+    nMgf = mgfFiles.length;
+    mgfinfo.innerHTML = nMgf + " files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
+  }
+  
+  mgfdir.addEventListener('input', inputHandler);
+  
   // Handle directory browse button
   const {ipcRenderer} = require('electron')
   const selectDirBtn = document.getElementById('select-directory')
@@ -30,33 +44,41 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Handle submit button
   const {BrowserWindow} = require('electron').remote
+  const {getCurrentWindow} = require('electron').remote
   const path = require('path')
   const submitBtn = document.getElementById('submit')
   submitBtn.addEventListener('click', (event) => {
-      const modalPath = path.join('file://', __dirname, '/tree.html')
-      let win = new BrowserWindow({ width: 1200, height: 1000 })
 
-      win.on('close', () => { win = null })
-      win.removeMenu()
-      win.loadURL(modalPath)
-      win.show()
-  })
+  var params = {
+    mgfDir : document.getElementById("mgfdir").value,
+    precMassDiff : parseFloat(document.getElementById("precmassdif").value),
+    chromPeakW : parseFloat(document.getElementById("chrompeakw").value),
+    captureLog : document.getElementById("capturelog").checked,
+    richOutput : document.getElementById("richoutput").checked,
+    s2sFile : document.getElementById("s2sfile").value,
+    outBasename : document.getElementById("outbasename").value,
+    cutoff : parseFloat(document.getElementById("cutoff").value),
+    avgSpecie : document.getElementById("avgspecie").checked,
+    outNexus : document.getElementById("outnexus").checked,
+    outMega : document.getElementById("outmega").checked,
+    outNeely : document.getElementById("outneely").checked,
+    impMissing : document.getElementById("impmiss").checked,
+  }
+  const modalPath = path.join('file://', __dirname, '/tree.html')
+  let win = new BrowserWindow({
+      width: 1200,
+      height: 1000,
+      parent: getCurrentWindow(),
+      modal: true })
+
+  win.on('close', () => { win = null })
+  win.removeMenu()
+  win.loadURL(modalPath)
+  win.show()
+  ipcRenderer.send('userparams', params)
+})
 
 
-const fs = require('fs');
-fs.readdir(__dirname, function (err, files) {
-    //handling error
-    if (err) {
-        return console.log('Unable to scan directory: ' + err);
-    } 
-    //listing all files using forEach
-    files.forEach(function (file) {
-        if (file.search(/\.mgf$/i) == -1) {
-        // Do whatever you want to do with the file
-        console.log(file); 
-        }
-    });
-});
   // const {spawn} = require('electron').remote.require('spawn')
 
   // const { spawn } = require('child_process');

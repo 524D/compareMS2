@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="assets/bootstrap.min.css">
   <link rel="stylesheet" href="assets/bootstrap-theme.min.css">
 
+  <script src="util.js"></script>
+
   <script>
     window.nodeRequire = require;
     delete window.require;
@@ -31,14 +33,16 @@
 
     <span><label class="input-label">Directory of MGF files:</label>
         <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;<button type="button" id="select-directory">Select dir</button></span><br/>
+    <span><label class="input-label"></label>        
+        <span id=mgfinfo></span></span><br/>
     <span><label class="input-label">Maximum precursor mass difference:</label>
         <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001" value="2.05">&nbsp;(<it>m/z</it>)</span><br/>
     <span><label class="input-label">Maximum chromatographic peak width:</label>
         <input class="input-value" type="number" id="chrompeakw" min="0" max="100000"value="1500">&nbsp;(scans)</span><br/>
     <span>
-        <input class="input-select" type="checkbox" name="capture" checked>
+        <input class="input-select" type="checkbox" id="capturelog" name="capture" checked>
         <label> Capture log</label>&nbsp;
-        <input class="input-select" type="checkbox" name="richout">
+        <input class="input-select" type="checkbox" id="richoutput" name="richout">
         <label> Rich output</label>
     </span><br/>
 
@@ -53,21 +57,20 @@
     <span><label class="input-label">Score cosine cutoff:</label>
         <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.7"></span><br/>
     <span>
-        <input class="input-select" type="checkbox" name="average">
+        <input class="input-select" type="checkbox" id="avgspecie" name="average">
         <label> Average all output per specie</label>&nbsp;
     </span><br/>
     <span>
-        <input class="input-select" type="checkbox" name="output-nexus" checked>
+        <input class="input-select" type="checkbox" id="outnexus" name="output-nexus" checked>
         <label> NEXUS output</label>&nbsp;
-        <input class="input-select" type="checkbox" name="output-mega">
+        <input class="input-select" type="checkbox" id="outmega" name="output-mega">
         <label> MEGA output</label>
-        <input class="input-select" type="checkbox" name="output-neely">
+        <input class="input-select" type="checkbox" id="outneely" name="output-neely">
         <label> NEELY output</label>&nbsp;
-        <input class="input-select" type="checkbox" name="impute-missing">
+        <input class="input-select" type="checkbox" id="impmiss" name="impute-missing">
         <label> Impute missing values</label>
     </span><br/>
     <input id="submit" type="submit" value="Submit">
-              
     </body>
 
 </html>

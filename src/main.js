@@ -156,3 +156,7 @@ ipcMain.on('open-dir-dialog', (event) => {
       mainWindow.send('selected-directory', files)
   }
 })
+
+ipcMain.on('userparams', (event, args) => {
+  console.log(args); 
+})
