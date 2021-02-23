@@ -11,6 +11,14 @@ function updateMgfInfo(path) {
     mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
 }
 
+// Set initial values for MGF directory and species file
+const homedir = nodeRequire('os').homedir();
+const mgfdir = document.getElementById("mgfdir");
+const s2sfile = document.getElementById("s2sfile");
+mgfdir.value = homedir
+s2sfile.value = homedir
+
+
 // Set initial value of MGF files info
 updateMgfInfo(document.getElementById("mgfdir").value);
 
@@ -51,16 +59,25 @@ submitBtn.addEventListener('click', (event) => {
     outNeely : document.getElementById("outneely").checked,
     impMissing : document.getElementById("impmiss").checked,
   }
-  const modalPath = path.join('file://', __dirname, '/tree.html')
-  let win = new BrowserWindow({
-      width: 1200,
-      height: 1000,
-      parent: getCurrentWindow(),
-      modal: true })
-
-  win.on('close', () => { win = null })
-  win.removeMenu()
-  win.loadURL(modalPath)
-  win.show()
-  ipcRenderer.send('userparams', params)
+  ipcRenderer.send('maketree', params)
 })
+
+
+// const {spawn} = nodeRequire('electron').remote.require('spawn')
+
+// const { spawn } = require('child_process');
+// const ls = spawn('ls', ['-lh', '/usr']);
+
+// ls.stdout.on('data', (data) => {
+//   console.log(`stdout: ${data}`);
+// });
+
+// ls.stderr.on('data', (data) => {
+//   console.error(`stderr: ${data}`);
+// });
+
+// ls.on('close', (code) => {
+//   console.log(`child process exited with code ${code}`);
+// });
+
+

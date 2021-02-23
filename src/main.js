@@ -157,6 +157,29 @@ ipcMain.on('open-dir-dialog', (event) => {
   }
 })
 
-ipcMain.on('userparams', (event, args) => {
-  console.log(args); 
+// Display tree windows and send params
+ipcMain.on('maketree', (event, args) => {
+  const modalPath = path.join('file://', __dirname, '/tree.html')
+  var treeWindow = new BrowserWindow({
+    width: 1200,
+    height: 1000,
+    parent: mainWindow,
+    modal: true,
+    webPreferences: {
+        nodeIntegration: true,
+        enableRemoteModule: true,
+        contextIsolation: false,  // without this, we can't open new windows
+        preload: path.join(__dirname, 'preload.js')
+    }
+  })
+  treeWindow.on('close', () => { treeWindow = null })
+  treeWindow.removeMenu();
+  treeWindow.loadURL(modalPath);
+  // Open the DevTools.
+  treeWindow.webContents.openDevTools();
+
+  treeWindow.show();
+  // FIXME: this is a workaround, sending data directly doesn't work, but using delay sucks
+  setTimeout(function() {
+    treeWindow.send('userparams', args)}, 1500);
 })
