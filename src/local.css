@@ -1,19 +1,16 @@
 .input-label {
-  width: 50%;
+  width: 40%;
   padding: 10px;
 }
 .input-label2 {
-  width: 50%;
+  width: 40%;
   padding: 10px;
   padding-bottom: 0px;
 }
 .input-label3 {
-  width: 50%;
+  width: 40%;
   padding: 10px;
   padding-top: 0px;
-}
-.input-select {
-  margin: 10px;
 }
 .param-section {
    width: 95%;
