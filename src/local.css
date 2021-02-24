@@ -19,3 +19,8 @@
    margin: 20px;
    border-radius: 10px;
  }
+
+#submit:disabled {
+  background-color: #cccccc;
+  color: #aaaaaa;
+}

@@ -9,6 +9,8 @@ function updateMgfInfo(path) {
     var mgfFiles = getMgfFiles(path);
     var nMgf = mgfFiles.length;
     mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
+    // Disable submit button if < 2 MGF files
+    document.getElementById("submit").disabled = (nMgf<2);
 }
 
 // Set initial values for MGF directory and species file
