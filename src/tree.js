@@ -1,4 +1,5 @@
-const {ipcRenderer} = nodeRequire('electron')
+const {ipcRenderer} = nodeRequire('electron');
+const app = nodeRequire('electron').remote.app;
 const path = nodeRequire('path');
 const { spawn } = nodeRequire('child_process');
 
@@ -25,29 +26,6 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
-// Test calling external program
-function newFortune() {
-const fortune = spawn('fortune', ['-s', '-n', '100']);
-fortune.stdout.on('data', (data) => {
-
-    data = escapeHtml(data.toString());
-    data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    data = data.replace(/(?: )/g, '&nbsp;');
-    document.getElementById('fortune').innerHTML = data;
-    });
-    
-    fortune.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-    });
-    
-    fortune.on('close', (code) => {
-    setTimeout(function() {newFortune();}, 10000);
-    });
-    
-}
-
-newFortune();
-
 var file1_idx;
 var file2_idx;
 var paramsGlobal;  // To save memory in recursive call, we store these in global variables
@@ -55,13 +33,14 @@ var mgfFilesGlobal;
 var compareMS2exe;
 var compToDistExe;
 var compResultListFile;
+const myPath = app.getAppPath();
 
 if (navigator.platform=='Linux x86_64') {
-    compareMS2exe = 'external_binaries/compareMS2';
-    compToDistExe = 'external_binaries/compareMS2_to_distance_matrices';
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
 } else if (navigator.platform=='Win64') {
-    compareMS2exe = 'external_binaries/compareMS2';
-    compToDistExe = 'external_binaries/compareMS2_to_distance_matrices.exe';
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
 }
 else {
     document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
@@ -77,11 +56,12 @@ function compareNext() {
         act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1_idx]) + '<br/>' + mgfFilesGlobal[file2_idx];
         var cmpFile = path.join(paramsGlobal.mgfDir, "cmp_"+file1_idx+"_"+file2_idx+".txt");
         const cmp_ms2 = spawn(compareMS2exe,
-        ['-1', path.join(paramsGlobal.mgfDir, mgfFilesGlobal[file1_idx]),
-        '-2', path.join(paramsGlobal.mgfDir, mgfFilesGlobal[file2_idx]),
+        ['-1', mgfFilesGlobal[file1_idx],
+        '-2', mgfFilesGlobal[file2_idx],
         '-c', paramsGlobal.cutoff,
         '-o', cmpFile,
         ]);
+    
         cmp_ms2.stdout.on('data', (data) => {
             data = escapeHtml(data.toString());
             data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -107,6 +87,10 @@ function compareNext() {
             fs.appendFileSync(compResultListFile, cmpFile + "\n");
             file2_idx++;
             if (file2_idx>=file1_idx) {
+            //     if (file2_idx==file1_idx) {
+            //     file2_idx++;
+            // }
+            // if (file2_idx >= mgfFilesGlobal.length) {
                 // Finished new row, create tree
                 act.innerHTML = 'Creating tree';
 // usage: compareMS2_to_distance_matrices -i <list of compareMS2 results files>
@@ -156,7 +140,6 @@ function compareNext() {
                     act.innerHTML = 'Showing tree';
                     // Convert output of compareMS2_to_distance_matrices info Newick format
                 });
-                           // act.innerHTML = 'Creating new tree';
                 file2_idx=0;
 
                 file1_idx++;
@@ -170,10 +153,15 @@ function compareNext() {
 function runCompare(params) {
     // TODO: sanitize params
     mgfFilesGlobal = getMgfFiles(params.mgfDir);
+    // compareMS2 executables need local filenames, so change default dir
+    process.chdir(params.mgfDir);
     // TODO: Sort files according to setting
     paramsGlobal = params;
+    // file1_idx = 0;
+    // file2_idx = 1;
     file1_idx = 1;
     file2_idx = 0;
+
     // Create empty comparison list file
     compResultListFile = path.join(paramsGlobal.mgfDir,'cmp_list.txt');
     fs.closeSync(fs.openSync(compResultListFile, 'w'))
