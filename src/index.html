@@ -24,7 +24,9 @@
             <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001" value="2.05">&nbsp;(<it>m/z</it>)</div>
         <div><label class="input-label">Maximum chromatographic peak width:</label>
             <input class="input-value" type="number" id="chrompeakw" min="0" max="100000"value="1500">&nbsp;(scans)</div>
-        <div>
+        <div><label class="input-label">Score cutoff:</label>
+            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.8"></div>
+        <div hidden>
             &nbsp;&nbsp;<input class="input-select" type="checkbox" id="capturelog" name="capture" checked>
             <label> Capture log</label>&nbsp;
             <input class="input-select" type="checkbox" id="richoutput" name="richout">
@@ -40,21 +42,17 @@
             <input class="input-value" type="text" id="s2sfile" >&nbsp;<button type="button" id="select-file">Select file</button></div>
         <div><label class="input-label">Output filename root:</label>
             <input class="input-value" type="text" id="outbasename" value="comp"></div>
-        <div><label class="input-label">Score cosine cutoff:</label>
-            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.7"></div>
         <div><label class="input-label">Output format</label>
-            <input type="checkbox" id="outnexus" name="output-nexus" checked>
-            <label> NEXUS</label>&nbsp;
-            <input type="checkbox" id="outmega" name="output-mega">
+            <input disabled type="checkbox" id="outmega" name="output-mega" checked>
             <label> MEGA</label>
-            <input type="checkbox" id="outneely" name="output-neely">
-            <label> NEELY</label>&nbsp;
+            <input type="checkbox" id="outnexus" name="output-nexus">
+            <label> NEXUS</label>&nbsp;
         </div>
-        <div><label class="input-label"></label>
+        <div hidden><label class="input-label"></label>
             <input type="checkbox" id="avgspecie" name="average">
             <label> Average all output per specie</label>&nbsp;
         </div>
-        <div><label class="input-label"></label>
+        <div hidden><label class="input-label"></label>
             <input type="checkbox" id="impmiss" name="impute-missing">
             <label> Impute missing values</label>
         </div>
