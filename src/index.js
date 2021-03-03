@@ -58,7 +58,6 @@ submitBtn.addEventListener('click', (event) => {
     avgSpecie : document.getElementById("avgspecie").checked,
     outNexus : document.getElementById("outnexus").checked,
     outMega : document.getElementById("outmega").checked,
-    outNeely : document.getElementById("outneely").checked,
     impMissing : document.getElementById("impmiss").checked,
   }
   ipcRenderer.send('maketree', params)
