@@ -19,7 +19,7 @@ const mgfdir = document.getElementById("mgfdir");
 const s2sfile = document.getElementById("s2sfile");
 mgfdir.value = homedir
 s2sfile.value = homedir
-
+var s2sFileManualSet = false;
 
 // Set initial value of MGF files info
 updateMgfInfo(document.getElementById("mgfdir").value);
@@ -30,17 +30,40 @@ updateMgfInfo(e.target.value);
 }
 mgfdir.addEventListener('input', inputHandler);
 
-// Handle directory browse button
+// Handle browse buttons
 const selectDirBtn = document.getElementById('select-directory')
+const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
 
 selectDirBtn.addEventListener('click', (event) => {
   ipcRenderer.send('open-dir-dialog')
 })
 
-ipcRenderer.on('selected-directory', (event, path) => {
-  var p=`${path}`;
-  document.getElementById("mgfdir").value = p;
-  updateMgfInfo(p);
+ipcRenderer.on('selected-directory', (event, p) => {
+  var fn=`${p}`;
+  document.getElementById("mgfdir").value = fn;
+  updateMgfInfo(fn);
+  // If sample-to-species file was not manually set, check if
+  // a file named 'sample_to_species.txt' exists in the selected
+  // dir, and set the path if so.
+  if (!s2sFileManualSet) {
+    const s2sFn = path.join(fn, "sample_to_species.txt");// p+"/sample_to_species.txt"; 
+    fs.access(s2sFn, fs.F_OK, (err) => {
+      if (err) {
+        return
+      }
+      document.getElementById("s2sfile").value = s2sFn;
+    });
+  }
+})
+
+selectSpeciesfileBtn.addEventListener('click', (event) => {
+  ipcRenderer.send('open-speciesfile-dialog')
+})
+
+ipcRenderer.on('selected-speciesfile', (event, p) => {
+  var fn=`${p}`;
+  document.getElementById("s2sfile").value = fn;
+  s2sFileManualSet = true;
 })
 
   // Handle submit button

@@ -157,6 +157,21 @@ ipcMain.on('open-dir-dialog', (event) => {
   }
 })
 
+ipcMain.on('open-speciesfile-dialog', (event) => {
+  const files = dialog.showOpenDialogSync(mainWindow, {
+    filters: {
+      filters: [
+        { name: 'Text file', extensions: ['txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    },
+    properties: ['openFile']
+  });
+  if (files) {
+      mainWindow.send('selected-speciesfile', files)
+  }
+})
+
 // Display tree windows and send params
 ipcMain.on('maketree', (event, args) => {
   const modalPath = path.join('file://', __dirname, '/tree.html')
