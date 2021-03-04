@@ -111,7 +111,7 @@ const createWindow = () => {
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -191,7 +191,7 @@ ipcMain.on('maketree', (event, args) => {
   treeWindow.removeMenu();
   treeWindow.loadURL(modalPath);
   // Open the DevTools.
-  treeWindow.webContents.openDevTools();
+  //treeWindow.webContents.openDevTools();
 
   treeWindow.show();
   // FIXME: this is a workaround, sending data directly doesn't work, but using delay sucks
