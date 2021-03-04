@@ -44,7 +44,7 @@ const myPath = app.getAppPath();
 if (navigator.platform=='Linux x86_64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
-} else if (navigator.platform=='Win64') {
+} else if ( (navigator.platform=='Win64') || (navigator.platform=='Win32')) {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
 }
