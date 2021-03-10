@@ -4,21 +4,20 @@
 function lowestCell(table) {
     // Set default to infinity
     var minCell = Number.MAX_VALUE;
-    var x = -1;
-    var y = -1;
+    var row = -1;
+    var col = -1;
 
     // Go through every cell, looking for the lowest
     for (var i=0; i<table.length; i++) {
         for (var j=0; j<table[i].length; j++) {
             if (table[i][j] < minCell) {
                 minCell = table[i][j];
-                x = i; y = j;
+                row = i; col = j;
             }
         }
     }
 
-    // Return the x, y co-ordinate of cell
-    return [x, y];
+    return [row, col];
 }
 
 // join_labels:
@@ -80,12 +79,12 @@ function UPGMA(table, labels) {
     // Until all labels have been joined...
     while (labels.length > 1) {
         // Locate lowest cell in the table
-        var [x, y] = lowestCell(table);
+        var [r, c] = lowestCell(table);
         // Join the table on the cell co-ordinates
-        console.log("1 Table: ", JSON.stringify(table), " x:", x, "y:", y);
-        joinTable(table, x, y);
+        console.log("1 Table: ", JSON.stringify(table), " r:", r, "c:", c);
+        joinTable(table, r, c);
         // Update the labels accordingly
-        joinLabels(labels, x, y);
+        joinLabels(labels, r, c);
         console.log("Labels: ", JSON.stringify(labels));
     }
     // Return the final label
@@ -122,4 +121,4 @@ function testUPGMA() {
     console.log("UPGMA output: " + UPGMA(table, labels));
 }
 
-// testUPGMA();
+testUPGMA();
