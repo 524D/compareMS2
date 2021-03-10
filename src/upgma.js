@@ -17,58 +17,69 @@ function lowestCell(table) {
         }
     }
 
-    return [row, col];
+    return [row, col, minCell];
 }
 
 // join_labels:
 //   Combines two labels in a list of labels
-function joinLabels(labels, a, b) {
+function joinLabels(labels, dist, leafDist, a, b) {
     // Swap if the indices are not ordered
     if (b < a) {
         [a, b] = [b, a];
     }
     // Join the labels in the first index
-    labels[a] = "(" + labels[a] + "," + labels[b] + ")";
+    labels[a] = "(" + labels[a] + ":" + (dist/2 - leafDist[a]) + "," +
+      labels[b] +  ":" + (dist/2 - leafDist[b])+ ")";
 
+    leafDist[a] = dist/2;
     // Remove the (now redundant) label in the second index
     labels.splice(b, 1);
+    leafDist.splice(b, 1);
 }
 
 // join_table:
-//   Joins the entries of a table on the cell (b, a) by averaging their data entries
-function joinTable(table, weight, leafDist, b, a) {
-    // For the lower index, reconstruct the entire row (A, i), where i < A
+//   Joins the entries of a table on the cell (r, c) by averaging their data entries
+function joinTable(table, weight, r, c) {
+    // Note: since we only process the lower part of the matrix,
+    // for all cells coordinates (row,column) the following is true: row>column
+
+    // For the lower (column) index, reconstruct the entire row (A, i), where i < A
     var row = [];
-    console.log("2 Table: ", JSON.stringify(table), " a=", a, " b=", b);
-    for (var i = 0; i < a; i++) {
-        row.push(((table[a][i]*weight[a][i]) + table[b][i]*weight[b][i])) / (weight[a][i]+weight[b][i]);
+    var rowweight = [];
+    console.log("2 Table: ", JSON.stringify(table));
+    console.log("2 weight: ", JSON.stringify(weight));
+    for (var i = 0; i < c; i++) {
+        row.push(((table[c][i]*weight[c][i]) + table[r][i]*weight[r][i]) / (weight[c][i]+weight[r][i]));
+        rowweight.push(weight[c][i]+weight[r][i]);
     }
     console.log("Row: ", JSON.stringify(row));
 
-    table[a] = row;
-    console.log("3 Table: ", JSON.stringify(table));
+    table[c] = row;
+    weight[c] = rowweight;
+ //   console.log("3 Table: ", JSON.stringify(table));
 
     // Then, reconstruct the entire column (i, A), where i > A
-    //   Note: Since the matrix is lower triangular, row b only contains values for indices < b
-    for (var i = a + 1; i < b; i++) {
-        table[i][a] = ((table[i][a]*weight[i][a]) + (table[b][i]*weight[b][i])) / (weight[i][a]+weight[b][i]);
+    //   Note: Since the matrix is lower triangular, row r only contains values for indices < r
+    for (var i = c + 1; i < r; i++) {
+        table[i][c] = ((table[i][c]*weight[i][c]) + (table[r][i]*weight[r][i])) / (weight[i][c]+weight[r][i]);
+        weight[i][c] = weight[i][c]+weight[r][i];
     }
-    console.log("4 Table: ", JSON.stringify(table));
+//    console.log("4 Table: ", JSON.stringify(table));
     //   We get the rest of the values from row i
-    for (var i = b + 1; i < table.length; i++) {
-        console.log("4.1 Table: ", JSON.stringify(table), " i=", i, " a=", a);
-        table[i][a] = ((table[i][a]*weight[i][a]) + (table[i][b]*weight[i][b])) / (weight[i][a]+weight[i][b]);
-        console.log("4.2 Table: ", JSON.stringify(table), " i=", i, " a=", a);
+    for (var i = r + 1; i < table.length; i++) {
+        table[i][c] = ((table[i][c]*weight[i][c]) + (table[i][r]*weight[i][r])) / (weight[i][c]+weight[i][r]);
+        weight[i][c]=(weight[i][c]+weight[i][r]);
         // Remove the (now redundant) second index column entry
-        table[i].splice(b, 1);
-        weight[i].splice(b, 1);
+        table[i].splice(r, 1);
+        weight[i].splice(r, 1);
     }
-    console.log("5 Table: ", JSON.stringify(table));
 
     // Remove the (now redundant) second index row
-    table.splice(b, 1);
-    weight.splice(b, 1);
+    table.splice(r, 1);
+    weight.splice(r, 1);
     console.log("6 Table: ", JSON.stringify(table));
+    console.log("6 weight: ", JSON.stringify(weight));
+
 }
 
 // UPGMA:
@@ -83,7 +94,7 @@ function UPGMA(table, labels) {
         }
     }
 
-    // Distance of each cluster to the leafes
+    // Distance of each cluster to the leafs
     var leafDist = [];
     for (var i = 0; i < labels.length; i++) {
         leafDist.push(0);
@@ -91,12 +102,12 @@ function UPGMA(table, labels) {
     // Until all labels have been joined...
     while (labels.length > 1) {
         // Locate lowest cell in the table
-        var [r, c] = lowestCell(table);
+        var [r, c, dist] = lowestCell(table);
+        // Update the labels accordingly
+        joinLabels(labels, dist, leafDist, r, c);
         // Join the table on the cell co-ordinates
         console.log("1 Table: ", JSON.stringify(table), " r:", r, "c:", c);
-        joinTable(table, weight, leafDist, r, c);
-        // Update the labels accordingly
-        joinLabels(labels, r, c);
+        joinTable(table, weight, r, c);
         console.log("Labels: ", JSON.stringify(labels));
     }
     // Return the final label
