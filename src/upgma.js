@@ -35,14 +35,8 @@ function joinLabels(labels, a, b) {
 }
 
 // join_table:
-//   Joins the entries of a table on the cell (a, b) by averaging their data entries
-function joinTable(table, weight, leafDist, a, b) {
-    // Swap if the indices are not ordered
-    // Since the matrix is diagonal, this is allowed
-    if (b < a) {
-        [a, b] = [b, a];
-        console.log("SWAP");
-    }
+//   Joins the entries of a table on the cell (b, a) by averaging their data entries
+function joinTable(table, weight, leafDist, b, a) {
     // For the lower index, reconstruct the entire row (A, i), where i < A
     var row = [];
     console.log("2 Table: ", JSON.stringify(table), " a=", a, " b=", b);
