@@ -52,11 +52,9 @@ function joinTable(table, weight, r, c) {
         row.push(((table[c][i]*weight[c][i]) + table[r][i]*weight[r][i]) / (weight[c][i]+weight[r][i]));
         rowweight.push(weight[c][i]+weight[r][i]);
     }
-    console.log("Row: ", JSON.stringify(row));
 
     table[c] = row;
     weight[c] = rowweight;
- //   console.log("3 Table: ", JSON.stringify(table));
 
     // Then, reconstruct the entire column (i, A), where i > A
     //   Note: Since the matrix is lower triangular, row r only contains values for indices < r
@@ -64,7 +62,6 @@ function joinTable(table, weight, r, c) {
         table[i][c] = ((table[i][c]*weight[i][c]) + (table[r][i]*weight[r][i])) / (weight[i][c]+weight[r][i]);
         weight[i][c] = weight[i][c]+weight[r][i];
     }
-//    console.log("4 Table: ", JSON.stringify(table));
     //   We get the rest of the values from row i
     for (var i = r + 1; i < table.length; i++) {
         table[i][c] = ((table[i][c]*weight[i][c]) + (table[i][r]*weight[i][r])) / (weight[i][c]+weight[i][r]);
@@ -106,20 +103,15 @@ function UPGMA(table, labels) {
         // Update the labels accordingly
         joinLabels(labels, dist, leafDist, r, c);
         // Join the table on the cell co-ordinates
-        console.log("1 Table: ", JSON.stringify(table), " r:", r, "c:", c);
         joinTable(table, weight, r, c);
-        console.log("Labels: ", JSON.stringify(labels));
     }
     // Return the final label
     return labels[0];
 }
 
 function testUPGMA() {
-    var table= [[],[5.6],[1.2, 3.4],[6.1,2.5,8]];
-    var labels=['A', 'B', 'C', 'D'];
-    console.log("UPGMA output: " + UPGMA(table, labels));
-
-    // Example from: http://www.nmsr.org/upgma.htm
+    // Example from: http://www.slimsuite.unsw.edu.au/teaching/upgma/
+    // Same matrix also on: http://www.nmsr.org/upgma.htm but with incorrect results!
     var table= [
         [],                         //A
         [19],                       //B
@@ -144,4 +136,4 @@ function testUPGMA() {
     console.log("UPGMA output: " + UPGMA(table, labels));
 }
 
-testUPGMA();
+// testUPGMA();
