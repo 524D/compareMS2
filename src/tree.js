@@ -251,4 +251,6 @@ ipcRenderer.on('userparams', (event, params) => {
     runCompare(params);
 })
   
+// Notify main process that we are ready to receive parameters
+ipcRenderer.send('get-userparms');
 

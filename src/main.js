@@ -9,7 +9,9 @@ const path = require('path')
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let treeWindow;
 
+let params; // User parameters set in main window
 
 let template = [{
   label: 'File',
@@ -175,7 +177,8 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 // Display tree windows and send params
 ipcMain.on('maketree', (event, args) => {
   const modalPath = path.join('file://', __dirname, '/tree.html')
-  var treeWindow = new BrowserWindow({
+  params = args;
+  treeWindow = new BrowserWindow({
     width: 1200,
     height: 1000,
     parent: mainWindow,
@@ -194,7 +197,9 @@ ipcMain.on('maketree', (event, args) => {
   //treeWindow.webContents.openDevTools();
 
   treeWindow.show();
-  // FIXME: this is a workaround, sending data directly doesn't work, but using delay sucks
-  setTimeout(function() {
-    treeWindow.send('userparams', args)}, 1500);
+})
+
+// Send parameters to tree window
+ipcMain.on('get-userparms', () => {
+   treeWindow.send('userparams', params);
 })
