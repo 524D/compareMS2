@@ -95,18 +95,13 @@ function compareNext() {
         cmp_ms2.on('close', (code) => {
             fs.appendFileSync(compResultListFile, cmpFile + "\n");
             file2_idx++;
-            if (file2_idx>=file1_idx) {
-            //     if (file2_idx==file1_idx) {
-            //     file2_idx++;
-            // }
-            // if (file2_idx >= mgfFilesGlobal.length) {
+            if (file2_idx<file1_idx) {
+                // If row is not finished, schedule next comparison
+                setTimeout(function() {compareNext();}, 0);
+            }
+            else {
                 // Finished new row, create tree
                 act.innerHTML = 'Creating tree';
-// usage: compareMS2_to_distance_matrices -i <list of compareMS2 results files>
-//   -o <output file stem> 
-// -x sample to species mapping
-// -c score cutoff
-
 
                 var cmdArgs = ['-i', compResultListFile,
                 '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) ,
@@ -118,8 +113,7 @@ function compareNext() {
                 if (fs.existsSync(s2s) && fs.lstatSync(s2s).isFile()) {
                     cmdArgs.push('-x', s2s)
                 }
-                else
-                {
+                else {
                 // FIXME: compareMS2_to_distance_matrices doesn't work without sample2species file,
                 // so assume it is in the data dir if not specified
                     cmdArgs.push('-x', path.join(paramsGlobal.mgfDir, 'sample_to_species.txt'));
@@ -194,11 +188,12 @@ function compareNext() {
 
                             file1_idx++;
                             document.getElementById('stdout').innerHTML = '';
+                            // Start next comparison (if any)
+                            setTimeout(function() {compareNext();}, 0);
                         }
                     });
                 });
             }
-            setTimeout(function() {compareNext();}, 1000);
         });
     }
 }
@@ -210,8 +205,6 @@ function runCompare(params) {
     process.chdir(params.mgfDir);
     // TODO: Sort files according to setting
     paramsGlobal = params;
-    // file1_idx = 0;
-    // file2_idx = 1;
     file1_idx = 1;
     file2_idx = 0;
 
@@ -221,36 +214,11 @@ function runCompare(params) {
     compareNext();
 }
 
-
-
-
-    // 
-    // precMassDiff
-    // chromPeakW
-    // captureLog
-    // richOutput
-    // s2sFile
-    // outBasename
-    // cutoff
-    // avgSpecie
-    // outNexus
-    // outMega
-    // outNeely
-    // impMissing
-
-// usage: compareMS2 -1 <first dataset filename> -2 <second dataset filename>
-// [-c <score cutoff> -o <output filename>
-// -m <minimum base peak signal in MS/MS spectrum for comparison>,<minimum total ion signal in MS/MS spectrum for comparison>
-// -a <alignment piecewise linear function filename>
-// -w <maximum scan number difference>
-// -p <maximum difference in precursor mass>
-// -e <maximum mass measurement error>]
-
 // Receive parameters set in the main window
 ipcRenderer.on('userparams', (event, params) => {
     runCompare(params);
 })
-  
+
 // Notify main process that we are ready to receive parameters
 ipcRenderer.send('get-userparms');
 
