@@ -112,8 +112,10 @@ const createWindow = () => {
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
+      // Open the DevTools.
+      mainWindow.webContents.openDevTools();
+  } 
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -193,8 +195,10 @@ ipcMain.on('maketree', (event, args) => {
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
   treeWindow.loadURL(modalPath);
-  // Open the DevTools.
-  //treeWindow.webContents.openDevTools();
+  if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
+    // Open the DevTools.
+    treeWindow.webContents.openDevTools();
+  } 
 
   treeWindow.show();
 })
