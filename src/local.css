@@ -25,18 +25,20 @@
   color: #aaaaaa;
 }
 
-.scrollbox {
+.info-panel {
+  background-color: lightgrey;
+  max-height: 100%;
+  max-width: 100%;
   overflow: auto;
-  height: 50%;
-  width: 100%;
 }
 
-.scrollbox-bottom {
-  background-color: lightgrey;
-  height: 40%;
+#tree-container {
+  max-height: 100%;
+  max-width: 100%;
   overflow: auto;
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
+  /*
+  padding: 20px;
+  height: 100%;
+  width: 60%;
+  */
 }

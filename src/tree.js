@@ -8,6 +8,13 @@ let tree = d3.layout.phylotree()
   // create a tree layout object
   .svg(d3.select("#tree_display"));
   // render to this SVG element
+let svgTree = document.getElementById('tree_display');
+//tree.size([svgTree.clientWidth,svgTree.clientHeight]);
+tree.size([800,600]);
+tree.font_size(15);
+tree.options({'left-right-spacing' : "fit-to-size",
+              'top-bottom-spacing': "fit-to-size",
+              'zoom': true,}, true);
 
 $("#layout").on("click", function(e) {
     tree.radial($(this).prop("checked")).placenodes().update();
