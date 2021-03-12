@@ -82,6 +82,7 @@ submitBtn.addEventListener('click', (event) => {
     outNexus : document.getElementById("outnexus").checked,
     outMega : document.getElementById("outmega").checked,
     impMissing : document.getElementById("impmiss").checked,
+    compareOrder : document.getElementById("compare-order").value,
   }
   ipcRenderer.send('maketree', params)
 })

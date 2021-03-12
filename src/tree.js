@@ -210,12 +210,55 @@ function makeTree() {
     });
 }
 
+function sortFiles(files, compareOrder) {
+    let fsz = []; // Files with sizes
+    files.forEach(function (file) {
+        fsz.push({'fn': file, 's': fs.statSync(file).size});
+    });
+    // Sort by size
+    fsz.sort((a,b) => (a.s > b.s) ? 1 : ((b.s > a.s) ? -1 : 0));
+    // Update original array (without sizes)
+    fsz.forEach(function (f, i) {
+        files[i] = f.fn;
+    });
+    // Change to requested ordering
+    let l=files.length;
+    let l2=Math.floor(l/2);
+    switch(compareOrder) {
+    case "smallest-largest":
+        for (let i1=1; i1<l2; i1=i1+2) {
+            let i2 = l-i1;
+            [files[i1], files[i2]] = [files[i2],files[i1]];
+        }
+        break;
+    case "largest":
+        for (let i1=0; i1<l2; i1++) {
+            let i2 = l-i1-1;
+            [files[i1], files[i2]] = [files[i2],files[i1]];
+        }
+        break;
+    case "smallest":
+        // Already sorted this way, nothing to do
+        break;
+    default: // also "random"
+        // We use Fisher-Yates Shuffle to randomize the order
+        let i1 = l;
+        while (i1 !== 0) {
+            let i2 = Math.floor(Math.random() * i1);
+            i1--;
+            [files[i1], files[i2]] = [files[i2],files[i1]];
+        }
+    }
+}
+
 function runCompare(params) {
     // TODO: sanitize params
     mgfFilesGlobal = getMgfFiles(params.mgfDir);
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(params.mgfDir);
-    // TODO: Sort files according to setting
+    // Sort files according to setting
+    sortFiles(mgfFilesGlobal, params.compareOrder);
+    console.log("Ordering after sort:", JSON.stringify(mgfFilesGlobal));
     paramsGlobal = params;
     file1_idx = 1;
     file2_idx = 0;
