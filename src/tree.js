@@ -9,6 +9,12 @@ let tree = d3.layout.phylotree()
   .svg(d3.select("#tree_display"));
   // render to this SVG element
 let svgTree = document.getElementById('tree_display');
+
+// newick format of tree
+let newick = '';
+// Idem, without distance info (topology only)
+let topology = '';
+
 //tree.size([svgTree.clientWidth,svgTree.clientHeight]);
 tree.size([800,600]);
 tree.font_size(15);
@@ -19,6 +25,11 @@ tree.options({'left-right-spacing' : "fit-to-size",
 $("#layout").on("click", function(e) {
     tree.radial($(this).prop("checked")).placenodes().update();
   });
+
+$("#topology").on("click", function(e) {
+    d3.select("#tree_display").selectAll("*").remove();
+    tree($(this).prop("checked") ? topology: newick).layout();
+});
 
 function escapeHtml(unsafe) {
     return unsafe
@@ -184,11 +195,10 @@ function makeTree() {
             if (last) {
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
-                let newick = UPGMA(matrix, labels);
-                console.log('newick', newick);
+                [newick, topology] = UPGMA(matrix, labels);
+                console.log('newick', newick, 'topology', topology);
                 d3.select("#tree_display").selectAll("*").remove();
-                tree(newick)
-                    .layout();
+                tree($("#topology").prop("checked") ?  topology: newick).layout();
                 file2_idx=0;
 
                 file1_idx++;

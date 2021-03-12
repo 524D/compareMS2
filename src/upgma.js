@@ -22,7 +22,7 @@ function lowestCell(table) {
 
 // join_labels:
 //   Combines two labels in a list of labels
-function joinLabels(labels, dist, leafDist, a, b) {
+function joinLabels(labels, topologyLabels, dist, leafDist, a, b) {
     // Swap if the indices are not ordered
     if (b < a) {
         [a, b] = [b, a];
@@ -30,6 +30,7 @@ function joinLabels(labels, dist, leafDist, a, b) {
     // Join the labels in the first index
     labels[a] = "(" + labels[a] + ":" + (dist/2 - leafDist[a]) + "," +
       labels[b] +  ":" + (dist/2 - leafDist[b])+ ")";
+    topologyLabels[a] = "(" + topologyLabels[a] + "," + topologyLabels[b]+ ")";
 
     leafDist[a] = dist/2;
     // Remove the (now redundant) label in the second index
@@ -82,6 +83,7 @@ function joinTable(table, weight, r, c) {
 // UPGMA:
 //   Runs the UPGMA algorithm on a labelled table
 function UPGMA(table, labels) {
+    let topologyLabels = [...labels];
     // Weight of each cell in distance matrix
     var weight = [];
     for (var i=0; i<table.length; i++) {
@@ -101,12 +103,12 @@ function UPGMA(table, labels) {
         // Locate lowest cell in the table
         var [r, c, dist] = lowestCell(table);
         // Update the labels accordingly
-        joinLabels(labels, dist, leafDist, r, c);
+        joinLabels(labels, topologyLabels, dist, leafDist, r, c);
         // Join the table on the cell co-ordinates
         joinTable(table, weight, r, c);
     }
     // Return the final label
-    return labels[0];
+    return [labels[0], topologyLabels[0]];
 }
 
 function testUPGMA() {
@@ -136,4 +138,4 @@ function testUPGMA() {
     console.log("UPGMA output: " + UPGMA(table, labels));
 }
 
-// testUPGMA();
+testUPGMA();
