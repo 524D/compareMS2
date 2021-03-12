@@ -1,4 +1,4 @@
-# compareMS2gui
+# compareMS2
 
 Compare samples by MS2 spectra
 
@@ -32,5 +32,5 @@ To build a distributable package (for the platform where this command is execute
 electron-forge make
 ```
 
-The resulting installer can than be found (relative to the compareMS2gui source directory) in:
-`out\make\squirrel.windows\x64\comparems2gui-x.y.z Setup.exe` for windows.
+The resulting installer can than be found (relative to the compareMS2 main directory) in:
+`out\make\squirrel.windows\x64\compareMS2-x.y.z Setup.exe` for windows.
