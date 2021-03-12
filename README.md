@@ -13,8 +13,8 @@ From the command promp:
 
 ```text
 npm install -g electron-forge
-git clone https://github.com/524D/compareMS2gui
-cd compareMS2gui
+git clone https://github.com/524D/compareMS2
+cd compareMS2
 npm install
 ```
 
