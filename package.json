@@ -1,6 +1,6 @@
 {
-  "name": "compare-ms2-gui",
-  "productName": "comparems2gui",
+  "name": "compare-ms2",
+  "productName": "compareMS2",
   "version": "0.0.2",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
@@ -37,7 +37,7 @@
         "packageManager": "npm"
       },
       "electronWinstallerConfig": {
-        "name": "comparems2gui"
+        "name": "compareMS2"
       },
       "electronInstallerDebian": {},
       "electronInstallerRedhat": {},
@@ -47,7 +47,7 @@
       },
       "windowsStoreConfig": {
         "packageName": "",
-        "name": "comparems2gui"
+        "name": "compareMS2"
       }
     }
   },

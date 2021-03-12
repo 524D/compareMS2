@@ -86,7 +86,7 @@ let template = [{
   submenu: [{
     label: 'Getting started',
     click: () => {
-      shell.openExternal('https://github.com/524D/compareMS2gui')
+      shell.openExternal('https://github.com/524D/compareMS2')
     }
   }]
 }]
