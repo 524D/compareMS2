@@ -107,8 +107,18 @@ function UPGMA(table, labels) {
         // Join the table on the cell co-ordinates
         joinTable(table, weight, r, c);
     }
-    // Return the final label
-    return [labels[0], topologyLabels[0]];
+
+    let newick=labels[0];
+    let topology=topologyLabels[0];
+    // Avoid returning 'undefined'
+    if (typeof newick === 'undefined') {
+        newick = "";
+    }
+    if (typeof topology === 'undefined') {
+        topology = "";
+    }
+
+    return [newick, topology];
 }
 
 function testUPGMA() {
@@ -138,4 +148,4 @@ function testUPGMA() {
     console.log("UPGMA output: " + UPGMA(table, labels));
 }
 
-testUPGMA();
+//testUPGMA();
