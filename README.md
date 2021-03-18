@@ -9,7 +9,7 @@ Install nodejs:
 * On Linux `apt install nodejs`
 * On windows download from: <https://nodejs.org/en/download/>
 
-From the command promp:
+From the command prompt:
 
 ```text
 npm install -g electron-forge
