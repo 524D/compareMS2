@@ -27,18 +27,47 @@
 
 .info-panel {
   background-color: lightgrey;
-  max-height: 100%;
-  max-width: 100%;
+  height: 20%;
+  width: 100%;
   overflow: auto;
+  position: absolute;
+  bottom: 0;
 }
 
 #tree-container {
   max-height: 100%;
   max-width: 100%;
   overflow: auto;
-  /*
   padding: 20px;
+  /*
   height: 100%;
   width: 60%;
   */
+}
+
+#t0 {
+  overflow: hidden; 
+}
+
+#tt {
+  overflow: hidden;
+  height: 40px;
+  width: 100%;
+}
+
+#t2 {
+  /* background-color: rgb(227, 255, 201); */
+width: 100%;
+overflow: auto;
+position: absolute;
+top: 40px;
+height:calc(80% - 40px);
+}
+
+#t3 {
+  height:800px;
+}
+
+.warn {
+  color: red;
 }

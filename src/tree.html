@@ -17,20 +17,23 @@
   <script src="assets/underscore-min.js" charset="utf-8"></script>
 </head>
 
-<body>
-  &nbsp;&nbsp;<input type="checkbox" id="layout" name="radial_layout">&nbsp;<label>Radial layout</label>&nbsp;&nbsp;<input type="checkbox" id="topology" name="topology_only">&nbsp;<label>Topology only</label><br/>  
-  <div class="container">
-    <div class="row">
-      <div class="col-sm-8" id="tree-container">
+<body id="t0">
+  <div id="tt">
+  &nbsp;&nbsp;<input type="checkbox" id="layout" name="radial_layout">
+  &nbsp;<label>Radial layout</label>
+  &nbsp;&nbsp;<input type="checkbox" id="topology" name="topology_only">
+  &nbsp;<label>Topology only</label><br/>  
+</div>
+  <div id="t2">
+    <div id="t3">
         <svg id="tree_display"></svg>
       </div>
-      <div class="col-sm-4 info-panel">
-        <h3 id="activity"></h3>
-        <div id="stdout"></div>
-      </div>
-    </div>
   </div>
-  <script src="tree.js"></script>
+  <div class="info-panel">
+    <h3 id="activity"></h3>
+    <div id="stdout"></div>
+  </div>
+<script src="tree.js"></script>
   <script src="upgma.js"></script>
 
 </body>
