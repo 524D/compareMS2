@@ -3,6 +3,7 @@ const app = nodeRequire('electron').remote.app;
 const path = nodeRequire('path');
 const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');
+const log = nodeRequire('electron-log');
 
 let tree = d3.layout.phylotree()
   // create a tree layout object
@@ -40,6 +41,23 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
+// Output logging
+function llog(msg) {
+    log.info(msg); 
+
+    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    msg = msg.replace(/(?: )/g, '&nbsp;');
+    document.getElementById('stdout').innerHTML += msg;
+}
+
+function elog(msg) {
+    log.error(msg); 
+    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    msg = msg.replace(/(?: )/g, '&nbsp;');
+    msg = '<span class="warn>' + msg + '</span>';
+    document.getElementById('stdout').innerHTML += msg;
+}
+
 let file1_idx;
 let file2_idx;
 let paramsGlobal;  // To save memory in recursive call, we store these in global variables
@@ -70,6 +88,12 @@ function compareNext() {
     {
         act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1_idx]) + '<br/>' + mgfFilesGlobal[file2_idx];
         let cmpFile = path.join(paramsGlobal.mgfDir, "cmp_"+file1_idx+"_"+file2_idx+".txt");
+
+        let cmdStr = compareMS2exe + ' -1 "' + mgfFilesGlobal[file1_idx] + '" -2 "' + mgfFilesGlobal[file2_idx] +
+        '" -c ' + paramsGlobal.cutoff + ' -p ' + paramsGlobal.precMassDiff + ' -w ' + paramsGlobal.chromPeakW +
+        ' -o "' + cmpFile + '"';
+        llog('Executing: ' + cmdStr + '\n');
+
         const cmp_ms2 = spawn(compareMS2exe,
         ['-1', mgfFilesGlobal[file1_idx],
         '-2', mgfFilesGlobal[file2_idx],
@@ -88,6 +112,7 @@ function compareNext() {
             
         cmp_ms2.stderr.on('data', (data) => {
             console.error(`stderr: ${data}`);
+            elog(data.toString());
         });
             
         cmp_ms2.on('error', (data) => {
@@ -100,7 +125,10 @@ function compareNext() {
             act.innerHTML = 'Error running compareMS2';
         });
             
-        cmp_ms2.on('close', (code) => {
+        cmp_ms2.on('close', (code, signal) => {
+            if (code == null) {
+                elog("Error: ", signal, "\n")
+            }
             fs.appendFileSync(compResultListFile, cmpFile + "\n");
             file2_idx++;
             if (file2_idx<file1_idx) {
@@ -134,6 +162,10 @@ function makeTree() {
     // so assume it is in the data dir if not specified
         cmdArgs.push('-x', path.join(paramsGlobal.mgfDir, 'sample_to_species.txt'));
     }
+    let cmdStr = compToDistExe + ' -i "' + compResultListFile + '" -o "' + path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) +
+        '" -c ' + paramsGlobal.cutoff + ' -m ' + 
+        ' -x "' + cmdArgs[cmdArgs.length-1] + '"';
+    llog('Executing: ' + cmdStr + '\n');
     //                const c2d = spawn('echo', cmdArgs);
     const c2d = spawn(compToDistExe, cmdArgs);
     c2d.stdout.on('data', (data) => {
@@ -256,6 +288,8 @@ function runCompare(params) {
     mgfFilesGlobal = getMgfFiles(params.mgfDir);
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(params.mgfDir);
+    llog('Change default dir: "' + params.mgfDir+'"\n');
+
     // Sort files according to setting
     sortFiles(mgfFilesGlobal, params.compareOrder);
     console.log("Ordering after sort:", JSON.stringify(mgfFilesGlobal));
