@@ -29,7 +29,13 @@
 #define BIN_SIZE 0.2 /* bin size in Th */
 #define N_BINS 9455 /* number of bins */
 
-
+/* atol0 acts the same as atol, but handles a null pointer without crashing */
+static int atol0(const char *p) {
+  if (p==0) {
+    return 0;
+  }
+  return atol(p);
+}
 
 /* main starts here */
 
@@ -90,7 +96,7 @@ int main(int argc, char *argv[])
     if( (argv[i][0]=='-') && (argv[i][1]=='R') ) 
       {
 	strcpy(temp,&argv[strlen(argv[i])>2?i:i+1][strlen(argv[i])>2?2:0]); p=strtok(temp,","); 
-	start_scan=atol(p); p=strtok('\0',","); end_scan=atol(p);
+	start_scan=atol0(p); p=strtok('\0',","); end_scan=atol0(p);
       }
     if( (argv[i][0]=='-') && (argv[i][1]=='o') ) strcpy(output_filename,&argv[strlen(argv[i])>2?i:i+1][strlen(argv[i])>2?2:0]);
     if( (argv[i][0]=='-') && (argv[i][1]=='p') ) max_precursor_difference=atof(&argv[strlen(argv[i])>2?i:i+1][strlen(argv[i])>2?2:0]);
@@ -151,7 +157,7 @@ int main(int argc, char *argv[])
       }
       if(strspn("CHARGE",p)>5) D1[i].charge=(char)atoi(strpbrk(p,"0123456789"));
       if(isdigit(p[0])) {D1[i].mz[j]=atof(p); p=strtok('\0'," \t"); if(j<MAX_PEAKS) {D1[i].intensity[j]=atof(p); j++;}}
-      if(strspn("SCANS",p)>4) {D1[i].scan=(long)atol(strpbrk(p,"0123456789")); continue;}
+      if(strspn("SCANS",p)>4) {D1[i].scan=(long)atol0(strpbrk(p,"0123456789")); continue;}
       if(strcmp("END",p)==0) {D1[i].n_peaks=j; i++; j=0;}
     }
   
@@ -169,7 +175,7 @@ int main(int argc, char *argv[])
       }
       if(strspn("CHARGE",p)>5) D2[i].charge=(char)atoi(strpbrk(p,"0123456789"));
       if(isdigit(p[0])) {D2[i].mz[j]=atof(p); p=strtok('\0'," \t"); if(j<MAX_PEAKS) {D2[i].intensity[j]=atof(p); j++;}}
-      if(strspn("SCANS",p)>4) {D2[i].scan=(long)atol(strpbrk(p,"0123456789")); continue;} // for Ben's MGFs from Lumos
+      if(strspn("SCANS",p)>4) {D2[i].scan=(long)atol0(strpbrk(p,"0123456789")); continue;} // for Ben's MGFs from Lumos
       if(strcmp("END",p)==0) {D2[i].n_peaks=j; i++; j=0;}
     }
   printf("done\n"); fflush(stdout);
