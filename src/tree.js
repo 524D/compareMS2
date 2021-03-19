@@ -58,8 +58,8 @@ function elog(msg) {
     document.getElementById('stdout').innerHTML += msg;
 }
 
-let file1_idx;
-let file2_idx;
+let file1Idx;
+let file2Idx;
 let paramsGlobal;  // To save memory in recursive call, we store these in global variables
 let mgfFilesGlobal;
 let compareMS2exe;
@@ -81,22 +81,26 @@ else {
 function compareNext() {
     let act=document.getElementById('activity');
 
-    if (file1_idx >= mgfFilesGlobal.length) {
+    let nMgf = mgfFilesGlobal.length;
+    let progress = ((file1Idx * (file1Idx-1)/2)  + file2Idx)/ (nMgf * (nMgf -1)/2);
+    document.getElementById('progress').value = progress * 100;
+
+    if (file1Idx >= mgfFilesGlobal.length) {
         act.innerHTML = 'Finished';
     }
     else
     {
-        act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1_idx]) + '<br/>' + mgfFilesGlobal[file2_idx];
-        let cmpFile = path.join(paramsGlobal.mgfDir, "cmp_"+file1_idx+"_"+file2_idx+".txt");
+        act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1Idx]) + '<br/>' + mgfFilesGlobal[file2Idx];
+        let cmpFile = path.join(paramsGlobal.mgfDir, "cmp_"+file1Idx+"_"+file2Idx+".txt");
 
-        let cmdStr = compareMS2exe + ' -1 "' + mgfFilesGlobal[file1_idx] + '" -2 "' + mgfFilesGlobal[file2_idx] +
+        let cmdStr = compareMS2exe + ' -1 "' + mgfFilesGlobal[file1Idx] + '" -2 "' + mgfFilesGlobal[file2Idx] +
         '" -c ' + paramsGlobal.cutoff + ' -p ' + paramsGlobal.precMassDiff + ' -w ' + paramsGlobal.chromPeakW +
         ' -o "' + cmpFile + '"';
         llog('Executing: ' + cmdStr + '\n');
 
         const cmp_ms2 = spawn(compareMS2exe,
-        ['-1', mgfFilesGlobal[file1_idx],
-        '-2', mgfFilesGlobal[file2_idx],
+        ['-1', mgfFilesGlobal[file1Idx],
+        '-2', mgfFilesGlobal[file2Idx],
         '-c', paramsGlobal.cutoff,
         '-p', paramsGlobal.precMassDiff,
         '-w', paramsGlobal.chromPeakW,
@@ -130,8 +134,8 @@ function compareNext() {
                 elog("Error: ", signal, "\n")
             }
             fs.appendFileSync(compResultListFile, cmpFile + "\n");
-            file2_idx++;
-            if (file2_idx<file1_idx) {
+            file2Idx++;
+            if (file2Idx<file1Idx) {
                 // If row is not finished, schedule next comparison
                 setTimeout(function() {compareNext();}, 0);
             }
@@ -231,9 +235,9 @@ function makeTree() {
                 console.log('newick', newick, 'topology', topology);
                 d3.select("#tree_display").selectAll("*").remove();
                 tree($("#topology").prop("checked") ?  topology: newick).layout();
-                file2_idx=0;
+                file2Idx=0;
 
-                file1_idx++;
+                file1Idx++;
                 document.getElementById('stdout').innerHTML = '';
                 // Start next comparison (if any)
                 setTimeout(function() {compareNext();}, 0);
@@ -294,8 +298,8 @@ function runCompare(params) {
     sortFiles(mgfFilesGlobal, params.compareOrder);
     console.log("Ordering after sort:", JSON.stringify(mgfFilesGlobal));
     paramsGlobal = params;
-    file1_idx = 1;
-    file2_idx = 0;
+    file1Idx = 1;
+    file2Idx = 0;
 
     // Create empty comparison list file
     compResultListFile = path.join(paramsGlobal.mgfDir,'cmp_list.txt');
