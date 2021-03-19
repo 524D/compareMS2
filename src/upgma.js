@@ -81,8 +81,18 @@ function joinTable(table, weight, r, c) {
 }
 
 // UPGMA:
-//   Runs the UPGMA algorithm on a labelled table
-function UPGMA(table, labels) {
+//   Runs the UPGMA algorithm
+//   Input:
+//     table: lower left part of distance matrix
+//     labelsIn: labels that correspond to columns
+//   Output:
+//     newick: distance tree in newick format
+//     topology: tree in newick format, without distances
+//   Note:
+//     Some characters in labels interfere with newick format.
+//     These characters are replaced by _    
+function UPGMA(table, labelsIn) {
+    const labels = labelsIn.map(l => l.replace(/[,:]/g, "_"));
     let topologyLabels = [...labels];
     // Weight of each cell in distance matrix
     var weight = [];
@@ -99,7 +109,7 @@ function UPGMA(table, labels) {
         leafDist.push(0);
     }
     // Until all labels have been joined...
-    while (labels.length > 1) {
+    while ( (labels.length > 1) && (table.length >= 1) ){
         // Locate lowest cell in the table
         var [r, c, dist] = lowestCell(table);
         // Update the labels accordingly
