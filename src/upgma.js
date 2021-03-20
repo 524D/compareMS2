@@ -90,9 +90,10 @@ function joinTable(table, weight, r, c) {
 //     topology: tree in newick format, without distances
 //   Note:
 //     Some characters in labels interfere with newick format.
-//     These characters are replaced by _    
+//     These characters are replaced by underscore    
 function UPGMA(table, labelsIn) {
-    const labels = labelsIn.map(l => l.replace(/[,:]/g, "_"));
+    // Replace invalid label characters
+    const labels = labelsIn.map(l => l.replace(/[ :;,()\[\]]/g, "_"));
     let topologyLabels = [...labels];
     // Weight of each cell in distance matrix
     var weight = [];
