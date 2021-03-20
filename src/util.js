@@ -1,5 +1,7 @@
 // Get list of MGF files in dir
 const fs = require('fs');
+const crypto = require('crypto');
+
 function getMgfFiles(dir) {
   var mgfFiles=[];
   try { 
@@ -13,6 +15,16 @@ function getMgfFiles(dir) {
     console.log("Cant read dir: ", err.message);
   }
   return mgfFiles;
+}
+
+// Return an hexadecimal hash from an object
+// The hash is the first 24 (for brevity) hex characters
+// of the SHA256 hash of the JSON representation of the object
+function shortHashObj(obj) {
+  const json = JSON.stringify(obj);
+  let sha256 = crypto.createHash('sha256');
+  let hex = sha256.update(json).digest('hex');
+  return hex.substr(0,24)
 }
 
 window.nodeRequire = require;

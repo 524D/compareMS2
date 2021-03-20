@@ -11,6 +11,9 @@ let tree = d3.layout.phylotree()
   // render to this SVG element
 let svgTree = document.getElementById('tree_display');
 
+// Temporary output filename of compare ms2
+const comparems2tmp = 'comparems2tmp.txt';
+
 // newick format of tree
 let newick = '';
 // Idem, without distance info (topology only)
@@ -81,6 +84,7 @@ else {
 function compareNext() {
     let act=document.getElementById('activity');
 
+    // Update progress bar
     let nMgf = mgfFilesGlobal.length;
     let progress = ((file1Idx * (file1Idx-1)/2)  + file2Idx)/ (nMgf * (nMgf -1)/2);
     document.getElementById('progress').value = progress * 100;
@@ -91,59 +95,87 @@ function compareNext() {
     else
     {
         act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1Idx]) + '<br/>' + mgfFilesGlobal[file2Idx];
-        let cmpFile = path.join(paramsGlobal.mgfDir, "cmp_"+file1Idx+"_"+file2Idx+".txt");
 
-        let cmdStr = compareMS2exe + ' -1 "' + mgfFilesGlobal[file1Idx] + '" -2 "' + mgfFilesGlobal[file2Idx] +
+        let mgf1 = mgfFilesGlobal[file1Idx];
+        let mgf2 = mgfFilesGlobal[file2Idx];
+        // The order of input files is not important for the result.
+        // We always order alphabetical, so that the check if we
+        // already have the result works correctly.
+        if (mgf1 > mgf2) {
+            [mgf1, mgf2] = [mgf2, mgf1];
+        }
+
+        let cmdStr = compareMS2exe + ' -1 "' + mgf1 + '" -2 "' + mgf2 +
         '" -c ' + paramsGlobal.cutoff + ' -p ' + paramsGlobal.precMassDiff + ' -w ' + paramsGlobal.chromPeakW +
-        ' -o "' + cmpFile + '"';
+        ' -o "' + comparems2tmp + '"';
         llog('Executing: ' + cmdStr + '\n');
 
-        const cmp_ms2 = spawn(compareMS2exe,
-        ['-1', mgfFilesGlobal[file1Idx],
-        '-2', mgfFilesGlobal[file2Idx],
-        '-c', paramsGlobal.cutoff,
-        '-p', paramsGlobal.precMassDiff,
-        '-w', paramsGlobal.chromPeakW,
-        '-o', cmpFile,
-        ]);
-    
-        cmp_ms2.stdout.on('data', (data) => {
-            data = escapeHtml(data.toString());
-            data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
-            data = data.replace(/(?: )/g, '&nbsp;');
-            document.getElementById('stdout').innerHTML += data;
+        let cmdArgs = 
+            ['-1', mgf1,
+            '-2', mgf2,
+            '-c', paramsGlobal.cutoff,
+            '-p', paramsGlobal.precMassDiff,
+            '-w', paramsGlobal.chromPeakW,
+            '-o', comparems2tmp,
+            ];
+        // Create a unique filename based on parameters
+        let cmpFile = shortHashObj({cmdArgs}) + ".txt";
+        // If this file exist, we already have the result. Skip comparison
+        if (fs.existsSync(cmpFile)) {
+            compareFinished(compResultListFile, cmpFile);
+        }
+        else {
+            const cmp_ms2 = spawn(compareMS2exe, cmdArgs);
+        
+            cmp_ms2.stdout.on('data', (data) => {
+                data = escapeHtml(data.toString());
+                data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
+                data = data.replace(/(?: )/g, '&nbsp;');
+                document.getElementById('stdout').innerHTML += data;
+                });
+                
+            cmp_ms2.stderr.on('data', (data) => {
+                console.error(`stderr: ${data}`);
+                elog(data.toString());
             });
-            
-        cmp_ms2.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-            elog(data.toString());
-        });
-            
-        cmp_ms2.on('error', (data) => {
-            console.error('Error running compareMS2');
-            act.innerHTML = 'Error running compareMS2';
-        });
-            
-        cmp_ms2.stderr.on('exit', (code, signal) => {
-            console.error('Error running compareMS2');
-            act.innerHTML = 'Error running compareMS2';
-        });
-            
-        cmp_ms2.on('close', (code, signal) => {
-            if (code == null) {
-                elog("Error: ", signal, "\n")
-            }
-            fs.appendFileSync(compResultListFile, cmpFile + "\n");
-            file2Idx++;
-            if (file2Idx<file1Idx) {
-                // If row is not finished, schedule next comparison
-                setTimeout(function() {compareNext();}, 0);
-            }
-            else {
-                // Finished new row, create tree
-                makeTree();
-            }
-        });
+                
+            cmp_ms2.on('error', (data) => {
+                console.error('Error running compareMS2');
+                act.innerHTML = 'Error running compareMS2';
+            });
+                
+            cmp_ms2.stderr.on('exit', (code, signal) => {
+                console.error('Error running compareMS2');
+                act.innerHTML = 'Error running compareMS2';
+            });
+                
+            cmp_ms2.on('close', (code, signal) => {
+                if (code == null) {
+                    elog("Error: comparems2 command line executable crashed.\n")
+                }
+                else {
+                    // Compare finished, rename temporary output file
+                    // to final filename
+                    fs.rename(comparems2tmp, cmpFile, function (err) {
+                        if (err) throw err
+                        compareFinished(compResultListFile, cmpFile);
+                    });
+                }
+            });
+        }
+    }
+}
+
+function compareFinished(compResultListFile, cmpFile) {
+    fs.appendFileSync(compResultListFile, cmpFile + "\n");
+    file2Idx++;
+    if (file2Idx<file1Idx) {
+        // If row is not finished, schedule next comparison
+        setTimeout(function() {compareNext();}, 0);
+    }
+    else {
+        // Finished new row, create tree
+        makeTree();
     }
 }
 
