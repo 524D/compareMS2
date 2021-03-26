@@ -1,11 +1,11 @@
-# compareMS2
+## compareMS2
 Direct comparison and similarity metric for tandem mass spectrometry datasets
 
 - [1. Introduction](#1-Introduction)
-* [1.1 What is compareMS2?](#11-What%20is%20compareMS2?)
-* [1.2 How does compareMS2 differ from other tools?](#12-How%20does%20compareMS2%20differ%20from%20other%20tools?)
-* [1.3 What can compareMS2 be used for?](#12-What%20can%20compareMS2%20be%20used%20for?)
-- [2. Installing compareMS2](#2-Installing%20compareMS2)
+* [1.1 What is compareMS2?](#11-What-is-compareMS2?)
+* [1.2 How does compareMS2 differ from other tools?](#12-How-does-compareMS2-differ-from-other-tools?)
+* [1.3 What can compareMS2 be used for?](#12-What-can-compareMS2-be-used-for?)
+- [2. Installing compareMS2](#2-Installing-compareMS2)
 
 <!-- toc -->
 
