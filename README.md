@@ -6,6 +6,8 @@ Direct comparison and similarity metric for tandem mass spectrometry datasets
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.2 How does compareMS2 differ from other tools?](#12-How-does-compareMS2-differ-from-other-tools)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.3 What can compareMS2 be used for?](#13-What-can-compareMS2-be-used-for)  
 [2. Installing compareMS2](#2-Installing-compareMS2)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[2.1 Running compareMS2 in development mode](#21-Running-compareMS2-in-development-mode)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[2.2 Building compareMS2](#22-Building-compareMS2) 
 [3. Using compareMS2](#3-Using-compareMS2)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Configuring compareMS2](#31-Configuring-compareMS2)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.2 Calculating distance matrices](#32-Calculating-distance-matrices)  
@@ -13,6 +15,7 @@ Direct comparison and similarity metric for tandem mass spectrometry datasets
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Molecular phylogenetics](#34-Molecular-phylogenetics)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Data quality control](#35-Data-quality-control)  
 [4. Further reading](#4-Further-reading)  
+
 
 ## 1. Introduction
 
@@ -53,13 +56,13 @@ cd compareMS2
 npm install
 ```
 
-### Run in development mode
+### 2.1 Running compareMS2 in development mode
 
 ```text
 electron-forge start
 ```
 
-### Building
+### 2.2 Building compareMS2
 
 To build a distributable package (for the platform where this command is executed from):
 
