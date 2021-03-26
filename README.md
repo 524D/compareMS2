@@ -23,38 +23,12 @@ compareMS2 is a tool for direct comparison of tandem mass spectrometry datasets,
 ### 1.2 How does compareMS2 differ from other tools?
 Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen most application to this type of data. There are four broad categories of tools for the analysis of peptide tandem mass spectra in mass spectrometry-based proteomics based on what prior information they utilize. compareMS2 belongs to a class of tools that do not use existing sequence data, but compare tandem mass spectra directly with other tandem mass spectra.
 
-|                                     |      | (translated) genome sequences    |                      |
-| :---                                | :--- | :---                             | :---                 |
-|                                     |      | +                                | -                    |
-| **prior/other tandem mass spectra** | +    | spectral libraries               | **compareMS2**       |
-|                                     | -    | database search                  | *de novo* sequencing |
+|                                     |      | (translated) genome sequences                    |                                                   |
+| :---                                | :--- | :---                                             | :---                                              |
+|                                     |      | +                                                | -                                                 |
+| **prior/other tandem mass spectra** | +    | spectral libraries (BiblioSpec, SpectraST, ...)  | direct comparisons (**compareMS2**, DISMS2, ...)  |
+|                                     | -    | database search (Mascot, Comet, ...)             | *de novo* sequencing (PepNovo, Lutefisk, ...)     |
 
-<table>
-    <thead>
-        <tr>
-            <th colspan=2></th>
-            <th colspan=2>(translated) genome sequences</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td colspan=2></td>
-            <td>+</td>
-            <td>-</td>
-        </tr>
-        <tr>
-            <td rowspan=2><b>prior/other tandem mass spectra</b></td>
-            <td>+</td>
-            <td>spectral libraries</td>
-            <td>compareMS2</td>
-        </tr>
-        <tr>
-            <td>-</td>
-            <td>database search</td>
-            <td>de novo sequencing</td>
-        </tr>
-    </tbody>
-</table>
 
 ### 1.3 What can compareMS2 be used for?
 
