@@ -95,14 +95,22 @@ The compareMS2 CLI has a very small number of parameters, which are:
 -p *maximum difference in precursor mass*  
 -e *maximum precursor mass measurement error*  
 
-
+The compareMS2 GUI exposes some of these, and determine others automatically, e.g. the dataset filenames from a specified directory.
 
 ### 3.2 Calculating distance matrices
+
+Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filnames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating phylogenetic trees from compareMS2 results.
 
 ### 3.3 Running compareMS2
 
 ### 3.4 Molecular phylogenetics
 
+We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis.
+
 ### 3.5 Data quality control
+
+compareMS2 provides a very quick overview of large number of datasets to see if they cluster as expected or if there are outliers. Data of lower quality can thus be detected *before* running them through a data analysis pipeline and statistical analysis. It is not absolutely necessary to include all spectra in the analysis - major discrepancies should be detectable with ~1,000 spectra, if selected systematically.  
+
+In addition, compareMS2 collects metadata on each dataset (currently only the number of tandem mass spectra) for overlay on the hierarcical clustering or phylogenetic tree as a color.
 
 ## 4. Further reading
