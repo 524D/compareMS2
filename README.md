@@ -9,8 +9,9 @@ Direct comparison and similarity metric for tandem mass spectrometry datasets
 [3. Using compareMS2](#3-Using-compareMS2)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Configuring compareMS2](#31-Configuring-compareMS2)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.2 Calculating distance matrices](#32-Calculating-distance-matrices)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.3 Molecular phylogenetics](#33-Molecular-phylogenetics)  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Data quality control](#34-Data-quality-control)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.3 Running compareMS2](#33-Running-compareMS2)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Molecular phylogenetics](#34-Molecular-phylogenetics)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Data quality control](#35-Data-quality-control)  
 [4. Further reading](#4-Further-reading)  
 
 ## 1. Introduction
@@ -51,13 +52,13 @@ cd compareMS2
 npm install
 ```
 
-## Run in development mode
+### Run in development mode
 
 ```text
 electron-forge start
 ```
 
-## Building
+### Building
 
 To build a distributable package (for the platform where this command is executed from):
 
@@ -67,3 +68,17 @@ electron-forge make
 
 The resulting installer can than be found (relative to the compareMS2 main directory) in:
 `out\make\squirrel.windows\x64\compareMS2-x.y.z Setup.exe` for windows.
+
+
+## 3. Using compareMS2
+
+### 3.1 Configuring compareMS2  
+
+### 3.2 Calculating distance matrices
+
+### 3.3 Running compareMS2
+
+### 3.4 Molecular phylogenetics
+
+## 3.5 Data quality control
+4. Further reading
