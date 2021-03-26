@@ -80,5 +80,6 @@ The resulting installer can than be found (relative to the compareMS2 main direc
 
 ### 3.4 Molecular phylogenetics
 
-## 3.5 Data quality control
-4. Further reading
+### 3.5 Data quality control
+
+## 4. Further reading
