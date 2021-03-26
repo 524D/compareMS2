@@ -44,10 +44,10 @@ However, not only the amino acid sequences of the peptides affect the distance m
 
 Install nodejs:
 
-* On Linux `apt install nodejs`
-* On windows download from: <https://nodejs.org/en/download/>
+* On Linux, run `apt install nodejs`
+* On Windows, download from: <https://nodejs.org/en/download/>
 
-From the command prompt:
+Then run the following on the command line:
 
 ```text
 npm install -g electron-forge
@@ -58,25 +58,44 @@ npm install
 
 ### 2.1 Running compareMS2 in development mode
 
+To run compareMS2 in "development mode", simply issue:
+
 ```text
 electron-forge start
 ```
 
 ### 2.2 Building compareMS2
 
-To build a distributable package (for the platform where this command is executed from):
+To build a distributable package (for the platform on which this command is executed):
 
 ```text
 electron-forge make
 ```
 
-The resulting installer can than be found (relative to the compareMS2 main directory) in:
-`out\make\squirrel.windows\x64\compareMS2-x.y.z Setup.exe` for windows.
+For example, the resulting Windows installer can than be found (relative to the compareMS2 main directory) in
+`out\make\squirrel.windows\x64\`.
 
 
 ## 3. Using compareMS2
 
+compareMS2 can be used both from the command-line interface (CLI) and through the compareMS2 GUI. Every compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The distance metric is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance A - B has already been calculated, there is no need to calculate B - A. As every dataset is identical to itself, there is also no point in calculating A - A or B - B, as these distances are always zero.
+
 ### 3.1 Configuring compareMS2  
+
+The compareMS2 CLI has a very small number of parameters, which are:
+
+-1 *first dataset filename*  
+-2 *second dataset filename*   
+-R *first scan number*, *last scan number*  
+-c *score cutoff*  
+-o *output filename*  
+-m *minimum base peak signal in MS/MS spectrum for comparison*, *minimum total ion signal in MS/MS spectrum for comparison*  
+-a *alignment piecewise linear function filename*  
+-w *maximum scan number difference*  
+-p *maximum difference in precursor mass*  
+-e *maximum precursor mass measurement error*  
+
+
 
 ### 3.2 Calculating distance matrices
 
