@@ -1,7 +1,7 @@
 # compareMS2
 Direct comparison and similarity metric for tandem mass spectrometry datasets
 
-[1. Introduction](#Introduction)
+[1. Introduction](#1-Introduction)
 
    [1.1 What is compareMS2?](#11-What-is-compareMS2)
  
