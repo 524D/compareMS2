@@ -107,7 +107,7 @@ After specifying the parameters, click on the "Start" button to run compareMS2 o
 
 ### 3.4 Molecular phylogenetics
 
-We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see [2013 paper by Palmblad and Deelder](https://doi.org/10.1002/rcm.6162).
+We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see the [2013 paper](https://doi.org/10.1002/rcm.6162).
 
 ### 3.5 Data quality control
 
