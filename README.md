@@ -107,12 +107,15 @@ After specifying the parameters, click on the "Start" button to run compareMS2 o
 
 ### 3.4 Molecular phylogenetics
 
-We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see [Palmblad and Deelder 2013](https://doi.org/10.1002/rcm.6162).
+We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see [2013 paper by Palmblad and Deelder](https://doi.org/10.1002/rcm.6162).
 
 ### 3.5 Data quality control
 
-compareMS2 provides a very quick overview of large number of datasets to see if they cluster as expected or if there are outliers. Data of lower quality can thus be detected *before* running them through a data analysis pipeline and statistical analysis. It is not absolutely necessary to include all spectra in the analysis - major discrepancies should be detectable with ~1,000 spectra, if selected systematically.  
+compareMS2 provides a very quick overview of large number of datasets to see if they cluster as expected or if there are outliers. Data of lower quality can thus be detected *before* running them through a data analysis pipeline and statistical analysis. It is not absolutely necessary to include all spectra in the analysis - major discrepancies should be detectable with ~1,000 spectra, if selected systematically. Similarly, compareMS2 can be used to determine the relative importance of factors in sample preparation and analysis, as show in a [2016 paper](https://doi.org/10.1002/rcm.7494). 
 
 In addition, compareMS2 collects metadata on each dataset (currently only the number of tandem mass spectra) for overlay on the hierarcical clustering or phylogenetic tree as a color.
 
 ## 4. Further reading
+
+compareMS2 and its applications have been published in a number of papers:
+
