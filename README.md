@@ -23,35 +23,35 @@ compareMS2 is a tool for direct comparison of tandem mass spectrometry datasets,
 ### 1.2 How does compareMS2 differ from other tools?
 Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen most application to this type of data. There are four broad categories of tools for the analysis of peptide tandem mass spectra in mass spectrometry-based proteomics based on what prior information they utilize. compareMS2 belongs to a class of tools that do not use existing sequence data, but compare tandem mass spectra directly with other tandem mass spectra.
 
-| Syntax    |   | (translated) genome sequences    |      |
-| :---        |    :---     |          :---   |    :---   |
-|    |   | + | - |
-| prior/other tandem mass spectra     | +      | spectral libraries  | compareMS2 |
-|   | -       | database search      | de novo sequencing|
+|                                     |      | (translated) genome sequences    |                      |
+| :---                                | :--- | :---                             | :---                 |
+|                                     |      | +                                | -                    |
+| **prior/other tandem mass spectra** | +    | spectral libraries               | **compareMS2**       |
+|                                     | -    | database search                  | *de novo* sequencing |
 
 <table>
     <thead>
         <tr>
-            <th>Layer 1</th>
-            <th>Layer 2</th>
-            <th>Layer 3</th>
+            <th colspan=2></th>
+            <th colspan=2>(translated) genome sequences</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td rowspan=4>L1 Name</td>
-            <td rowspan=2>L2 Name A</td>
-            <td>L3 Name A</td>
+            <td colspan=2></td>
+            <td>+</td>
+            <td>-</td>
         </tr>
         <tr>
-            <td>L3 Name B</td>
+            <td rowspan=2><b>prior/other tandem mass spectra</b></td>
+            <td>+</td>
+            <td>spectral libraries</td>
+            <td>compareMS2</td>
         </tr>
         <tr>
-            <td rowspan=2>L2 Name B</td>
-            <td>L3 Name C</td>
-        </tr>
-        <tr>
-            <td>L3 Name D</td>
+            <td>-</td>
+            <td>database search</td>
+            <td>de novo sequencing</td>
         </tr>
     </tbody>
 </table>
