@@ -5,7 +5,13 @@ Direct comparison and similarity metric for tandem mass spectrometry datasets
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.1 What is compareMS2?](#11-What-is-compareMS2)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.2 How does compareMS2 differ from other tools?](#12-How-does-compareMS2-differ-from-other-tools)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.3 What can compareMS2 be used for?](#13-What-can-compareMS2-be-used-for)  
-[2. Installing compareMS2](#2-Installing-compareMS2)  
+[2. Installing compareMS2](#2-Installing-compareMS2)
+[3. Using compareMS2](#3-Using-compareMS2)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Configuring compareMS2?(#31-Configuring-compareMS2)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.2 Calculating distance matrices](#32-Calculating-distance-matrices)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.3 Molecular phylogenetics](#33-Molecular-phylogenetics)  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Data quality control](#34-Data-quality-control)  
+[4. Further reading](#4-Further-reading)  
 
 ## 1. Introduction
 
