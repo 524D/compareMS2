@@ -29,7 +29,7 @@ Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen
 |                                     |      | (translated) genome sequences                    |                                                   |
 | :---                                | :--- | :---                                             | :---                                              |
 |                                     |      | +                                                | -                                                 |
-| **prior/other tandem mass spectra** | +    | spectral libraries (BiblioSpec, SpectraST, ...)  | direct comparisons (**compareMS2**, DISMS2, ...)  |
+| **prior/other tandem mass spectra** | +    | spectral libraries (BiblioSpec, SpectraST, ...)  | direct comparison (**compareMS2**, DISMS2, ...)  |
 |                                     | -    | database search (Mascot, Comet, ...)             | *de novo* sequencing (PepNovo, Lutefisk, ...)     |
 
 
@@ -103,9 +103,11 @@ Distance matrices are calculated using a separate executable, compareMS2_to_dist
 
 ### 3.3 Running compareMS2
 
+After specifying the parameters, click on the "Start" button to run compareMS2 on all files in the specified directory. Alternatively, compareMS2 can be run on two specific files using the CLI version.
+
 ### 3.4 Molecular phylogenetics
 
-We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis.
+We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see [Palmblad and Deelder 2013](https://doi.org/10.1002/rcm.6162).
 
 ### 3.5 Data quality control
 
