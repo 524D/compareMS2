@@ -42,7 +42,7 @@ However, not only the amino acid sequences of the peptides affect the distance m
 
 ## 2. Installing compareMS2
 
-Install nodejs:
+First install nodejs:
 
 * On Linux, run `apt install nodejs`
 * On Windows, download from: <https://nodejs.org/en/download/>
@@ -99,7 +99,7 @@ The compareMS2 GUI exposes some of these, and determine others automatically, e.
 
 ### 3.2 Calculating distance matrices
 
-Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filnames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating phylogenetic trees from compareMS2 results.
+Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filnames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
 
 ### 3.3 Running compareMS2
 
