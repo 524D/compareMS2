@@ -119,3 +119,12 @@ In addition, compareMS2 collects metadata on each dataset (currently only the nu
 
 compareMS2 and its applications have been published in a number of papers:
 
+Species-Specific Discrimination of Insect Meals for Aquafeeds by Direct Comparison of Tandem Mass Spectra. Belghit I, Lock EJ, Fumière O, Lecrenier MC, Renard P, Dieu M, Berntssen MHG, Palmblad M and Rasinger JD, Animals 9(5):222, 2019   
+Species and tissues specific differentiation of processed animal proteins in aquafeeds using proteomics tools. Rasinger JD, Marbaix H, Dieu M, Fumière O, Mauro S, Palmblad M, Raes M and Berntssen MHG, J. Proteomics 147:125-131, 2016   
+Authentication of closely related fish and derived fish products using tandem mass spectrometry and spectral library matching. Nessen M, van der Zwaan D, Greevers S, Dalebout H, Staats M, Kok E and Palmblad M. J. Agric. Food Chem. 64(18):3669-3677, 2016   
+Identification of meat products by shotgun spectral matching. Ohana D, Dalebout H, Marissen RJ, Wulff J, Bergquist J, Deelder AM and Palmblad M. Food Chem. 203:28-34, 2016   
+Differentiating samples and experimental protocols by direct comparison of tandem mass spectra. van der Plas-Duivesteijn SJ, Wulff T, Klychnikov O, Ohana D, Dalebout H, van Veelen PA, de Keijzer J, Nessen MA, van der Burgt YEM, Deelder AM and Palmblad M. Rapid Commun. Mass Spectrom. 30:731-738, 2016   
+Authentication of Fish Products by Large-Scale Comparison of Tandem Mass Spectra. Wulff  T, Nielsen ME, Deelder AM, Jessen  F and Palmblad M, J. Proteome Res. 12(11):5253-5259, 2013   
+Comparison of peptide and protein fractionation methods in proteomics. Mostovenko E, Hassan C, Rattke J, Deelder AM, van Veelen PA and Palmblad M, EuPA Open Proteomics 1:30-37, 2013   
+Molecular phylogenetics by direct comparison of tandem mass spectra. Palmblad M and Deelder AM, Rapid Commun. Mass Spectrom. 26(7):728-732, 2012   
+
