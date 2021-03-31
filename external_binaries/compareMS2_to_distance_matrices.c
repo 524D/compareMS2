@@ -29,10 +29,10 @@
 int main(int argc, char *argv[]) 
 {
   FILE *input_file, *output_file;
-  char input_filename[256], output_filename_stem[256], output_filename[256], sample_species_mapping_filename[256], format, *p, *q, line[512], **comparison, **X, **Y, **sample_name, **short_sample_name,**species_name, use_mapping=0; 
+  char input_filename[256], output_filename_stem[256], output_filename[256], sample_species_mapping_filename[256], format, *p, line[512], **comparison, **X, **Y, **sample_name, **short_sample_name,**species_name, use_mapping=0; 
  
-  long i, j, k, x, y, n_comparisons, n_samples, n_species, *gt80, **A_gt80, *gt80_unique, **A_gt80_unique, *n_compared_spectra, *n_compared_precursors, *sample_unique_precursors, **counter;
-  double cutoff, *sum_dot_prod, **A_sum_dot_prod, ***S, **mean, **sum;
+  long i, j, k, x, y, n_comparisons, n_samples, n_species, *n_compared_spectra, **counter;
+  double cutoff, **A_sum_dot_prod, ***S, **mean, **sum;
 
   long *gt_cutoff, **A_gt_cutoff;
   double *fraction_gt_cutoff, **A_fraction_gt_cutoff, *size_D, *QC;
@@ -87,7 +87,6 @@ int main(int argc, char *argv[])
   
   n_compared_spectra=(long*)malloc(MAX_COMP*sizeof(long));
   
-  sum_dot_prod=(double*)malloc(MAX_COMP*sizeof(double));
   A_sum_dot_prod=(double**)malloc(MAX_SAMPLES*sizeof(double*)); for(i=0;i<MAX_SAMPLES;i++) A_sum_dot_prod[i]=(double*)malloc(MAX_SAMPLES*sizeof(double));
 
   fraction_gt_cutoff=(double*)malloc(MAX_COMP*sizeof(double));
@@ -125,15 +124,15 @@ int main(int argc, char *argv[])
       if((input_file=fopen(sample_species_mapping_filename,"r"))==NULL) {printf("error opening sample-species mapping file %s for reading",input_filename); return -1;}
       i=0;
       while (fgets(line, 512, input_file) != NULL)
-	{
-	  if (strcmp(line,"\n")==0) continue;
-	  p=strtok(line,"\t");
-	  strcpy(sample_name[i],p); printf("\n   sample \"%s\" ",sample_name[i]); fflush(stdout);
-	  p=strtok('\0',"\t\n"); 
-	  strcpy(short_sample_name[i],p); /* short sample name = species or taxonomical level for averaging etc. */
-	  printf("-> species \"%s\"",short_sample_name[i]); fflush(stdout);
-	  i++;
-	}
+        {
+          if (strcmp(line,"\n")==0) continue;
+          p=strtok(line,"\t");
+          strcpy(sample_name[i],p); printf("\n   sample \"%s\" ",sample_name[i]); fflush(stdout);
+          p=strtok('\0',"\t\n"); 
+          strcpy(short_sample_name[i],p); /* short sample name = species or taxonomical level for averaging etc. */
+          printf("-> species \"%s\"",short_sample_name[i]); fflush(stdout);
+          i++;
+        }
       n_samples=i;
       fclose(input_file);  
       printf("\ndone (found species information for %i samples)\nreading pairwise comparisons...\n",n_samples); fflush(stdout);
@@ -148,19 +147,19 @@ int main(int argc, char *argv[])
       if((input_file=fopen(input_filename,"r"))==NULL) {printf("error opening MS2compare results file %s for reading",input_filename); return -1;}
       gt_cutoff[i]=0; n_compared_spectra[i]=0;
       while (fgets(line, 512, input_file) != NULL)
-	{
-	  if (strcmp(line,"\n")==0) continue;
-	  
-	  p=strtok(line,"\t"); /* read in field name */
-	  
-	  if(strcmp(p,"dataset_1")==0) {p=strtok('\0',"\t\n"); strcpy(X[i],p); printf("\nread pairwise comparison %i (%s and ",i+1,X[i]); fflush(stdout);}
-	  if(strcmp(p,"dataset_2")==0) {p=strtok('\0',"\t\n"); strcpy(Y[i],p); printf("%s)",Y[i]); fflush(stdout);}
-	  if(strcmp(p,"dataset_QC_1")==0) {p=strtok('\0',"\t"); size_D[i]=atof(p);}
-	  if(strcmp(p,"gt_cutoff")==0) {p=strtok('\0',"\t"); gt_cutoff[i]=atoi(p);}
-	  if(strcmp(p,"fraction_gt_cutoff")==0) {p=strtok('\0',"\t"); fraction_gt_cutoff[i]=atof(p);}
-	  if(strcmp(p,"n_compared_spectra")==0) {p=strtok('\0',"\t"); n_compared_spectra[i]=atoi(p);}
+        {
+          if (strcmp(line,"\n")==0) continue;
+          
+          p=strtok(line,"\t"); /* read in field name */
+          
+          if(strcmp(p,"dataset_1")==0) {p=strtok('\0',"\t\n"); strcpy(X[i],p); printf("\nread pairwise comparison %i (%s and ",i+1,X[i]); fflush(stdout);}
+          if(strcmp(p,"dataset_2")==0) {p=strtok('\0',"\t\n"); strcpy(Y[i],p); printf("%s)",Y[i]); fflush(stdout);}
+          if(strcmp(p,"dataset_QC_1")==0) {p=strtok('\0',"\t"); size_D[i]=atof(p);}
+          if(strcmp(p,"gt_cutoff")==0) {p=strtok('\0',"\t"); gt_cutoff[i]=atoi(p);}
+          if(strcmp(p,"fraction_gt_cutoff")==0) {p=strtok('\0',"\t"); fraction_gt_cutoff[i]=atof(p);}
+          if(strcmp(p,"n_compared_spectra")==0) {p=strtok('\0',"\t"); n_compared_spectra[i]=atoi(p);}
           // if(strcmp(p,"histogram")==0) {p=strtok('\0',"\t"); if(atof(p)>=cutoff) {p=strtok('\0',"\t"); p=strtok('\0',"\t"); p=strtok('\0',"\t"); gt_cutoff[i]+=atoi(p);}}
-	}
+        }
       
       fclose(input_file);
       // if(n_compared_spectra[i]<=0) fraction_gt_cutoff[i]=-1;
@@ -177,13 +176,13 @@ int main(int argc, char *argv[])
       
       k=0;
       for(i=0;i<n_comparisons;i++)
-  {
-  	  for(j=0;j<k;j++)
-  	    {
-  	      if(strcmp(Y[i],sample_name[j])==0) break;
-  	    }
-  	  if(j==k) {strcpy(sample_name[k],Y[i]); printf("%s\n",Y[i]); k++;}
-  	}
+        {
+          for(j=0;j<k;j++)
+            {
+              if(strcmp(Y[i],sample_name[j])==0) break;
+            }
+          if(j==k) {strcpy(sample_name[k],Y[i]); printf("%s\n",Y[i]); k++;}
+        }
     n_samples=k;
   }
   
@@ -235,10 +234,10 @@ int main(int argc, char *argv[])
   for(i=0;i<n_samples;i++)
     {
       for(j=0;j<k;j++)
-  	{
-  	  if(strcmp(short_sample_name[i],species_name[j])==0) break;
-  	}
-     if(j==k) {strcpy(species_name[k],short_sample_name[i]); k++;}
+        {
+          if(strcmp(short_sample_name[i],species_name[j])==0) break;
+        }
+      if(j==k) {strcpy(species_name[k],short_sample_name[i]); k++;}
     }
   n_species=k; // printf(" %i species:\n",k); fflush(stdout);
   for(i=0;i<n_species;i++) printf("   species %i -> %s\n",i+1,species_name[i]);
@@ -251,15 +250,15 @@ int main(int argc, char *argv[])
       
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) {counter[x][y]=0; sum[x][y]=0;}
       for(i=0;i<n_samples;i++) /* i = sample 1 (vertical) */
-	{
-	  x=0; y=0;
-	  for(k=0;k<n_species;k++) if(strcmp(short_sample_name[i],species_name[k])==0) {x=k; break;}
-	  for(j=0;j<n_samples;j++) /* j = sample 2 (horizontal) */
-	    {
-	      for(k=0;k<n_species;k++) if(strcmp(short_sample_name[j],species_name[k])==0) {y=k; break;}
-	      if(j!=i) {S[x][y][counter[x][y]]=A_fraction_gt_cutoff[i][j]; counter[x][y]++;}
-	    }
-	}
+        {
+          x=0; y=0;
+          for(k=0;k<n_species;k++) if(strcmp(short_sample_name[i],species_name[k])==0) {x=k; break;}
+          for(j=0;j<n_samples;j++) /* j = sample 2 (horizontal) */
+            {
+              for(k=0;k<n_species;k++) if(strcmp(short_sample_name[j],species_name[k])==0) {y=k; break;}
+              if(j!=i) {S[x][y][counter[x][y]]=A_fraction_gt_cutoff[i][j]; counter[x][y]++;}
+            }
+        }
 
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) for(k=0;k<counter[x][y];k++) sum[x][y]+=S[x][y][k];
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) mean[x][y]=sum[x][y]/counter[x][y]; /* calculate means for NEXUS file */
@@ -291,7 +290,7 @@ int main(int argc, char *argv[])
       fprintf(output_file,"     missing=?\n");
       fprintf(output_file,"   ;\n");
       fprintf(output_file,"MATRIX\n");
-      for(i=0;i<n_species;i++) {fprintf(output_file,"%s\t",species_name[i]); for(j=0;j<n_species;j++) if(i==j) fprintf(output_file,"%1.5f\t",0); else fprintf(output_file,"%1.5f\t",1/mean[i][j]); fprintf(output_file,"\n");
+      for(i=0;i<n_species;i++) {fprintf(output_file,"%s\t",species_name[i]); for(j=0;j<n_species;j++) if(i==j) fprintf(output_file,"%1.5f\t",0.0); else fprintf(output_file,"%1.5f\t",1/mean[i][j]); fprintf(output_file,"\n");
       }
       fprintf(output_file,";\nEND;\n");
       
@@ -306,15 +305,15 @@ int main(int argc, char *argv[])
       
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) {counter[x][y]=0; sum[x][y]=0;}
       for(i=0;i<n_samples;i++) /* i = sample 1 (vertical) */
-	{
-      x=0; y=0;
-      for(k=0;k<n_species;k++) if(strcmp(short_sample_name[i],species_name[k])==0) {x=k; break;}
-      for(j=0;j<n_samples;j++) /* j = sample 2 (horizontal) */
-	{
-	  for(k=0;k<n_species;k++) if(strcmp(short_sample_name[j],species_name[k])==0) {y=k; break;}
-	  if(j!=i) {S[x][y][counter[x][y]]=A_fraction_gt_cutoff[i][j]; counter[x][y]++;}
-	}
-	}
+        {
+          x=0; y=0;
+          for(k=0;k<n_species;k++) if(strcmp(short_sample_name[i],species_name[k])==0) {x=k; break;}
+          for(j=0;j<n_samples;j++) /* j = sample 2 (horizontal) */
+            {
+              for(k=0;k<n_species;k++) if(strcmp(short_sample_name[j],species_name[k])==0) {y=k; break;}
+              if(j!=i) {S[x][y][counter[x][y]]=A_fraction_gt_cutoff[i][j]; counter[x][y]++;}
+            }
+        }
       
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) for(k=0;k<counter[x][y];k++) sum[x][y]+=S[x][y][k];
       for(x=0;x<n_species;x++) for(y=0;y<n_species;y++) mean[x][y]=sum[x][y]/counter[x][y]; /* calculate means for MEGA file */
