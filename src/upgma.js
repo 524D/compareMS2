@@ -52,7 +52,7 @@ function anycellNull(m, id, r, c, ii) {
 
 // join_labels:
 //   Combines two labels in a list of labels
-function joinLabels(labels, topologyLabels, dist, leafDist, a, b) {
+function joinLabels(labels, dist, leafDist, a, b) {
     // Swap if the indices are not ordered
     if (b < a) {
         [a, b] = [b, a];
@@ -60,7 +60,6 @@ function joinLabels(labels, topologyLabels, dist, leafDist, a, b) {
     // Join the labels in the first index
     labels[a] = "(" + labels[a] + ":" + (dist/2 - leafDist[a]) + "," +
       labels[b] +  ":" + (dist/2 - leafDist[b])+ ")";
-    topologyLabels[a] = "(" + topologyLabels[a] + "," + topologyLabels[b]+ ")";
 
     leafDist[a] = dist/2;
     // Remove the (now redundant) label in the second index
@@ -119,20 +118,18 @@ function joinTable(table, weight, r, c) {
 //     labelsIn: labels that correspond to columns
 //   Output:
 //     newick: distance tree in newick format
-//     topology: tree in newick format, without distances
 //   Note:
 //     Some characters in labels interfere with newick format.
 //     These characters are replaced by underscore    
 function UPGMA(table, labelsIn) {
     // Replace invalid label characters
     const labels = labelsIn.map(l => l.replace(/[ :;,()\[\]]/g, "_"));
-    let topologyLabels = [...labels];
 
     // Check if table format is correct (lower triangular). If not, skip processing
     for (let i=1; i<table.length; i++) {
         if (table[i].length !== i) {
             console.log("UPGMA ERROR: table not lower-left triangle: i=", i, " length=", table[i].length);
-            return(["", ""])
+            return("")
         }
     }
     // Weight of each cell in distance matrix
@@ -154,22 +151,17 @@ function UPGMA(table, labelsIn) {
         // Locate lowest cell in the table
         var [r, c, dist] = lowestCell(table);
         // Update the labels accordingly
-        joinLabels(labels, topologyLabels, dist, leafDist, r, c);
+        joinLabels(labels, dist, leafDist, r, c);
         // Join the table on the cell co-ordinates
         joinTable(table, weight, r, c);
     }
 
     let newick=labels[0];
-    let topology=topologyLabels[0];
     // Avoid returning 'undefined'
     if (typeof newick === 'undefined') {
         newick = "";
     }
-    if (typeof topology === 'undefined') {
-        topology = "";
-    }
-
-    return [newick, topology];
+    return newick;
 }
 
 function testExpectUPGMA(table, labels, expect) {
@@ -195,7 +187,7 @@ function testUPGMA() {
         [13, 13, 29, 14, 28, 12]    //G
         ];
     labels=['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    expect = '["((((A:4,D:4):4.25,((B:0.5,F:0.5):5.75,G:6.25):2):6.25,C:14.5):2.5,E:17)","((((A,D),((B,F),E)),((B,F),E)),((B,F),E))"]';
+    expect = '"((((A:4,D:4):4.25,((B:0.5,F:0.5):5.75,G:6.25):2):6.25,C:14.5):2.5,E:17)"';
     testExpectUPGMA(table, labels, expect);
 
     // Example from: https://en.wikipedia.org/wiki/UPGMA
@@ -207,7 +199,7 @@ function testUPGMA() {
         [23, 21, 39, 43],           //E
         ];
     labels=['A', 'B', 'C', 'D', 'E'];
-    expect = '["(((A:8.5,B:8.5):2.5,E:11):5.5,(C:14,D:14):2.5)","(((A,B),D),(B,C))"]';
+    expect = '"(((A:8.5,B:8.5):2.5,E:11):5.5,(C:14,D:14):2.5)"';
     testExpectUPGMA(table, labels, expect);
 }
 

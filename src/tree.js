@@ -192,11 +192,7 @@ function makeTree() {
     if (fs.existsSync(s2s) && fs.lstatSync(s2s).isFile()) {
         cmdArgs.push('-x', s2s)
     }
-//    else {
-//    // FIXME: compareMS2_to_distance_matrices doesn't work without sample2species file,
-//    // so assume it is in the data dir if not specified
-//        cmdArgs.push('-x', path.join(paramsGlobal.mgfDir, 'sample_to_species.txt'));
-//    }
+
     let cmdStr = compToDistExe + JSON.stringify(cmdArgs); 
     llog('Executing: ' + cmdStr + '\n');
     const c2d = spawn(compToDistExe, cmdArgs);
@@ -259,7 +255,9 @@ function makeTree() {
             if (last) {
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
-                [newick, topology] = UPGMA(matrix, labels);
+                newick = UPGMA(matrix, labels);
+                // Create topology only string by removing distances from newick
+                topology = newick.replace(/:[-0-9.]+/g, "");
                 console.log('newick', newick, 'topology', topology);
                 d3.select("#tree_display").selectAll("*").remove();
                 tree($("#topology").prop("checked") ?  topology: newick).layout();
