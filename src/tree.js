@@ -105,11 +105,6 @@ function compareNext() {
             [mgf1, mgf2] = [mgf2, mgf1];
         }
 
-        let cmdStr = compareMS2exe + ' -1 "' + mgf1 + '" -2 "' + mgf2 +
-        '" -c ' + paramsGlobal.cutoff + ' -p ' + paramsGlobal.precMassDiff + ' -w ' + paramsGlobal.chromPeakW +
-        ' -o "' + comparems2tmp + '"';
-        llog('Executing: ' + cmdStr + '\n');
-
         let cmdArgs = 
             ['-1', mgf1,
             '-2', mgf2,
@@ -118,6 +113,10 @@ function compareNext() {
             '-w', paramsGlobal.chromPeakW,
             '-o', comparems2tmp,
             ];
+
+        let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
+        llog('Executing: ' + cmdStr + '\n');
+    
         // Create a unique filename based on parameters
         let cmpFile = shortHashObj({cmdArgs}) + ".txt";
         // If this file exist, we already have the result. Skip comparison
@@ -193,16 +192,13 @@ function makeTree() {
     if (fs.existsSync(s2s) && fs.lstatSync(s2s).isFile()) {
         cmdArgs.push('-x', s2s)
     }
-    else {
-    // FIXME: compareMS2_to_distance_matrices doesn't work without sample2species file,
-    // so assume it is in the data dir if not specified
-        cmdArgs.push('-x', path.join(paramsGlobal.mgfDir, 'sample_to_species.txt'));
-    }
-    let cmdStr = compToDistExe + ' -i "' + compResultListFile + '" -o "' + path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) +
-        '" -c ' + paramsGlobal.cutoff + ' -m ' + 
-        ' -x "' + cmdArgs[cmdArgs.length-1] + '"';
+//    else {
+//    // FIXME: compareMS2_to_distance_matrices doesn't work without sample2species file,
+//    // so assume it is in the data dir if not specified
+//        cmdArgs.push('-x', path.join(paramsGlobal.mgfDir, 'sample_to_species.txt'));
+//    }
+    let cmdStr = compToDistExe + JSON.stringify(cmdArgs); 
     llog('Executing: ' + cmdStr + '\n');
-    //                const c2d = spawn('echo', cmdArgs);
     const c2d = spawn(compToDistExe, cmdArgs);
     c2d.stdout.on('data', (data) => {
         data = escapeHtml(data.toString());
