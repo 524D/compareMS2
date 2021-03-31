@@ -11,6 +11,9 @@ let tree = d3.layout.phylotree()
   // render to this SVG element
 let svgTree = document.getElementById('tree_display');
 
+const compareDirName = 'compareresult'
+let compareDir;
+
 // Temporary output filename of compare ms2
 const comparems2tmp = 'comparems2tmp.txt';
 
@@ -111,14 +114,16 @@ function compareNext() {
             '-c', paramsGlobal.cutoff,
             '-p', paramsGlobal.precMassDiff,
             '-w', paramsGlobal.chromPeakW,
-            '-o', comparems2tmp,
             ];
+        // Create a unique filename based on parameters
+        let cmpFile = path.join(compareDir, shortHashObj({cmdArgs}) + ".txt");
+
+        // Append output filename, should now be part of hash
+        cmdArgs.push('-o', path.join(compareDir, comparems2tmp));
 
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
         llog('Executing: ' + cmdStr + '\n');
     
-        // Create a unique filename based on parameters
-        let cmpFile = shortHashObj({cmdArgs}) + ".txt";
         // If this file exist, we already have the result. Skip comparison
         if (fs.existsSync(cmpFile)) {
             compareFinished(compResultListFile, cmpFile);
@@ -155,7 +160,8 @@ function compareNext() {
                 else {
                     // Compare finished, rename temporary output file
                     // to final filename
-                    fs.rename(comparems2tmp, cmpFile, function (err) {
+                    compareDir
+                    fs.rename(path.join(compareDir, comparems2tmp), cmpFile, function (err) {
                         if (err) throw err
                         compareFinished(compResultListFile, cmpFile);
                     });
@@ -319,6 +325,10 @@ function runCompare(params) {
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(params.mgfDir);
     llog('Change default dir: "' + params.mgfDir+'"\n');
+
+    // Create directory for compare results
+    compareDir=path.join(params.mgfDir, compareDirName);
+    if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
 
     // Sort files according to setting
     sortFiles(mgfFilesGlobal, params.compareOrder);
