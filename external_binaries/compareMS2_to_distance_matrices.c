@@ -121,6 +121,13 @@ static int sample_name_to_species_index(char *sample_name, species_t *species) {
   s2s = &species->s2s[species->nr_species];
   // Not found, make new "species" from sample name
   s2s->species_name = strdup_chk(sample_name);
+  // Remove extension from copies sample name
+  // Lookup last dot in filename
+  i=strlen(s2s->species_name);
+  while ( (i>0) && (s2s->species_name[i] != '.') ) i--;
+  // Replace by end-of-string character 0
+  s2s->species_name[i] = 0;
+
   // This species only contains one sample name, allocate array with one element
   s2s->sample_names = alloc_chk(sizeof(char*));
   s2s->sample_names[0] = strdup_chk(sample_name);
