@@ -13,7 +13,7 @@
   padding-top: 0px;
 }
 .param-section {
-   width: 95%;
+  /* width: 95%; */
    border: 3px solid #c0c0c0;
    padding: 10px;
    margin: 20px;
@@ -81,4 +81,11 @@ height:calc(80% - 50px);
 
 #progress {
   width: 100%;
+}
+
+#versioninfo {
+  color: rgb(129, 129, 129);
+  position: absolute;
+  top: 30px;
+  right: 30px;
 }

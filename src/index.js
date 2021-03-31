@@ -1,6 +1,7 @@
 const {BrowserWindow, getCurrentWindow} = nodeRequire('electron').remote
 const path = nodeRequire('path')
 const {ipcRenderer} = nodeRequire('electron')
+var appVersion = nodeRequire('electron').remote.app.getVersion();
 
 // Update MGF files info
 // FIXME: update info only after waiting some time
@@ -26,7 +27,7 @@ updateMgfInfo(document.getElementById("mgfdir").value);
 
 // Update MGF info on manual input
 const inputHandler = function(e) {
-updateMgfInfo(e.target.value);
+    updateMgfInfo(e.target.value);
 }
 mgfdir.addEventListener('input', inputHandler);
 
@@ -87,6 +88,9 @@ submitBtn.addEventListener('click', (event) => {
   ipcRenderer.send('maketree', params)
 })
 
+const versDiv = document.getElementById('versioninfo');
+
+versDiv.innerHTML = "version: " + appVersion;
 
 // const {spawn} = nodeRequire('electron').remote.require('spawn')
 
