@@ -16,18 +16,25 @@ let params; // User parameters set in main window
 let template = [{
   label: 'File',
   submenu: [{
-    label: 'New',
-    accelerator: 'CmdOrCtrl+N',
-    role: 'new'
-  }, {
     label: 'Load options',
     accelerator: 'CmdOrCtrl+L',
-    role: 'load'
+    click: (item, focusedWindow) => {
+      focusedWindow.send('load-options');
+    }
   }, {
     label: 'Save options',
     accelerator: 'CmdOrCtrl+S',
-    role: 'save'
+    click: (item, focusedWindow) => {
+      focusedWindow.send('save-options');
+    }
   }, {
+    label: 'Reset default option',
+    accelerator: 'CmdOrCtrl+R',
+    click: (item, focusedWindow) => {
+      focusedWindow.send('reset-options');
+    }
+  }, 
+  {
     type: 'separator'
   }, {
     label: 'Exit',
@@ -37,21 +44,6 @@ let template = [{
 }, {
   label: 'View',
   submenu: [{
-    label: 'Reload',
-    accelerator: 'CmdOrCtrl+R',
-    click: (item, focusedWindow) => {
-      if (focusedWindow) {
-        // on reload, start fresh and close any old
-        // open secondary windows
-        if (focusedWindow.id === 1) {
-          BrowserWindow.getAllWindows().forEach(win => {
-            if (win.id > 1) win.close()
-          })
-        }
-        focusedWindow.reload()
-      }
-    }
-  }, {
     label: 'Toggle Full Screen',
     accelerator: (() => {
       if (process.platform === 'darwin') {
@@ -63,20 +55,6 @@ let template = [{
     click: (item, focusedWindow) => {
       if (focusedWindow) {
         focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
-      }
-    }
-  }, {
-    label: 'Toggle Developer Tools',
-    accelerator: (() => {
-      if (process.platform === 'darwin') {
-        return 'Alt+Command+I'
-      } else {
-        return 'Ctrl+Shift+I'
-      }
-    })(),
-    click: (item, focusedWindow) => {
-      if (focusedWindow) {
-        focusedWindow.toggleDevTools()
       }
     }
   }]
