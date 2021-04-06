@@ -1,3 +1,11 @@
+.blocktitle {
+  color: rgb(0, 0, 0);
+  background-color: #ffffff;
+  position: absolute;
+  top: -35px;
+  left: 50px;
+}
+
 .input-label {
   width: 40%;
   padding: 10px;
@@ -14,6 +22,7 @@
 }
 .param-section {
   /* width: 95%; */
+   position: relative; /* This causes child elements with "absolute" position to be placed relative to the param-section, not page */
    border: 3px solid #c0c0c0;
    padding: 10px;
    margin: 20px;
@@ -86,6 +95,6 @@ height:calc(80% - 50px);
 #versioninfo {
   color: rgb(129, 129, 129);
   position: absolute;
-  top: 30px;
+  top: 5px;
   right: 30px;
 }
