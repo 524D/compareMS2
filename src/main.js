@@ -76,8 +76,8 @@ Menu.setApplicationMenu(menu)
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 800,
+    width: 700,
+    height: 650,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
@@ -159,8 +159,8 @@ ipcMain.on('maketree', (event, args) => {
   const modalPath = path.join('file://', __dirname, '/tree.html')
   params = args;
   treeWindow = new BrowserWindow({
-    width: 1200,
-    height: 1000,
+    width: 800,
+    height: 700,
     parent: mainWindow,
     modal: true,
     webPreferences: {
