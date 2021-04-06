@@ -5,6 +5,15 @@ const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');
 const log = nodeRequire('electron-log');
 
+let treeOptions = {'left-right-spacing' : "fit-to-size",
+    'top-bottom-spacing': "fit-to-size",
+    'transitions': false,
+    'zoom': true,
+};
+
+// Same options, but with transitions
+let treeOptionsTransition = Object.assign({}, treeOptions, {'transitions': true});
+
 let tree = d3.layout.phylotree()
   // create a tree layout object
   .svg(d3.select("#tree_display"));
@@ -25,16 +34,16 @@ let topology = '';
 //tree.size([svgTree.clientWidth,svgTree.clientHeight]);
 tree.size([800,600]);
 tree.font_size(15);
-tree.options({'left-right-spacing' : "fit-to-size",
-              'top-bottom-spacing': "fit-to-size",
-              'zoom': true,}, true);
+tree.options(treeOptions, false);
 
 $("#layout").on("click", function(e) {
+    tree.options(treeOptionsTransition, false);
     tree.radial($(this).prop("checked")).placenodes().update();
   });
 
 $("#topology").on("click", function(e) {
     d3.select("#tree_display").selectAll("*").remove();
+    tree.options(treeOptionsTransition, false);
     tree($(this).prop("checked") ? topology: newick).layout();
 });
 
@@ -266,6 +275,7 @@ function makeTree() {
                 topology = newick.replace(/:[-0-9.]+/g, "");
                 console.log('newick', newick, 'topology', topology);
                 d3.select("#tree_display").selectAll("*").remove();
+                tree.options(treeOptions, false);
                 tree($("#topology").prop("checked") ?  topology: newick).layout();
                 file2Idx=0;
 
