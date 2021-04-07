@@ -12,6 +12,10 @@ let mainWindow;
 let treeWindow;
 
 let params; // User parameters set in main window
+const iconPath = path.join(app.getAppPath(), 'src', 'assets', 'images');
+// Icons were obtained from http://xtoolkit.github.io/Micon/icons/
+// Convert to png e.g.:
+// convert -fuzz 5% -transparent white -resize 16x16 mdl2/Clear.svg /d0/product/compareMS2/src/assets/images/Clear.png
 
 let template = [{
   label: 'File',
@@ -30,7 +34,8 @@ let template = [{
       if (files) {
           focusedWindow.send('load-options', files);
       }
-    }
+    },
+    icon: path.join(iconPath,'OpenFile.png'),
   }, {
     label: 'Save options',
     accelerator: 'CmdOrCtrl+S',
@@ -47,20 +52,23 @@ let template = [{
       if (files) {
           focusedWindow.send('save-options', files);
       }
-    }
+    },
+    icon: path.join(iconPath,'Save.png'),
   }, {
     label: 'Restore default option',
     accelerator: 'CmdOrCtrl+R',
     click: (item, focusedWindow) => {
       focusedWindow.send('reset-options');
-    }
+    },
+    icon: path.join(iconPath,'Refresh.png'),
   }, 
   {
     type: 'separator'
   }, {
     label: 'Exit',
     accelerator: 'CmdOrCtrl+Q',
-    role: 'quit'
+    role: 'quit',
+    icon: path.join(iconPath,'Clear.png'),
   }]
 }, {
   label: 'View',
@@ -77,7 +85,8 @@ let template = [{
       if (focusedWindow) {
         focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
       }
-    }
+    },
+    icon: path.join(iconPath,'View.png'),
   }]
 }, {
   label: 'Help',
@@ -86,13 +95,13 @@ let template = [{
     label: 'Getting started',
     click: () => {
       shell.openExternal('https://github.com/524D/compareMS2')
-    }
-  }]
+    },
+    icon: path.join(iconPath,'Help.png'),
+  }],
 }]
 
 const menu = Menu.buildFromTemplate(template)
 Menu.setApplicationMenu(menu)
-
 
 const createWindow = () => {
   // Create the browser window.
@@ -114,6 +123,7 @@ const createWindow = () => {
   if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
       // Open the DevTools.
       mainWindow.webContents.openDevTools();
+      mainWindow.maximize();
   } 
 
   // Emitted when the window is closed.
@@ -191,6 +201,7 @@ ipcMain.on('maketree', (event, args) => {
         preload: path.join(__dirname, 'preload.js')
     }
   })
+  treeWindow.maximize();
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
   treeWindow.loadURL(modalPath);
