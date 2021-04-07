@@ -46,7 +46,7 @@
 
 .info-container {
   background-color: lightgrey;
-  height: 150px;
+  height: 35px;
   width: 100%;
   position: absolute;
   bottom: 0px;
@@ -60,9 +60,18 @@
 .info-activity {
   font-weight: bolder;
   position: absolute;
-  width: 100%;
-  top: 0px;
-  height: 20px;
+  width: calc(100% - 200px);
+  top: 2px;
+  height: 28px;
+  overflow: hidden;
+}
+
+.info-control {
+  position: absolute;
+  top: 2px;
+  right: 0px;
+  width: 200px;
+  height: 28px;
   overflow: hidden;
 }
 
@@ -70,8 +79,9 @@
   overflow: auto;
   position: absolute;
   width: 100%;
-  top: 20px;
-  height: 130px;
+  top: 30px;
+  height: 115px;
+  visibility: hidden;
 }
 
 #tree-container {

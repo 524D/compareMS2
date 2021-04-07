@@ -36,17 +36,6 @@ tree.size([800,600]);
 tree.font_size(15);
 tree.options(treeOptions, false);
 
-$("#layout").on("click", function(e) {
-    tree.options(treeOptionsTransition, false);
-    tree.radial($(this).prop("checked")).placenodes().update();
-  });
-
-$("#topology").on("click", function(e) {
-    d3.select("#tree_display").selectAll("*").remove();
-    tree.options(treeOptionsTransition, false);
-    tree($(this).prop("checked") ? topology: newick).layout();
-});
-
 function escapeHtml(unsafe) {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -360,4 +349,32 @@ ipcRenderer.on('userparams', (event, params) => {
 
 // Notify main process that we are ready to receive parameters
 ipcRenderer.send('get-userparms');
+
+$("#layout").on("click", function(e) {
+    tree.options(treeOptionsTransition, false);
+    tree.radial($(this).prop("checked")).placenodes().update();
+  });
+
+$("#topology").on("click", function(e) {
+    d3.select("#tree_display").selectAll("*").remove();
+    tree.options(treeOptionsTransition, false);
+    tree($(this).prop("checked") ? topology: newick).layout();
+});
+
+$("#details").on("click", function(e) {
+    if ($(this).html() == "Hide details") {
+        $(".info-details").css("visibility", "hidden");
+        $(".info-container").css("height", "35px");
+        $(this).html("Show details"); 
+    }
+    else {
+        $(".info-details").css("visibility", "visible");
+        $(".info-container").css("height", "150px");
+        $(this).html("Hide details"); 
+    }
+  });
+
+$("#pause").on("click", function(e) {
+    alert("Paused");
+});
 
