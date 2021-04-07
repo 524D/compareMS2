@@ -33,6 +33,12 @@
    border-radius: 10px;
  }
 
+ /* Move icons vertically so that they match text labels */
+ .icon-valign {
+  line-height: 18px;
+  vertical-align: top;
+}
+
 #submit:disabled {
   background-color: #cccccc;
   color: #aaaaaa;

@@ -6,6 +6,7 @@
 
   <link rel="stylesheet" href="assets/bootstrap.min.css">
   <link rel="stylesheet" href="assets/bootstrap-theme.min.css">
+  <link rel="stylesheet" href="assets/css/micon_nb.min.css">
   <link rel="stylesheet" href="local.css">
 
   <script src="util.js"></script>
@@ -18,7 +19,8 @@
         <div id="versioninfo"></div>
         <br/>
         <div><label class="input-label2">Directory of MGF files:</label>
-            <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;<button type="button" id="select-directory">Select dir</button></div>
+            <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
+            <button type="button" id="select-directory"><i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button></div>
         <div><label class="input-label3 small"></label>        
             <span id=mgfinfo class="small"></span></div>
         <div><label class="input-label">Maximum precursor mass difference:</label>
@@ -38,7 +40,8 @@
         <div class="blocktitle">Distance matrix calculation</div>
         <br/>
         <div><label class="input-label">Sample to species file:</label>
-            <input class="input-value" type="text" id="s2sfile" >&nbsp;<button type="button" id="select-speciesfile">Select file</button></div>
+            <input class="input-value" type="text" id="s2sfile" >&nbsp;
+            <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file</button></div>
         <div><label class="input-label">Output filename root:</label>
             <input class="input-value" type="text" id="outbasename"></div>
         <div><label class="input-label">Output format</label>
@@ -65,7 +68,7 @@
         </div>
     </div>
     <div class="text-center">
-        <input class="btn-lg" id="submit" type="submit" value="Start">
+        <button class="btn-lg" id="submit"><i class="mi mi-Play mi-lg icon-valign"></i>Start</button>
     </div>
     <script src="index.js"></script>
     </body>
