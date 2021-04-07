@@ -106,7 +106,7 @@ function compareNext() {
     }
     else
     {
-        act.innerHTML = 'Comparing<br/>' + escapeHtml(mgfFilesGlobal[file1Idx]) + '<br/>' + mgfFilesGlobal[file2Idx];
+        act.innerHTML = 'Comparing ' + escapeHtml(mgfFilesGlobal[file1Idx]) + ' ' + mgfFilesGlobal[file2Idx];
 
         let mgf1 = mgfFilesGlobal[file1Idx];
         let mgf2 = mgfFilesGlobal[file2Idx];

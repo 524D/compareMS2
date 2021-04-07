@@ -44,13 +44,34 @@
   color: #aaaaaa;
 }
 
-.info-panel {
+.info-container {
   background-color: lightgrey;
-  height: 20%;
+  height: 150px;
   width: 100%;
+  position: absolute;
+  bottom: 0px;
+}
+
+.info-panel {
+  width: 100%;
+  position: relative;
+}
+
+.info-activity {
+  font-weight: bolder;
+  position: absolute;
+  width: 100%;
+  top: 0px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.info-details {
   overflow: auto;
   position: absolute;
-  bottom: 0;
+  width: 100%;
+  top: 20px;
+  height: 130px;
 }
 
 #tree-container {
@@ -71,7 +92,6 @@
 }
 
 #t2 {
-  /* background-color: rgb(227, 255, 201); */
 width: 100%;
 padding-left: 20px;
 overflow: auto;
