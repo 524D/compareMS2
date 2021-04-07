@@ -1,9 +1,13 @@
 .blocktitle {
+  font-size: 1.17em;
+  font-weight: bolder;
   color: rgb(0, 0, 0);
   background-color: #ffffff;
   position: absolute;
-  top: -35px;
+  top: -13px;
   left: 50px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .input-label {
@@ -48,10 +52,6 @@
   max-width: 100%;
   overflow: auto;
   padding: 20px;
-  /*
-  height: 100%;
-  width: 60%;
-  */
 }
 
 #t0 {
