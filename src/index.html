@@ -22,13 +22,13 @@
         <div><label class="input-label3 small"></label>        
             <span id=mgfinfo class="small"></span></div>
         <div><label class="input-label">Maximum precursor mass difference:</label>
-            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001" value="2.05">&nbsp;(<it>m/z</it>)</div>
+            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)</div>
         <div><label class="input-label">Maximum scan number difference:</label>
-            <input class="input-value" type="number" id="chrompeakw" min="0" max="100000"value="1500">&nbsp;(scans)</div>
+            <input class="input-value" type="number" id="chrompeakw" min="0" max="100000">&nbsp;(scans)</div>
         <div><label class="input-label">Score cutoff:</label>
-            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001" value="0.8"></div>
+            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001"></div>
         <div hidden>
-            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="capturelog" name="capture" checked>
+            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="capturelog" name="capture">
             <label> Capture log</label>&nbsp;
             <input class="input-select" type="checkbox" id="richoutput" name="richout">
             <label> Rich output</label>
@@ -42,16 +42,16 @@
         <div><label class="input-label">Sample to species file:</label>
             <input class="input-value" type="text" id="s2sfile" >&nbsp;<button type="button" id="select-speciesfile">Select file</button></div>
         <div><label class="input-label">Output filename root:</label>
-            <input class="input-value" type="text" id="outbasename" value="comp"></div>
+            <input class="input-value" type="text" id="outbasename"></div>
         <div><label class="input-label">Output format</label>
-            <input disabled type="checkbox" id="outmega" name="output-mega" checked>
+            <input disabled type="checkbox" id="outmega" name="output-mega">
             <label> MEGA</label>
             <input type="checkbox" id="outnexus" name="output-nexus">
             <label> NEXUS</label>&nbsp;
         </div>
         <div><label class="input-label">Compare order</label>
             <select name="order" id="compare-order">
-                <option value="smallest-largest" selected>Smallest-largest first</option>
+                <option value="smallest-largest">Smallest-largest first</option>
                 <option value="smallest">Smallest-smallest first</option>
                 <option value="largest">Largest-largest first</option>
                 <option value="random">Random</option>

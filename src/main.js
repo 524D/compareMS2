@@ -19,16 +19,37 @@ let template = [{
     label: 'Load options',
     accelerator: 'CmdOrCtrl+L',
     click: (item, focusedWindow) => {
-      focusedWindow.send('load-options');
+      const files = dialog.showOpenDialogSync(mainWindow, {
+        title: 'Load options',
+        filters: [
+            { name: 'Options file (JSON)', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+        properties: ['openFile']
+      });
+      if (files) {
+          focusedWindow.send('load-options', files);
+      }
     }
   }, {
     label: 'Save options',
     accelerator: 'CmdOrCtrl+S',
     click: (item, focusedWindow) => {
-      focusedWindow.send('save-options');
+      const files = dialog.showSaveDialogSync(mainWindow, {
+        title: 'Save options',
+        defaultPath: 'compareMS2opts.json',
+        filters: [
+            { name: 'Options file (JSON)', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] }
+          ],
+        properties: ['openFile']
+      });
+      if (files) {
+          focusedWindow.send('save-options', files);
+      }
     }
   }, {
-    label: 'Reset default option',
+    label: 'Restore default option',
     accelerator: 'CmdOrCtrl+R',
     click: (item, focusedWindow) => {
       focusedWindow.send('reset-options');
@@ -132,6 +153,7 @@ const {ipcMain, dialog} = require('electron')
 
 ipcMain.on('open-dir-dialog', (event) => {
   const files = dialog.showOpenDialogSync(mainWindow, {
+    title: 'Select sample directory',
     properties: ['openDirectory']
   });
   if (files) {
@@ -141,12 +163,11 @@ ipcMain.on('open-dir-dialog', (event) => {
 
 ipcMain.on('open-speciesfile-dialog', (event) => {
   const files = dialog.showOpenDialogSync(mainWindow, {
-    filters: {
-      filters: [
+    title: 'Open sample-to-species file',
+    filters: [
         { name: 'Text file', extensions: ['txt'] },
         { name: 'All Files', extensions: ['*'] }
-      ]
-    },
+    ],
     properties: ['openFile']
   });
   if (files) {
