@@ -363,13 +363,13 @@ $("#topology").on("click", function(e) {
 
 $("#details").on("click", function(e) {
     if ($(this).html() == "Hide details") {
-        $(".info-details").css("visibility", "hidden");
-        $(".info-container").css("height", "35px");
+        $(".tvert-details").css("visibility", "hidden");
+        $(".info-details").css("height", "1px");
         $(this).html("Show details"); 
     }
     else {
-        $(".info-details").css("visibility", "visible");
-        $(".info-container").css("height", "150px");
+        $(".tvert-details").css("visibility", "visible");
+        $(".info-details").css("height", "150px");
         $(this).html("Hide details"); 
     }
   });
@@ -378,3 +378,5 @@ $("#pause").on("click", function(e) {
     alert("Paused");
 });
 
+// Add zoom control:
+// https://observablehq.com/@d3/programmatic-zoom
