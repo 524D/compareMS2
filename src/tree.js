@@ -5,10 +5,12 @@ const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');
 const log = nodeRequire('electron-log');
 
-let treeOptions = {'left-right-spacing' : "fit-to-size",
-    'top-bottom-spacing': "fit-to-size",
+let treeOptions = {
+    'brush' : false, // We have no use for the brush
+    'show-scale' : false,  // Scale is not updated on zoom, so we disable it
     'transitions': false,
     'zoom': true,
+    'max-radius': 2000,
 };
 
 // Same options, but with transitions
@@ -31,8 +33,16 @@ let newick = '';
 // Idem, without distance info (topology only)
 let topology = '';
 
-//tree.size([svgTree.clientWidth,svgTree.clientHeight]);
-tree.size([800,600]);
+let file1Idx;
+let file2Idx;
+let paramsGlobal;  // To save memory in recursive call, we store these in global variables
+let mgfFilesGlobal;
+let compareMS2exe;
+let compToDistExe;
+let compResultListFile;
+const myPath = app.getAppPath();
+
+//tree.size([document.querySelector('.tree-box').offsetHeight,document.querySelector('.tree-box').offsetWidth]);
 tree.font_size(15);
 tree.options(treeOptions, false);
 
@@ -60,26 +70,6 @@ function elog(msg) {
     msg = msg.replace(/(?: )/g, '&nbsp;');
     msg = '<span class="warn>' + msg + '</span>';
     document.getElementById('stdout').innerHTML += msg;
-}
-
-let file1Idx;
-let file2Idx;
-let paramsGlobal;  // To save memory in recursive call, we store these in global variables
-let mgfFilesGlobal;
-let compareMS2exe;
-let compToDistExe;
-let compResultListFile;
-const myPath = app.getAppPath();
-
-if (navigator.platform=='Linux x86_64') {
-    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
-    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
-} else if ( (navigator.platform=='Win64') || (navigator.platform=='Win32')) {
-    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
-    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
-}
-else {
-    document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
 }
 
 function compareNext() {
@@ -187,10 +177,10 @@ function makeTree() {
     act.innerHTML = 'Creating tree';
 
     let cmdArgs = ['-i', compResultListFile,
-    '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) ,
-    '-c', paramsGlobal.cutoff,
-    '-m'  // Generate MEGA format
-    ]
+            '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) ,
+            '-c', paramsGlobal.cutoff,
+            '-m'  // Generate MEGA format
+        ]
     let s2s = paramsGlobal.s2sFile;
     // If the file to species mapping file exists, use it
     if (fs.existsSync(s2s) && fs.lstatSync(s2s).isFile()) {
@@ -340,6 +330,19 @@ function runCompare(params) {
     compResultListFile = path.join(paramsGlobal.mgfDir,'cmp_list.txt');
     fs.closeSync(fs.openSync(compResultListFile, 'w'))
     compareNext();
+}
+
+// ******************************* start of initialization ******************************************** //
+
+if (navigator.platform=='Linux x86_64') {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
+} else if ( (navigator.platform=='Win64') || (navigator.platform=='Win32')) {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
+}
+else {
+    document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
 }
 
 // Receive parameters set in the main window

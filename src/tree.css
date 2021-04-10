@@ -40,10 +40,11 @@ body {
 .mainhor-container {
     display: flex;
     flex-direction: row;
+    height: 100%;
 }
 
 .main-tree-item {
-    flex: 1 1;
+    flex: 1 1 auto;
 }
 
 .main-control-item  {
@@ -57,6 +58,7 @@ body {
     border: 1px solid black;
     margin: 2px;
     background-color: rgb(240, 240, 240);
+    height: 100%;
 }
 
 .control-item {
@@ -79,10 +81,6 @@ body {
 
 #progress {
     width: 100%;
-}
-
-.tree-box {
-    
 }
 
 .info-activity {
