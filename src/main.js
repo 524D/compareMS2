@@ -113,8 +113,8 @@ const createWindow = () => {
       enableRemoteModule: true,
       contextIsolation: false,  // without this, we can't open new windows
       preload: path.join(__dirname, 'preload.js')
-    }
-
+    },
+    icon: path.join(iconPath,'tree.png'),
   });
 
   // and load the index.html of the app.
@@ -187,7 +187,7 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 
 // Display tree windows and send params
 ipcMain.on('maketree', (event, args) => {
-  const modalPath = path.join('file://', __dirname, '/tree.html')
+  const treePath = path.join('file://', __dirname, '/tree.html')
   params = args;
   treeWindow = new BrowserWindow({
     width: 800,
@@ -199,12 +199,13 @@ ipcMain.on('maketree', (event, args) => {
         enableRemoteModule: true,
         contextIsolation: false,  // without this, we can't open new windows
         preload: path.join(__dirname, 'preload.js')
-    }
-  })
+    },
+    icon: path.join(iconPath,'tree.png'),
+  });
   treeWindow.maximize();
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
-  treeWindow.loadURL(modalPath);
+  treeWindow.loadURL(treePath);
   if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
     // Open the DevTools.
     treeWindow.webContents.openDevTools();
@@ -216,4 +217,9 @@ ipcMain.on('maketree', (event, args) => {
 // Send parameters to tree window
 ipcMain.on('get-userparms', () => {
    treeWindow.send('userparams', params);
+})
+
+// Toggle full screen tree window. Doesn't work :(
+ipcMain.on('toggle-fullscreen', (event) => {
+    treeWindow.setFullScreen(!treeWindow.isFullScreen());
 })
