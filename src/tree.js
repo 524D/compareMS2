@@ -4,6 +4,7 @@ const path = nodeRequire('path');
 const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');
 const log = nodeRequire('electron-log');
+const downloadSvg = nodeRequire('svg-crowbar').downloadSvg;
 
 let treeOptions = {
     'brush' : false, // We have no use for the brush
@@ -379,6 +380,21 @@ $("#details").on("click", function(e) {
 
 $("#pause").on("click", function(e) {
     alert("Paused");
+});
+
+$("#store-svg").on("click", function(e) {
+    const svg = document.querySelector('#tree_display');
+    downloadSvg(svg, "phylotree");
+})
+
+// Toggle full screen on F11
+// Doesn't work, probably because window is modal
+document.addEventListener("keydown",  event => {
+    var keyCode = event.keyCode;
+    if(keyCode==122) {
+        // Ask main process to toggle fullscreen
+        ipcRenderer.send('toggle-fullscreen');
+    }
 });
 
 // Add zoom control:
