@@ -190,8 +190,8 @@ ipcMain.on('maketree', (event, args) => {
   const treePath = path.join('file://', __dirname, '/tree.html')
   params = args;
   treeWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
+    width: 1000,
+    height: 780,
     parent: mainWindow,
     modal: true,
     webPreferences: {
