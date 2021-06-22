@@ -120,7 +120,9 @@ In addition, compareMS2 collects metadata on each dataset (currently only the nu
 
 ## 4. Further reading
 
-compareMS2 and its applications have been published in a number of papers:
+compareMS2 and related applications have been published in a number of papers:
+
+Future feed control – Tracing banned bovine material in insect meal. Belghit I, Varunjikar M, Lecrenier MC, Steinhilber A, Niedzwiecka A, Wang YV, Dieu M, Azzollini D, Lie K, Lock EJ, Berntssen MHG, Renard P, Zagon J, Fumière O, van Loon JJA, Larsen T, Poetz O, Braeuning A, Palmblad M, Rasinger JD, Food Control 128, 108183, 2021
 
 Species-Specific Discrimination of Insect Meals for Aquafeeds by Direct Comparison of Tandem Mass Spectra. Belghit I, Lock EJ, Fumière O, Lecrenier MC, Renard P, Dieu M, Berntssen MHG, Palmblad M and Rasinger JD, Animals 9(5):222, 2019   
 
