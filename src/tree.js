@@ -388,10 +388,9 @@ $("#store-svg").on("click", function(e) {
 })
 
 // Toggle full screen on F11
-// Doesn't work, probably because window is modal
 document.addEventListener("keydown",  event => {
-    var keyCode = event.keyCode;
-    if(keyCode==122) {
+    var key = event.key;
+    if(key=="F11") {
         // Ask main process to toggle fullscreen
         ipcRenderer.send('toggle-fullscreen');
     }
