@@ -85,7 +85,7 @@ Figure 1. Phylogenetic tree based on sample primate [sera datasets](https://osf.
 
 ### 3.1 Configuring compareMS2  
 
-The compareMS2 CLI has a very small number of parameters, which are:
+The compareMS2 CLI has a small number of parameters, which are:
 
 -1 *first dataset filename*  
 -2 *second dataset filename*   
