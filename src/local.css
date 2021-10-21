@@ -35,7 +35,7 @@
 
  /* Move icons vertically so that they match text labels */
  .icon-valign {
-  line-height: 18px;
+  line-height: 24px;
   vertical-align: top;
 }
 
