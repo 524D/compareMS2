@@ -7,21 +7,31 @@ const log = nodeRequire('electron-log');
 const downloadSvg = nodeRequire('svg-crowbar').downloadSvg;
 
 let treeOptions = {
+    'container' : "#main-tree-item",
+    'draw-size-bubbles' : false,
     'brush' : false, // We have no use for the brush
-    'show-scale' : false,  // Scale is not updated on zoom, so we disable it
+    'show-scale' : true,
     'transitions': false,
-    'zoom': true,
+    'zoom': false, // Zoom = true doesn't work, SVG size is not updated
     'max-radius': 2000,
+
+    "annular-limit": 0.1, // 0.38196601125010515,
+    compression: 1.0,
+    "align-tips": false,
+    scaling: true,
 };
 
 // Same options, but with transitions
 let treeOptionsTransition = Object.assign({}, treeOptions, {'transitions': true});
 
-let tree = d3.layout.phylotree()
-  // create a tree layout object
-  .svg(d3.select("#tree_display"));
-  // render to this SVG element
-let svgTree = document.getElementById('tree_display');
+var test_string = "(((EELA:0.150276,CONGERA:0.213019):0.230956,(EELB:0.263487,CONGERB:0.202633):0.246917):0.094785,((CAVEFISH:0.451027,(GOLDFISH:0.340495,ZEBRAFISH:0.390163):0.220565):0.067778,((((((NSAM:0.008113,NARG:0.014065):0.052991,SPUN:0.061003,(SMIC:0.027806,SDIA:0.015298,SXAN:0.046873):0.046977):0.009822,(NAUR:0.081298,(SSPI:0.023876,STIE:0.013652):0.058179):0.091775):0.073346,(MVIO:0.012271,MBER:0.039798):0.178835):0.147992,((BFNKILLIFISH:0.317455,(ONIL:0.029217,XCAU:0.084388):0.201166):0.055908,THORNYHEAD:0.252481):0.061905):0.157214,LAMPFISH:0.717196,((SCABBARDA:0.189684,SCABBARDB:0.362015):0.282263,((VIPERFISH:0.318217,BLACKDRAGON:0.109912):0.123642,LOOSEJAW:0.397100):0.287152):0.140663):0.206729):0.222485,(COELACANTH:0.558103,((CLAWEDFROG:0.441842,SALAMANDER:0.299607):0.135307,((CHAMELEON:0.771665,((PIGEON:0.150909,CHICKEN:0.172733):0.082163,ZEBRAFINCH:0.099172):0.272338):0.014055,((BOVINE:0.167569,DOLPHIN:0.157450):0.104783,ELEPHANT:0.166557):0.367205):0.050892):0.114731):0.295021)myroot";
+let tree = new phylotree.phylotree(test_string)
+let rendered_tree = tree.render(treeOptions)
+//$(rendered_tree.container).html(rendered_tree.show())
+//tree.size([document.querySelector('.tree-box').offsetHeight,document.querySelector('.tree-box').offsetWidth]);
+//tree.font_size(15);
+// tree.options(treeOptions, false);
+
 
 const compareDirName = 'compareresult'
 let compareDir;
@@ -43,9 +53,6 @@ let compToDistExe;
 let compResultListFile;
 const myPath = app.getAppPath();
 
-//tree.size([document.querySelector('.tree-box').offsetHeight,document.querySelector('.tree-box').offsetWidth]);
-tree.font_size(15);
-tree.options(treeOptions, false);
 
 function escapeHtml(unsafe) {
     return unsafe
@@ -246,7 +253,7 @@ function makeTree() {
                     matrix.push(row);
                 }
             }
-            // Create new tree when files has finished loading
+            // Create new tree when file has finished loading
             if (last) {
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
@@ -254,11 +261,11 @@ function makeTree() {
                 // Create topology only string by removing distances from newick
                 topology = newick.replace(/:[-0-9.]+/g, "");
                 console.log('newick', newick, 'topology', topology);
-                d3.select("#tree_display").selectAll("*").remove();
-                tree.options(treeOptions, false);
-                tree($("#topology").prop("checked") ?  topology: newick).layout();
+                tree = new phylotree.phylotree($("#topology").prop("checked") ?  topology: newick);
+                rendered_tree = tree.render(treeOptions);
+                $(rendered_tree.container).html(rendered_tree.show())
+                 
                 file2Idx=0;
-
                 file1Idx++;
                 document.getElementById('stdout').innerHTML = '';
                 // Start next comparison (if any)
@@ -355,14 +362,13 @@ ipcRenderer.on('userparams', (event, params) => {
 ipcRenderer.send('get-userparms');
 
 $("#layout").on("click", function(e) {
-    tree.options(treeOptionsTransition, false);
-    tree.radial($(this).prop("checked")).placenodes().update();
-  });
+    rendered_tree.radial($(this).prop("checked")).update(true);
+});
 
 $("#topology").on("click", function(e) {
-    d3.select("#tree_display").selectAll("*").remove();
-    tree.options(treeOptionsTransition, false);
-    tree($(this).prop("checked") ? topology: newick).layout();
+    tree = new phylotree.phylotree($(this).prop("checked") ?  topology: newick);
+    rendered_tree = tree.render(treeOptions);
+    $(rendered_tree.container).html(rendered_tree.show())
 });
 
 $("#details").on("click", function(e) {
@@ -383,7 +389,7 @@ $("#pause").on("click", function(e) {
 });
 
 $("#store-svg").on("click", function(e) {
-    const svg = document.querySelector('#tree_display');
+    const svg = document.querySelector('#main-tree-item svg');
     downloadSvg(svg, "phylotree");
 })
 
