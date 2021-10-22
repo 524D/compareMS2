@@ -120,7 +120,7 @@ const createWindow = () => {
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
-  if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
+  if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
       // Open the DevTools.
       mainWindow.webContents.openDevTools();
       mainWindow.maximize();
@@ -206,7 +206,7 @@ ipcMain.on('maketree', (event, args) => {
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
   treeWindow.loadURL(treePath);
-  if (typeof process.env.CMPMS2_DEBUG !== 'undefined') {
+  if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
     // Open the DevTools.
     treeWindow.webContents.openDevTools();
   } 
