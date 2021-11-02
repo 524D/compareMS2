@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang='en'>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'">
 <head>
   <meta charset="utf-8">
 
@@ -11,15 +10,22 @@
 </head>
 
 <body>
-    <div class="param-section">
-        <div class="blocktitle">CompareMS2 parameters</div>
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'BasicSettings')">Basic settings</button>
+        <button class="tablinks" onclick="openTab(event, 'AdvSettings')">Advanced Settings</button>
         <div id="versioninfo"></div>
-        <br/>
+    </div>
+      
+    <!-- Tab content -->
+    <div id="BasicSettings" class="tabcontent tabdefault">
         <div><label class="input-label2">Directory of MGF files:</label>
             <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
             <button type="button" id="select-directory"><i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button></div>
         <div><label class="input-label3 small"></label>        
             <span id=mgfinfo class="small"></span></div>
+    </div>
+      
+    <div id="AdvSettings" class="tabcontent">
         <div><label class="input-label">Maximum precursor mass difference:</label>
             <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)</div>
         <div><label class="input-label">Maximum scan number difference:</label>
@@ -32,10 +38,6 @@
             <input class="input-select" type="checkbox" id="richoutput" name="richout">
             <label> Rich output</label>
         </div>
-    </div>
-    <div class="param-section">
-        <div class="blocktitle">Distance matrix calculation</div>
-        <br/>
         <div><label class="input-label">Sample to species file:</label>
             <input class="input-value" type="text" id="s2sfile" >&nbsp;
             <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file</button></div>
@@ -64,7 +66,7 @@
             <label> Impute missing values</label>
         </div>
     </div>
-    <div class="text-center">
+    <div class="text-center bottom-button">
         <button class="btn-lg" id="submit"><i class="mi mi-Play mi-lg icon-valign"></i>Start</button>
     </div>
     <script src="util.js"></script>
