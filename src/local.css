@@ -24,6 +24,11 @@
   padding: 10px;
   padding-top: 0px;
 }
+
+.input-value {
+    width: 40%;
+}
+
 .param-section {
   /* width: 95%; */
    position: relative; /* This causes child elements with "absolute" position to be placed relative to the param-section, not page */

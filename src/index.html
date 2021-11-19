@@ -26,22 +26,32 @@
     </div>
       
     <div id="AdvSettings" class="tabcontent">
-        <div><label class="input-label">Maximum precursor mass difference:</label>
+        <div><label class="input-label">Maximum precursor mass difference</label>
             <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)</div>
-        <div><label class="input-label">Maximum scan number difference:</label>
-            <input class="input-value" type="number" id="chrompeakw" min="0" max="100000">&nbsp;(scans)</div>
+        <div><label class="input-label">Maximum scan number difference</label>
+            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)</div>
         <div><label class="input-label">Score cutoff:</label>
             <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001"></div>
-        <div hidden>
-            &nbsp;&nbsp;<input class="input-select" type="checkbox" id="capturelog" name="capture">
-            <label> Capture log</label>&nbsp;
-            <input class="input-select" type="checkbox" id="richoutput" name="richout">
-            <label> Rich output</label>
-        </div>
-        <div><label class="input-label">Sample to species file:</label>
+        <div><label class="input-label">Minimum basepeak intensity</label>
+            <input class="input-value" type="number" id="minBasepeakIntensity"></div>
+        <div><label class="input-label">Start scan</label>
+            <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1"></div>
+        <div><label class="input-label">End scan</label>
+            <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1"></div>
+        <div><label class="input-label">Scaling</label>
+            <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001"></div>
+        <div><label class="input-label">Noise</label>
+            <input class="input-value" type="number" id="noise" min="0" max="10000" step="1"></div>
+        <div><label class="input-label">Version of set distance metric</label>
+            <input class="input-value" type="number" id="metric" min="1" max="2" step="1"></div>
+        <div><label class="input-label">Version of QC metric</label>
+            <input class="input-value" type="number" id="qc" min="0" max="0" step="1"></div>
+        <div><label class="input-label">Compare only the N most intense spectra</label>
+            <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1">&nbsp;-1=all</div>
+        <div><label class="input-label">Sample to species file</label>
             <input class="input-value" type="text" id="s2sfile" >&nbsp;
             <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file</button></div>
-        <div><label class="input-label">Output filename root:</label>
+        <div><label class="input-label">Output filename root</label>
             <input class="input-value" type="text" id="outbasename"></div>
         <div><label class="input-label">Output format</label>
             <input disabled type="checkbox" id="outmega" name="output-mega">

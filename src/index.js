@@ -12,13 +12,19 @@ const homedir = nodeRequire('os').homedir();
 
 const defaultOptions = {
   mgfDir: homedir,
-  precMassDiff: 2.05,
-  chromPeakW: 1500,
-  captureLog: true,
-  richOutput: true,
+  maxPrecursorDifference: 2.05,
+  maxScanNumberDifference: 1500,
+  minBasepeakIntensity: 10000,
+  startScan: 1,
+  endScan: 1000000,
+  cutoff: 0.8,
+  scaling: 0.5,
+  noise: 10,
+  metric: 2,
+  qc: 0,
+  topN: -1,
   s2sFile: homedir,
   outBasename: "comp",
-  cutoff: 0.8,
   avgSpecie: true,
   outNexus: false,
   outMega: true,
@@ -29,13 +35,19 @@ const defaultOptions = {
 // Set all user interface elements according to options
 function setOptions(options) {
   document.getElementById("mgfdir").value = options.mgfDir;
-  document.getElementById("precmassdif").value = options.precMassDiff;
-  document.getElementById("chrompeakw").value = options.chromPeakW;
-  document.getElementById("capturelog").checked = options.captureLog;
-  document.getElementById("richoutput").checked = options.richOutput;
+  document.getElementById("precmassdif").value = options.maxPrecursorDifference;
+  document.getElementById("maxscannumberdifference").value = options.maxScanNumberDifference;
+  document.getElementById("minBasepeakIntensity").value = options.minBasepeakIntensity;
+  document.getElementById("startScan").value = options.startScan;
+  document.getElementById("endScan").value = options.endScan;
+  document.getElementById("cutoff").value = options.cutoff;
+  document.getElementById("scaling").value = options.scaling;
+  document.getElementById("noise").value = options.noise;
+  document.getElementById("metric").value = options.metric;
+  document.getElementById("qc").value = options.qc;
+  document.getElementById("topN").value = options.topN;
   document.getElementById("s2sfile").value = options.s2sFile;
   document.getElementById("outbasename").value = options.outBasename;
-  document.getElementById("cutoff").value = options.cutoff;
   document.getElementById("avgspecie").checked = options.avgSpecie;
   document.getElementById("outnexus").checked = options.outNexus;
   document.getElementById("outmega").checked = options.outMega;
@@ -48,13 +60,19 @@ function setOptions(options) {
 function getOptions() {
   var options = {
     mgfDir : document.getElementById("mgfdir").value,
-    precMassDiff : parseFloat(document.getElementById("precmassdif").value),
-    chromPeakW : parseFloat(document.getElementById("chrompeakw").value),
-    captureLog : document.getElementById("capturelog").checked,
-    richOutput : document.getElementById("richoutput").checked,
+    maxPrecursorDifference : parseFloat(document.getElementById("precmassdif").value),
+    maxScanNumberDifference : parseFloat(document.getElementById("maxscannumberdifference").value),
+    minBasepeakIntensity : parseFloat(document.getElementById("minBasepeakIntensity").value),
+    startScan : parseFloat(document.getElementById("startScan").value),
+    endScan : parseFloat(document.getElementById("endScan").value),
+    cutoff : parseFloat(document.getElementById("cutoff").value),
+    scaling : parseFloat(document.getElementById("scaling").value),
+    noise: parseFloat(document.getElementById("noise").value),
+    metric : parseFloat(document.getElementById("metric").value),
+    qc : parseFloat(document.getElementById("qc").value),
+    topN : parseFloat(document.getElementById("topN").value),
     s2sFile : document.getElementById("s2sfile").value,
     outBasename : document.getElementById("outbasename").value,
-    cutoff : parseFloat(document.getElementById("cutoff").value),
     avgSpecie : document.getElementById("avgspecie").checked,
     outNexus : document.getElementById("outnexus").checked,
     outMega : document.getElementById("outmega").checked,

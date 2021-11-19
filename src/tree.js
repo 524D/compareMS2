@@ -105,12 +105,19 @@ function compareNext() {
         }
 
         let cmdArgs = 
-            ['-1', mgf1,
-            '-2', mgf2,
-            '-c', paramsGlobal.cutoff,
-            '-p', paramsGlobal.precMassDiff,
-            '-w', paramsGlobal.chromPeakW,
-            ];
+        ['-A', mgf1,
+        '-B', mgf2,
+        '-R', paramsGlobal.rangeMin + ',' + paramsGlobal.rangeMax,
+        '-p', paramsGlobal.maxPrecursorDifference,
+        '-m', paramsGlobal.minBasepeakIntensity,
+        '-w', paramsGlobal.maxScanNumberDifference,
+        '-c', paramsGlobal.cutoff,
+        '-s', paramsGlobal.scaling,
+        '-n', paramsGlobal.noise,
+        '-q', paramsGlobal.qc,
+        '-d', paramsGlobal.metric,
+        '-N', paramsGlobal.topN,
+        ]
         // Create a unique filename based on parameters
         let cmpFile = path.join(compareDir, shortHashObj({cmdArgs}) + ".txt");
 
