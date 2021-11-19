@@ -107,7 +107,7 @@ function compareNext() {
         let cmdArgs = 
         ['-A', mgf1,
         '-B', mgf2,
-        '-R', paramsGlobal.rangeMin + ',' + paramsGlobal.rangeMax,
+        '-R', paramsGlobal.startScan + ',' + paramsGlobal.endScan,
         '-p', paramsGlobal.maxPrecursorDifference,
         '-m', paramsGlobal.minBasepeakIntensity,
         '-w', paramsGlobal.maxScanNumberDifference,
