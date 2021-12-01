@@ -1,19 +1,19 @@
-.blocktitle {
-  font-size: 1.17em;
-  font-weight: bolder;
-  color: rgb(0, 0, 0);
-  background-color: #ffffff;
-  position: absolute;
-  top: -13px;
-  left: 50px;
-  padding-left: 10px;
-  padding-right: 10px;
+* {
+    box-sizing: border-box;
 }
+
+html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+ }
 
 .input-label {
   width: 40%;
   padding: 10px;
 }
+
 .input-label2 {
   width: 40%;
   padding: 10px;
@@ -29,79 +29,13 @@
     width: 40%;
 }
 
-.param-section {
-  /* width: 95%; */
-   position: relative; /* This causes child elements with "absolute" position to be placed relative to the param-section, not page */
-   border: 3px solid #c0c0c0;
-   padding: 10px;
-   margin: 20px;
-   border-radius: 10px;
- }
-
- /* Move icons vertically so that they match text labels */
- .icon-valign {
+/* Move icons vertically so that they match text labels */
+.icon-valign {
   line-height: 24px;
   vertical-align: top;
-}
-
-#submit:disabled {
-  background-color: #cccccc;
-  color: #aaaaaa;
 }
 
 .warn {
   color: red;
 }
 
-#versioninfo {
-  color: rgb(129, 129, 129);
-  position: absolute;
-  top: 5px;
-  right: 30px;
-}
-
-/* Style the tab */
-.tab {
-    overflow: hidden;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
-}
-  
-/* Style the buttons that are used to open the tab content */
-.tab button {
-    background-color: inherit;
-    float: left;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 14px 16px;
-    transition: 0.3s;
-}
-  
-/* Change background color of buttons on hover */
-.tab button:hover {
-    background-color: #ddd;
-}
-  
-/* Create an active/current tablink class */
-.tab button.active {
-    background-color: #ccc;
-}
-  
-/* Style the tab content */
-.tabcontent {
-    display: none;
-    padding: 6px 12px;
-}
-
-.tabdefault {
-    display: block;
-}  
-
-div.bottom-button {
-    border-top: 1px solid #ccc;
-    position: absolute;
-    bottom: 10px;
-    padding: 10px 10px;
-    width: 100%;
-}

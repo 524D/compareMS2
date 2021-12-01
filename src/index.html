@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang='en'>
-<head>
-  <meta charset="utf-8">
 
-  <link rel="stylesheet" href="assets/bootstrap.min.css">
-  <link rel="stylesheet" href="assets/css/micon_nb.min.css">
-  <link rel="stylesheet" href="local.css">
+<head>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="assets/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/micon_nb.min.css">
+    <link rel="stylesheet" href="local.css">
+    <link rel="stylesheet" href="index.css">
 
 </head>
 
@@ -15,44 +17,61 @@
         <button class="tablinks" onclick="openTab(event, 'AdvSettings')">Advanced Settings</button>
         <div id="versioninfo"></div>
     </div>
-      
+
     <!-- Tab content -->
     <div id="BasicSettings" class="tabcontent tabdefault">
         <div><label class="input-label2">Directory of MGF files:</label>
             <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
-            <button type="button" id="select-directory"><i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button></div>
-        <div><label class="input-label3 small"></label>        
-            <span id=mgfinfo class="small"></span></div>
+            <button type="button" id="select-directory">
+                <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
+        </div>
+        <div><label class="input-label3 small"></label>
+            <span id=mgfinfo class="small"></span>
+        </div>
     </div>
-      
+
     <div id="AdvSettings" class="tabcontent">
         <div><label class="input-label">Maximum precursor mass difference</label>
-            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)</div>
+            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)
+        </div>
         <div><label class="input-label">Maximum scan number difference</label>
-            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)</div>
+            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)
+        </div>
         <div><label class="input-label">Score cutoff:</label>
-            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001"></div>
+            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001">
+        </div>
         <div><label class="input-label">Minimum basepeak intensity</label>
-            <input class="input-value" type="number" id="minBasepeakIntensity"></div>
+            <input class="input-value" type="number" id="minBasepeakIntensity">
+        </div>
         <div><label class="input-label">Start scan</label>
-            <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1"></div>
+            <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1">
+        </div>
         <div><label class="input-label">End scan</label>
-            <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1"></div>
+            <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1">
+        </div>
         <div><label class="input-label">Scaling</label>
-            <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001"></div>
+            <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001">
+        </div>
         <div><label class="input-label">Noise</label>
-            <input class="input-value" type="number" id="noise" min="0" max="10000" step="1"></div>
+            <input class="input-value" type="number" id="noise" min="0" max="10000" step="1">
+        </div>
         <div><label class="input-label">Version of set distance metric</label>
-            <input class="input-value" type="number" id="metric" min="1" max="2" step="1"></div>
+            <input class="input-value" type="number" id="metric" min="1" max="2" step="1">
+        </div>
         <div><label class="input-label">Version of QC metric</label>
-            <input class="input-value" type="number" id="qc" min="0" max="0" step="1"></div>
+            <input class="input-value" type="number" id="qc" min="0" max="0" step="1">
+        </div>
         <div><label class="input-label">Compare only the N most intense spectra</label>
-            <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1">&nbsp;-1=all</div>
+            <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1">&nbsp;-1=all
+        </div>
         <div><label class="input-label">Sample to species file</label>
-            <input class="input-value" type="text" id="s2sfile" >&nbsp;
-            <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file</button></div>
+            <input class="input-value" type="text" id="s2sfile">&nbsp;
+            <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select
+                file</button>
+        </div>
         <div><label class="input-label">Output filename root</label>
-            <input class="input-value" type="text" id="outbasename"></div>
+            <input class="input-value" type="text" id="outbasename">
+        </div>
         <div><label class="input-label">Output format</label>
             <input disabled type="checkbox" id="outmega" name="output-mega">
             <label> MEGA</label>
@@ -82,6 +101,6 @@
     <script src="util.js"></script>
     <script src="assets/jquery-3.6.0.min.js"></script>
     <script src="index.js"></script>
-    </body>
+</body>
 
 </html>

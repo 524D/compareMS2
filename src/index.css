@@ -1,0 +1,68 @@
+.scroll-tab-container {
+    height: 100%;
+}
+
+.adv-tab {
+    height: 800;
+}
+
+#submit:disabled {
+  background-color: #cccccc;
+  color: #aaaaaa;
+}
+
+#versioninfo {
+  color: rgb(129, 129, 129);
+  position: absolute;
+  top: 5px;
+  right: 30px;
+}
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+  
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+}
+  
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+  
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+  
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    height: calc(100% - 140px);  /* 140 px is the sum of the bottom button area plust the top menu area */
+    overflow-y: auto;
+}
+
+.tabdefault {
+    display: block;
+}  
+
+div.bottom-button {
+    border-top: 1px solid #ccc;
+    height: 75px;
+    position: absolute;
+    bottom: 10px;
+    padding: 10px 10px;
+    width: 100%;
+}
