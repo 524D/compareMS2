@@ -340,7 +340,7 @@ static int create_mega(char* output_filename_stem, double* distance, species_t* 
 
 	for (i = 0; i < species->nr_species; i++) {
 		if (species->s2s[i].species_used) {
-			fprintf(output_file, "QC\t%s\t%.3f\n", species->s2s[i].species_name, qc_value[i] / (double)qc_samples[i]); // FIXME: get actual QC value
+			fprintf(output_file, "QC\t%s\t%.3f\n", species->s2s[i].species_name, qc_value[i] / (double)qc_samples[i]);
 		}
 	}
 	fprintf(output_file, "\n");
@@ -474,8 +474,8 @@ int main(int argc, char* argv[])
 	// distance_samples holds the number of samples that contribute to the distance
 	int* distance_samples = (int*)alloc_chk(max_distances * sizeof(int));
 
-	double* qc_value = (double*)alloc_chk(n_comparisons + species.nr_species * sizeof(double));
-	int* qc_samples = (int*)alloc_chk(n_comparisons + species.nr_species * sizeof(int));
+	double* qc_value = (double*)alloc_chk((n_comparisons + species.nr_species) * sizeof(double));
+	int* qc_samples = (int*)alloc_chk((n_comparisons + species.nr_species) * sizeof(int));
 
 	/* read in compareMS2 results files and process contents */
 	for (i = 0; i < n_comparisons; i++) {
