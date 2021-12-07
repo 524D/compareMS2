@@ -26,16 +26,16 @@ let template = [{
       const files = dialog.showOpenDialogSync(mainWindow, {
         title: 'Load options',
         filters: [
-            { name: 'Options file (JSON)', extensions: ['json'] },
-            { name: 'All Files', extensions: ['*'] }
-          ],
+          { name: 'Options file (JSON)', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
         properties: ['openFile']
       });
       if (files) {
-          focusedWindow.send('load-options', files);
+        focusedWindow.send('load-options', files);
       }
     },
-    icon: path.join(iconPath,'OpenFile.png'),
+    icon: path.join(iconPath, 'OpenFile.png'),
   }, {
     label: 'Save options',
     accelerator: 'CmdOrCtrl+S',
@@ -44,31 +44,31 @@ let template = [{
         title: 'Save options',
         defaultPath: 'compareMS2opts.json',
         filters: [
-            { name: 'Options file (JSON)', extensions: ['json'] },
-            { name: 'All Files', extensions: ['*'] }
-          ],
+          { name: 'Options file (JSON)', extensions: ['json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
         properties: ['openFile']
       });
       if (files) {
-          focusedWindow.send('save-options', files);
+        focusedWindow.send('save-options', files);
       }
     },
-    icon: path.join(iconPath,'Save.png'),
+    icon: path.join(iconPath, 'Save.png'),
   }, {
     label: 'Restore default option',
     accelerator: 'CmdOrCtrl+R',
     click: (item, focusedWindow) => {
       focusedWindow.send('reset-options');
     },
-    icon: path.join(iconPath,'Refresh.png'),
-  }, 
+    icon: path.join(iconPath, 'Refresh.png'),
+  },
   {
     type: 'separator'
   }, {
     label: 'Exit',
     accelerator: 'CmdOrCtrl+Q',
     role: 'quit',
-    icon: path.join(iconPath,'Clear.png'),
+    icon: path.join(iconPath, 'Clear.png'),
   }]
 }, {
   label: 'View',
@@ -86,7 +86,7 @@ let template = [{
         focusedWindow.setFullScreen(!focusedWindow.isFullScreen())
       }
     },
-    icon: path.join(iconPath,'View.png'),
+    icon: path.join(iconPath, 'View.png'),
   }]
 }, {
   label: 'Help',
@@ -96,7 +96,7 @@ let template = [{
     click: () => {
       shell.openExternal('https://github.com/524D/compareMS2')
     },
-    icon: path.join(iconPath,'Help.png'),
+    icon: path.join(iconPath, 'Help.png'),
   }],
 }]
 
@@ -106,25 +106,25 @@ Menu.setApplicationMenu(menu)
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 700,
-    height: 800,
+    width: 780,
+    height: 820,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
       contextIsolation: false,  // without this, we can't open new windows
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(iconPath,'tree.png'),
+    icon: path.join(iconPath, 'tree.png'),
   });
 
   // and load the index.html of the app.
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
   if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
-      // Open the DevTools.
-      mainWindow.webContents.openDevTools();
-      mainWindow.maximize();
-  } 
+    // Open the DevTools.
+    mainWindow.webContents.openDevTools();
+    mainWindow.maximize();
+  }
 
   // Emitted when the window is closed.
   mainWindow.on('closed', () => {
@@ -159,7 +159,7 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-const {ipcMain, dialog} = require('electron')
+const { ipcMain, dialog } = require('electron')
 
 ipcMain.on('open-dir-dialog', (event) => {
   const files = dialog.showOpenDialogSync(mainWindow, {
@@ -167,7 +167,7 @@ ipcMain.on('open-dir-dialog', (event) => {
     properties: ['openDirectory']
   });
   if (files) {
-      mainWindow.send('selected-directory', files)
+    mainWindow.send('selected-directory', files)
   }
 })
 
@@ -175,13 +175,13 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
   const files = dialog.showOpenDialogSync(mainWindow, {
     title: 'Open sample-to-species file',
     filters: [
-        { name: 'Text file', extensions: ['txt'] },
-        { name: 'All Files', extensions: ['*'] }
+      { name: 'Text file', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] }
     ],
     properties: ['openFile']
   });
   if (files) {
-      mainWindow.send('selected-speciesfile', files)
+    mainWindow.send('selected-speciesfile', files)
   }
 })
 
@@ -195,12 +195,12 @@ ipcMain.on('maketree', (event, args) => {
     parent: mainWindow,
     modal: true,
     webPreferences: {
-        nodeIntegration: true,
-        enableRemoteModule: true,
-        contextIsolation: false,  // without this, we can't open new windows
-        preload: path.join(__dirname, 'preload.js')
+      nodeIntegration: true,
+      enableRemoteModule: true,
+      contextIsolation: false,  // without this, we can't open new windows
+      preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(iconPath,'tree.png'),
+    icon: path.join(iconPath, 'tree.png'),
   });
   treeWindow.maximize();
   treeWindow.on('close', () => { treeWindow = null })
@@ -209,17 +209,17 @@ ipcMain.on('maketree', (event, args) => {
   if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
     // Open the DevTools.
     treeWindow.webContents.openDevTools();
-  } 
+  }
 
   treeWindow.show();
 })
 
 // Send parameters to tree window
 ipcMain.on('get-userparms', () => {
-   treeWindow.send('userparams', params);
+  treeWindow.send('userparams', params);
 })
 
 // Toggle full screen tree window. Doesn't work :(
 ipcMain.on('toggle-fullscreen', (event) => {
-    treeWindow.setFullScreen(!treeWindow.isFullScreen());
+  treeWindow.setFullScreen(!treeWindow.isFullScreen());
 })
