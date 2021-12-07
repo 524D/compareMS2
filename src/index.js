@@ -1,6 +1,6 @@
-const {BrowserWindow, getCurrentWindow} = nodeRequire('electron').remote
+const { BrowserWindow, getCurrentWindow } = nodeRequire('electron').remote
 const path = nodeRequire('path')
-const {ipcRenderer} = nodeRequire('electron')
+const { ipcRenderer } = nodeRequire('electron')
 var appVersion = nodeRequire('electron').remote.app.getVersion();
 
 const selectDirBtn = document.getElementById('select-directory')
@@ -15,6 +15,7 @@ const defaultOptions = {
   maxPrecursorDifference: 2.05,
   maxScanNumberDifference: 1500,
   minBasepeakIntensity: 10000,
+  minTotalIonCurrent: 0,
   startScan: 1,
   endScan: 1000000,
   cutoff: 0.8,
@@ -38,6 +39,7 @@ function setOptions(options) {
   document.getElementById("precmassdif").value = options.maxPrecursorDifference;
   document.getElementById("maxscannumberdifference").value = options.maxScanNumberDifference;
   document.getElementById("minBasepeakIntensity").value = options.minBasepeakIntensity;
+  document.getElementById("minTotalIonCurrent").value = options.minTotalIonCurrent;
   document.getElementById("startScan").value = options.startScan;
   document.getElementById("endScan").value = options.endScan;
   document.getElementById("cutoff").value = options.cutoff;
@@ -59,37 +61,38 @@ function setOptions(options) {
 // Get all values set by user
 function getOptions() {
   var options = {
-    mgfDir : document.getElementById("mgfdir").value,
-    maxPrecursorDifference : parseFloat(document.getElementById("precmassdif").value),
-    maxScanNumberDifference : parseFloat(document.getElementById("maxscannumberdifference").value),
-    minBasepeakIntensity : parseFloat(document.getElementById("minBasepeakIntensity").value),
-    startScan : parseFloat(document.getElementById("startScan").value),
-    endScan : parseFloat(document.getElementById("endScan").value),
-    cutoff : parseFloat(document.getElementById("cutoff").value),
-    scaling : parseFloat(document.getElementById("scaling").value),
+    mgfDir: document.getElementById("mgfdir").value,
+    maxPrecursorDifference: parseFloat(document.getElementById("precmassdif").value),
+    maxScanNumberDifference: parseFloat(document.getElementById("maxscannumberdifference").value),
+    minBasepeakIntensity: parseFloat(document.getElementById("minBasepeakIntensity").value),
+    minTotalIonCurrent: parseFloat(document.getElementById("minTotalIonCurrent").value),
+    startScan: parseFloat(document.getElementById("startScan").value),
+    endScan: parseFloat(document.getElementById("endScan").value),
+    cutoff: parseFloat(document.getElementById("cutoff").value),
+    scaling: parseFloat(document.getElementById("scaling").value),
     noise: parseFloat(document.getElementById("noise").value),
-    metric : parseFloat(document.getElementById("metric").value),
-    qc : parseFloat(document.getElementById("qc").value),
-    topN : parseFloat(document.getElementById("topN").value),
-    s2sFile : document.getElementById("s2sfile").value,
-    outBasename : document.getElementById("outbasename").value,
-    avgSpecie : document.getElementById("avgspecie").checked,
-    outNexus : document.getElementById("outnexus").checked,
-    outMega : document.getElementById("outmega").checked,
-    impMissing : document.getElementById("impmiss").checked,
-    compareOrder : document.getElementById("compare-order").value,
+    metric: parseFloat(document.getElementById("metric").value),
+    qc: parseFloat(document.getElementById("qc").value),
+    topN: parseFloat(document.getElementById("topN").value),
+    s2sFile: document.getElementById("s2sfile").value,
+    outBasename: document.getElementById("outbasename").value,
+    avgSpecie: document.getElementById("avgspecie").checked,
+    outNexus: document.getElementById("outnexus").checked,
+    outMega: document.getElementById("outmega").checked,
+    impMissing: document.getElementById("impmiss").checked,
+    compareOrder: document.getElementById("compare-order").value,
   }
   return options;
 }
 
 function loadOptionsFromFile(fn, processOpts) {
   fs.readFile(fn, 'utf-8', (err, data) => {
-    if(err){
-        alert("An error ocurred reading the file :" + err.message);
-        return;
+    if (err) {
+      alert("An error ocurred reading the file :" + err.message);
+      return;
     }
     else {
-      const options=JSON.parse(data);
+      const options = JSON.parse(data);
       processOpts(options);
     }
   });
@@ -97,7 +100,7 @@ function loadOptionsFromFile(fn, processOpts) {
 
 function saveOptionsToFile(fn, options) {
   try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
-  catch(e) { alert('Failed to save options file'); }
+  catch (e) { alert('Failed to save options file'); }
 }
 
 // Update MGF files info
@@ -106,40 +109,40 @@ function updateMgfInfo(path) {
   const mgfinfo = document.getElementById('mgfinfo');
   var mgfFiles = getMgfFiles(path);
   var nMgf = mgfFiles.length;
-  mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf -1))/2 + " comparisons.";
+  mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf - 1)) / 2 + " comparisons.";
   // Disable submit button if < 2 MGF files
-  document.getElementById("submit").disabled = (nMgf<2);
+  document.getElementById("submit").disabled = (nMgf < 2);
 }
 
 function openTab(evt, tabName) {
-    // Declare all variables
-    var i, tabcontent, tablinks;
+  // Declare all variables
+  var i, tabcontent, tablinks;
 
-    // Get all elements with class="tabcontent" and hide them
-    tabcontent = document.getElementsByClassName("tabcontent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
 
-    // Get all elements with class="tablinks" and remove the class "active"
-    tablinks = document.getElementsByClassName("tablinks");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
 
-    // Show the current tab, and add an "active" class to the button that opened the tab
-    document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
 }
 
-  // *******************************start of initialization ******************************************** //
+// *******************************start of initialization ******************************************** //
 
 // Set defaults for input fields
 setOptions(defaultOptions);
 
 // Update MGF info on manual input
-const inputHandler = function(e) {
-    updateMgfInfo(e.target.value);
+const inputHandler = function (e) {
+  updateMgfInfo(e.target.value);
 }
 document.getElementById("mgfdir").addEventListener('input', inputHandler);
 
@@ -154,12 +157,12 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
 
 // Handle messages from main process
 ipcRenderer.on('load-options', (event, p) => {
-  var fn=`${p}`;
+  var fn = `${p}`;
   loadOptionsFromFile(fn, setOptions);
 })
 
 ipcRenderer.on('save-options', (event, p) => {
-  var fn=`${p}`;
+  var fn = `${p}`;
   saveOptionsToFile(fn, getOptions());
 })
 
@@ -168,7 +171,7 @@ ipcRenderer.on('reset-options', (event, p) => {
 })
 
 ipcRenderer.on('selected-directory', (event, p) => {
-  var fn=`${p}`;
+  var fn = `${p}`;
   document.getElementById("mgfdir").value = fn;
   updateMgfInfo(fn);
   // If sample-to-species file was not manually set, check if
@@ -186,7 +189,7 @@ ipcRenderer.on('selected-directory', (event, p) => {
 })
 
 ipcRenderer.on('selected-speciesfile', (event, p) => {
-  var fn=`${p}`;
+  var fn = `${p}`;
   document.getElementById("s2sfile").value = fn;
   s2sFileManualSet = true;
 })
