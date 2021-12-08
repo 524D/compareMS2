@@ -1,7 +1,7 @@
 {
   "name": "compare-ms2",
   "productName": "compareMS2",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
   "scripts": {
@@ -34,10 +34,12 @@
         ]
       },
       "electronPackagerConfig": {
-        "packageManager": "npm"
+        "packageManager": "npm",
+        "icon": "src/assets/images/logo-icon.ico"
       },
       "electronWinstallerConfig": {
-        "name": "compareMS2"
+        "name": "compareMS2",
+        "setupIcon": "src/assets/images/logo-icon-install.ico"
       },
       "electronInstallerDebian": {},
       "electronInstallerRedhat": {},
@@ -53,18 +55,18 @@
   },
   "dependencies": {
     "electron-compile": "^6.4.4",
-    "electron-log": "^4.3.2",
+    "electron-log": "^4.4.1",
     "electron-squirrel-startup": "^1.0.0",
     "line-reader": "^0.4.0",
-    "svg-crowbar": "^0.6.5"
+    "svg-crowbar": "^0.7.0"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.54",
-    "@electron-forge/maker-deb": "^6.0.0-beta.54",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.54",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.54",
-    "@electron-forge/maker-zip": "^6.0.0-beta.54",
-    "electron": "12.0.1",
+    "@electron-forge/cli": "^6.0.0-beta.61",
+    "@electron-forge/maker-deb": "^6.0.0-beta.61",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.61",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
+    "@electron-forge/maker-zip": "^6.0.0-beta.61",
+    "electron": "16.0.4",
     "electron-prebuilt-compile": "8.2.0"
   }
 }
