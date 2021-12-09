@@ -90,6 +90,12 @@ function compareNext() {
 
     if (file1Idx >= mgfFilesGlobal.length) {
         act.innerHTML = 'Finished';
+        // Disable buttons
+        document.getElementById('pause').disabled = true;
+        document.getElementById('details').disabled = true;
+        // Hide "details" section
+        $(".tvert-details").css("visibility", "hidden");
+        $(".info-details").css("height", "1px");
     }
     else {
         act.innerHTML = 'Comparing ' + escapeHtml(mgfFilesGlobal[file1Idx]) + ' ' + mgfFilesGlobal[file2Idx];
