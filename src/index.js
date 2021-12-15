@@ -13,7 +13,7 @@ const homedir = nodeRequire('os').homedir();
 const defaultOptions = {
   mgfDir: homedir,
   maxPrecursorDifference: 2.05,
-  maxScanNumberDifference: 1500,
+  maxScanNumberDifference: 10000,
   minBasepeakIntensity: 10000,
   minTotalIonCurrent: 0,
   startScan: 1,
