@@ -246,10 +246,10 @@ long distance_index(long x, long y)
 /* output distance matrix file with in NEXUS format */
 static int create_nexus(char* output_filename_stem, double* distance, species_t* species, int metric)
 {
-	long n_species = get_n_species(species); // FIXME: handle similar to MEGA
 	long i, j;
 	char output_filename[MAX_PATH];
 	FILE* output_file;
+    long n_species = get_n_species(species);
 
 	printf("writing distance matrix in NEXUS format...");
 
@@ -271,11 +271,14 @@ static int create_nexus(char* output_filename_stem, double* distance, species_t*
 	fprintf(output_file, "[ distances are based on metric %i                                              ]\n", metric);
 	fprintf(output_file, "[                                                                              ]\n");
 	fprintf(output_file, "BEGIN taxa;\n");
-	fprintf(output_file, "   DIMENSIONS ntax=%li;", n_species);
-	fprintf(output_file, "TAXLABELS\n");
-	for (i = 0; i < n_species; i++)
-		fprintf(output_file, "   %s\n", species[i].s2s->species_name);
-	fprintf(output_file, "\n;\nEND;\n\n");
+	fprintf(output_file, "   DIMENSIONS ntax=%li;\n", n_species);
+	fprintf(output_file, "   TAXLABELS");
+	for (i = 0; i < species->nr_species; i++) {
+        if (species->s2s[i].species_used) {
+	    	fprintf(output_file, "   %s", species->s2s[i].species_name);
+        }
+    }
+	fprintf(output_file, ";\nEND;\n\n");
 	fprintf(output_file, "BEGIN distances;\n");
 	fprintf(output_file, "   DIMENSIONS ntax=%li;\n", n_species);
 	fprintf(output_file, "   FORMAT\n");
@@ -292,7 +295,7 @@ static int create_nexus(char* output_filename_stem, double* distance, species_t*
 			for (j = 0; j < species->nr_species; j++) {
 				if (species->s2s[j].species_used) {
 					if (any_out == 0) {
-						fprintf(output_file, "%s\t", species[i].s2s->species_name);
+						fprintf(output_file, "%s\t", species->s2s[i].species_name);
 						any_out = 1;
 					}
 					if (i == j) {
@@ -436,7 +439,7 @@ int main(int argc, char* argv[])
 		read_sample_to_species(sample_species_mapping_filename, &species);
 	}
 
-	printf("done\nAllocatin memory...");
+	printf("done\nAllocating memory...");
 
 	/* allocate memory */
 	X = (char**)alloc_chk(n_comparisons * sizeof(char*));
