@@ -159,10 +159,12 @@ function compareNext() {
         let cmdArgs =
             ['-A', mgf1,
                 '-B', mgf2,
-                '-R', paramsGlobal.startScan + ',' + paramsGlobal.endScan,
                 '-p', paramsGlobal.maxPrecursorDifference,
                 '-m', paramsGlobal.minBasepeakIntensity + ',' + paramsGlobal.minTotalIonCurrent,
                 '-w', paramsGlobal.maxScanNumberDifference,
+                '-W', paramsGlobal.startScan + ',' + paramsGlobal.endScan,
+                '-r', paramsGlobal.maxRTDifference,
+                '-R', paramsGlobal.startRT + ',' + paramsGlobal.endRT,
                 '-c', paramsGlobal.cutoff,
                 '-s', paramsGlobal.scaling,
                 '-n', paramsGlobal.noise,

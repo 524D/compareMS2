@@ -34,9 +34,6 @@
         <div><label class="input-label">Maximum precursor mass difference</label>
             <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)
         </div>
-        <div><label class="input-label">Maximum scan number difference</label>
-            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)
-        </div>
         <div><label class="input-label">Score cutoff:</label>
             <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001">
         </div>
@@ -45,6 +42,18 @@
         </div>
         <div><label class="input-label">Minimum total ion current</label>
             <input class="input-value" type="number" id="minTotalIonCurrent">
+        </div>
+        <div><label class="input-label">Maximum retention time difference</label>
+            <input class="input-value" type="number" id="maxRTDifference" min="0" max="100000" step="1">&nbsp;(s)
+        </div>
+        <div><label class="input-label">Start retention time</label>
+            <input class="input-value" type="number" id="startRT" min="0" max="1000000" step="1">&nbsp;(s)
+        </div>
+        <div><label class="input-label">End retention time</label>
+            <input class="input-value" type="number" id="endRT" min="0" max="1000000" step="1">&nbsp;(s)
+        </div>
+        <div><label class="input-label">Maximum scan number difference</label>
+            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)
         </div>
         <div><label class="input-label">Start scan</label>
             <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1">

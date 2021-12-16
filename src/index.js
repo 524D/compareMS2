@@ -13,9 +13,12 @@ const homedir = nodeRequire('os').homedir();
 const defaultOptions = {
   mgfDir: homedir,
   maxPrecursorDifference: 2.05,
-  maxScanNumberDifference: 10000,
   minBasepeakIntensity: 10000,
   minTotalIonCurrent: 0,
+  maxRTDifference: 60,
+  startRT: 0,
+  endRT: 100000,
+  maxScanNumberDifference: 10000,
   startScan: 1,
   endScan: 1000000,
   cutoff: 0.8,
@@ -37,9 +40,12 @@ const defaultOptions = {
 function setOptions(options) {
   document.getElementById("mgfdir").value = options.mgfDir;
   document.getElementById("precmassdif").value = options.maxPrecursorDifference;
-  document.getElementById("maxscannumberdifference").value = options.maxScanNumberDifference;
   document.getElementById("minBasepeakIntensity").value = options.minBasepeakIntensity;
   document.getElementById("minTotalIonCurrent").value = options.minTotalIonCurrent;
+  document.getElementById("maxRTDifference").value = options.maxRTDifference;
+  document.getElementById("startRT").value = options.startRT;
+  document.getElementById("endRT").value = options.endRT;
+  document.getElementById("maxscannumberdifference").value = options.maxScanNumberDifference;
   document.getElementById("startScan").value = options.startScan;
   document.getElementById("endScan").value = options.endScan;
   document.getElementById("cutoff").value = options.cutoff;
@@ -63,9 +69,12 @@ function getOptions() {
   var options = {
     mgfDir: document.getElementById("mgfdir").value,
     maxPrecursorDifference: parseFloat(document.getElementById("precmassdif").value),
-    maxScanNumberDifference: parseFloat(document.getElementById("maxscannumberdifference").value),
     minBasepeakIntensity: parseFloat(document.getElementById("minBasepeakIntensity").value),
     minTotalIonCurrent: parseFloat(document.getElementById("minTotalIonCurrent").value),
+    maxRTDifference: document.getElementById("maxRTDifference").value,
+    startRT: document.getElementById("startRT").value,
+    endRT: document.getElementById("endRT").value,
+    maxScanNumberDifference: parseFloat(document.getElementById("maxscannumberdifference").value),
     startScan: parseFloat(document.getElementById("startScan").value),
     endScan: parseFloat(document.getElementById("endScan").value),
     cutoff: parseFloat(document.getElementById("cutoff").value),
