@@ -80,6 +80,49 @@ function elog(msg) {
     document.getElementById('stdout').innerHTML += msg;
 }
 
+function runToDistance(mega) {
+    let cmdArgs = ['-i', compResultListFile,
+        '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename),
+        '-c', paramsGlobal.cutoff
+    ]
+    if (mega) {
+        cmdArgs.push('-m');
+    }
+
+    let s2s = paramsGlobal.s2sFile;
+    // If the file to species mapping file exists, use it
+    if (fs.existsSync(s2s) && fs.lstatSync(s2s).isFile()) {
+        cmdArgs.push('-x', s2s)
+    }
+
+    let cmdStr = compToDistExe + JSON.stringify(cmdArgs);
+    llog('Executing: ' + cmdStr + '\n');
+    const c2d = spawn(compToDistExe, cmdArgs);
+    c2d.stdout.on('data', (data) => {
+        data = escapeHtml(data.toString());
+        data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        data = data.replace(/(?: )/g, '&nbsp;');
+        document.getElementById('stdout').innerHTML += data;
+    });
+
+    c2d.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+    });
+
+    c2d.on('error', (data) => {
+        console.error('Error running compareMS2_to_distance_matrices');
+        act.innerHTML = 'Error running compareMS2_to_distance_matrices';
+    });
+
+    c2d.stderr.on('exit', (code, signal) => {
+        console.error('Error running compareMS2_to_distance_matrices');
+        act.innerHTML = 'Error running compareMS2_to_distance_matrices';
+    });
+
+    c2d.on('close', (code) => {
+    });
+}
+
 function compareNext() {
     let act = document.getElementById('activity');
 
@@ -96,6 +139,10 @@ function compareNext() {
         // Hide "details" section
         $(".tvert-details").css("visibility", "hidden");
         $(".info-details").css("height", "1px");
+        if (paramsGlobal.outNexus) {
+            llog('Creating Nexus output');
+            runToDistance(false);
+        }
     }
     else {
         act.innerHTML = 'Comparing ' + escapeHtml(mgfFilesGlobal[file1Idx]) + ' ' + mgfFilesGlobal[file2Idx];
