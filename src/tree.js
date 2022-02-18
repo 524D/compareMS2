@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright 2022 Rob Marissen.
+
 const { ipcRenderer } = nodeRequire('electron');
 const app = nodeRequire('electron').remote.app;
 const path = nodeRequire('path');

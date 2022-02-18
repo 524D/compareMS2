@@ -1,9 +1,6 @@
-html,
-body {
-    height: 100%;
-    margin: 0;
-}
-  
+/* SPDX-License-Identifier: MIT */
+/* Copyright 2022 Rob Marissen */
+
 .tvert-container {
     position: relative;
     display: flex;
@@ -43,7 +40,7 @@ body {
     height: 100%;
 }
 
-.main-tree-item {
+#main-tree-item {
     flex: 1 1 auto;
 }
 
@@ -58,7 +55,7 @@ body {
     border: 1px solid black;
     margin: 2px;
     background-color: rgb(240, 240, 240);
-    height: 100%;
+    height: 100%;    
 }
 
 .control-item {

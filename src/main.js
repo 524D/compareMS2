@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright 2022 Rob Marissen.
 import { app, BrowserWindow, Menu, shell } from 'electron';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
