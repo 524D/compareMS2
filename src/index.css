@@ -53,7 +53,7 @@
 .tabcontent {
     display: none;
     padding: 6px 12px;
-    height: calc(100% - 140px);  /* 140 px is the sum of the bottom button area plust the top menu area */
+    height: calc(100% - 140px);  /* 140 px is the sum of the bottom button area plus the top menu area */
     overflow-y: auto;
 }
 
@@ -68,4 +68,14 @@ div.bottom-button {
     bottom: 10px;
     padding: 10px 10px;
     width: 100%;
+}
+
+/* Hack to set the size of the "Compare only N most intense spectra" inputs */
+#topInp1 {
+    display: inline-block;
+    width: 10%;
+}
+
+#topN{
+    width: calc(30% - 4px);
 }

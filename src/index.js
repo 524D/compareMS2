@@ -167,7 +167,23 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
   ipcRenderer.send('open-speciesfile-dialog')
 })
 
-// Handle messages from main process
+
+// Handle the "Compare only N most intense spectra" input
+// Init 
+$('#topN').hide();
+
+$('#topAll').change(function() {
+    if(this.checked) {
+        $('#topN').hide();
+        $('#topN').val(-1)
+    }
+    else {
+        $('#topN').show();
+        $('#topN').val(1000)
+    }
+});
+
+  // Handle messages from main process
 ipcRenderer.on('load-options', (event, p) => {
   var fn = `${p}`;
   loadOptionsFromFile(fn, setOptions);
