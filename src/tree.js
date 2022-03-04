@@ -8,6 +8,9 @@ const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');
 const log = nodeRequire('electron-log');
 const downloadSvg = nodeRequire('svg-crowbar').downloadSvg;
+const { jsPDF } = nodeRequire("jspdf");
+const { svg2pdf } = nodeRequire("svg2pdf.js");
+const d3ToPng = nodeRequire('d3-svg-to-png');
 
 let treeOptions = {
     'container': "#main-tree-item",
@@ -453,8 +456,33 @@ $("#pause").on("click", function (e) {
 });
 
 $("#store-svg").on("click", function (e) {
-    const svg = document.querySelector('#main-tree-item svg');
-    downloadSvg(svg, "phylotree");
+    const v = $('#img-type').val();
+    if (v=="svg") {
+        const svg = document.querySelector('#main-tree-item svg');
+        downloadSvg(svg, "phylotree");
+    }
+    else if (v=="pdf") {
+        const doc = new jsPDF();
+
+        const element = document.querySelector('#main-tree-item svg');
+        // FIXME: the picture doesn't look right
+        //  it looks the same as when the SVG looks when that area is stored as-is)
+        doc
+        .svg(element, {
+            loadExternalStyleSheets: true
+        })
+        .then(() => {
+            // save the created pdf
+            // FIXME: Open file selection dialog. Now it just saves to the default dir
+            doc.save('phylotree.pdf')
+        });
+    }
+    else if (v=="png") {
+        d3ToPng('#main-tree-item svg', 'phylotree', {
+            scale: 5 }
+        );
+    }
+    
 })
 
 // Toggle full screen on F11

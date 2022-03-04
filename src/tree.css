@@ -93,3 +93,7 @@
     overflow: auto;
     height: 1px;
 }
+
+.small-input {
+    font-size: 80%;
+}

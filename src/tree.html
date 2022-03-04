@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang='en'>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="img-src 'self' data:;default-src 'self';style-src 'self' 'unsafe-inline'">
 <!--- SPDX-License-Identifier: MIT --->
 <!--- Copyright 2022 Rob Marissen. --->
 
@@ -36,6 +36,12 @@
             </div>
             <div class="control-item">
               &nbsp;<button id="store-svg"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save picture</button>
+              <label class="small-input">image type:</label>
+              <select class="small-input" name="img-type" id="img-type">
+                <option value="png">PNG</option>
+                <option value="svg">SVG</option>
+<!--- Does not work properly                <option value="pdf">PDF</option>  --->
+              </select>
             </div>
           </div>
         </div>
