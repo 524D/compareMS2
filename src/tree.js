@@ -416,6 +416,10 @@ if (navigator.platform == 'Linux x86_64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
 }
+else if (process.platform == 'darwin') {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
+}
 else {
     document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
 }

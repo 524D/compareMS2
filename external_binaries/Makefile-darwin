@@ -1,0 +1,28 @@
+CC = gcc
+CFLAGS = -Wall -O2 -lm
+obj_files = compareMS2 compareMS2_to_distance_matrices
+
+.PHONY: all darwin clean
+all: $(obj_files)
+
+### add compile options for Windows
+
+darwin: compareMS2_darwin compareMS2_to_distance_matrices_darwin
+
+compareMS2_x86_64_darwin: compareMS2.c 
+	$(CC) compareMS2.c $(CFLAGS) -o compareMS2_x86_64_darwin -target x86_64-apple-macos10.12
+compareMS2_to_distance_matrices_x86_64_darwin: compareMS2_to_distance_matrices.c
+	$(CC) compareMS2_to_distance_matrices.c $(CFLAGS) -o compareMS2_to_distance_matrices_x86_64_darwin -target x86_64-apple-macos10.12 
+compareMS2_arm_darwin: compareMS2.c 
+	$(CC) compareMS2.c $(CFLAGS) -o compareMS2_arm_darwin -target arm64-apple-macos11
+compareMS2_to_distance_matrices_arm_darwin: compareMS2_to_distance_matrices.c
+	$(CC) compareMS2_to_distance_matrices.c $(CFLAGS) -o compareMS2_to_distance_matrices_arm_darwin -target arm64-apple-macos11
+compareMS2_darwin: compareMS2_x86_64_darwin compareMS2_arm_darwin
+	lipo -create -output compareMS2_darwin compareMS2_x86_64_darwin compareMS2_arm_darwin
+compareMS2_to_distance_matrices_darwin: compareMS2_to_distance_matrices_x86_64_darwin compareMS2_to_distance_matrices_arm_darwin
+	lipo -create -output compareMS2_to_distance_matrices_darwin compareMS2_to_distance_matrices_x86_64_darwin compareMS2_to_distance_matrices_arm_darwin
+
+clean:
+	rm -f *_darwin $(obj_files)
+
+

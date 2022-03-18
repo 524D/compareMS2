@@ -2926,16 +2926,19 @@
         };
       }
 
-      this.rescale_nodeSpan =
-        this.phylotree.nodes.children
-          .map(d => {
-            if (isLeafNode(d) || this.showInternalName(d))
-              return this.nodeSpan(d);
-          })
-          .reduce(function(p, c) {
-            return Math.min(c, p || 1e200);
-          }, null) || 1;
-
+	  if (this.phylotree.nodes.children) {	
+	    this.rescale_nodeSpan = 
+		this.phylotree.nodes.children
+		.map(d => {
+		    if (isLeafNode(d) || this.showInternalName(d))
+			return this.nodeSpan(d);
+		})
+		.reduce(function(p, c) {
+		    return Math.min(c, p || 1e200);
+		}, null) || 1;
+	  } else {
+	    this.rescale_nodeSpan = 1;
+	  }
       this.initialize_svg(this.container);
       this.links = this.phylotree.nodes.links();
       this.initializeEdgeLabels();

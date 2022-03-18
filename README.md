@@ -44,8 +44,8 @@ However, not only the amino acid sequences of the peptides affect the distance m
 
 First install nodejs:
 
-* On Linux, run `apt install nodejs`
-* On Windows, download from: <https://nodejs.org/en/download/>
+* On Debian/Ubuntu Linux, run `apt install nodejs`
+* On Windows and macOS, download from: <https://nodejs.org/en/download/>
 
 Then run the following on the command line:
 
@@ -62,6 +62,12 @@ To run compareMS2 in "development mode", simply issue:
 
 ```text
 electron-forge start
+```
+
+For debug mode (enabling Chrome development tools):
+
+```text
+CPM_MS2_DEBUG="x" electron-forge start
 ```
 
 ### 2.2 Building compareMS2
@@ -130,7 +136,13 @@ compareMS2 provides a very quick overview of large number of datasets to see if 
 
 In addition, compareMS2 collects metadata on each dataset (currently only the number of tandem mass spectra) for overlay on the hierarcical clustering or phylogenetic tree as a color.
 
-## 4. Further reading
+## 4. Credits
+
+Many thanks to dr. Michael Dondrup for providing changes and additions to make CompareMS2 work on macOS.
+
+Also, we'd like thank our test users for the valuable feedback that helped to further improve compareMS2.
+
+## 5. Further reading
 
 compareMS2 and related applications have been described or mentioned in a number of papers:
 

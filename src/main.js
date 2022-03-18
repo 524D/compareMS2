@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright 2022 Rob Marissen.
 import { app, BrowserWindow, Menu, shell } from 'electron';
-
+app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
@@ -195,7 +195,7 @@ ipcMain.on('maketree', (event, args) => {
     width: 1000,
     height: 780,
     parent: mainWindow,
-    modal: true,
+    modal: false,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
@@ -204,7 +204,7 @@ ipcMain.on('maketree', (event, args) => {
     },
     icon: path.join(iconPath, 'tree.png'),
   });
-  treeWindow.maximize();
+  //treeWindow.maximize();
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
   treeWindow.loadURL(treePath);
