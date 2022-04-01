@@ -11,6 +11,11 @@ const downloadSvg = nodeRequire('svg-crowbar').downloadSvg;
 const { jsPDF } = nodeRequire("jspdf");
 const { svg2pdf } = nodeRequire("svg2pdf.js");
 const d3ToPng = nodeRequire('d3-svg-to-png');
+const querystring = nodeRequire('querystring');
+
+let query = querystring.parse(global.location.search);
+let userparams = JSON.parse(query['?userparams']);
+let instanceId = query['instanceId'];
 
 let treeOptions = {
     'container': "#main-tree-item",
@@ -33,17 +38,9 @@ let treeOptionsTransition = Object.assign({}, treeOptions, { 'transitions': true
 var test_string = "(((EELA:0.150276,CONGERA:0.213019):0.230956,(EELB:0.263487,CONGERB:0.202633):0.246917):0.094785,((CAVEFISH:0.451027,(GOLDFISH:0.340495,ZEBRAFISH:0.390163):0.220565):0.067778,((((((NSAM:0.008113,NARG:0.014065):0.052991,SPUN:0.061003,(SMIC:0.027806,SDIA:0.015298,SXAN:0.046873):0.046977):0.009822,(NAUR:0.081298,(SSPI:0.023876,STIE:0.013652):0.058179):0.091775):0.073346,(MVIO:0.012271,MBER:0.039798):0.178835):0.147992,((BFNKILLIFISH:0.317455,(ONIL:0.029217,XCAU:0.084388):0.201166):0.055908,THORNYHEAD:0.252481):0.061905):0.157214,LAMPFISH:0.717196,((SCABBARDA:0.189684,SCABBARDB:0.362015):0.282263,((VIPERFISH:0.318217,BLACKDRAGON:0.109912):0.123642,LOOSEJAW:0.397100):0.287152):0.140663):0.206729):0.222485,(COELACANTH:0.558103,((CLAWEDFROG:0.441842,SALAMANDER:0.299607):0.135307,((CHAMELEON:0.771665,((PIGEON:0.150909,CHICKEN:0.172733):0.082163,ZEBRAFINCH:0.099172):0.272338):0.014055,((BOVINE:0.167569,DOLPHIN:0.157450):0.104783,ELEPHANT:0.166557):0.367205):0.050892):0.114731):0.295021)myroot";
 let tree = new phylotree.phylotree(test_string)
 let rendered_tree = tree.render(treeOptions)
-//$(rendered_tree.container).html(rendered_tree.show())
-//tree.size([document.querySelector('.tree-box').offsetHeight,document.querySelector('.tree-box').offsetWidth]);
-//tree.font_size(15);
-// tree.options(treeOptions, false);
-
 
 const compareDirName = 'compareresult'
 let compareDir;
-
-// Temporary output filename of compare ms2
-const comparems2tmp = 'comparems2tmp.txt';
 
 // newick format of tree
 let newick = '';
@@ -179,10 +176,15 @@ function compareNext() {
                 '-N', paramsGlobal.topN,
             ]
         // Create a unique filename based on parameters
-        let cmpFile = path.join(compareDir, shortHashObj({ cmdArgs }) + ".txt");
+        const hashName=shortHashObj({ cmdArgs });
+        let cmpFile = path.join(compareDir, hashName + ".txt");
+
+        // Temporary output filename of compare ms2
+        // used to avoid stale incomplete output after interrupt
+        const comparems2tmp = path.join(compareDir, hashName + "-" + instanceId + ".tmp");
 
         // Append output filename, should now be part of hash
-        cmdArgs.push('-o', path.join(compareDir, comparems2tmp));
+        cmdArgs.push('-o', comparems2tmp);
 
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
         llog('Executing: ' + cmdStr + '\n');
@@ -224,7 +226,7 @@ function compareNext() {
                     // Compare finished, rename temporary output file
                     // to final filename
                     compareDir
-                    fs.rename(path.join(compareDir, comparems2tmp), cmpFile, function (err) {
+                    fs.rename(comparems2tmp, cmpFile, function (err) {
                         if (err) throw err
                         compareFinished(compResultListFile, cmpFile);
                     });
@@ -424,13 +426,10 @@ else {
     document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
 }
 
-// Receive parameters set in the main window
-ipcRenderer.on('userparams', (event, params) => {
-    runCompare(params);
-})
-
-// Notify main process that we are ready to receive parameters
-ipcRenderer.send('get-userparms');
+/////////////////////////
+// The main program
+/////////////////////////
+runCompare(userparams);
 
 $("#layout").on("click", function (e) {
     rendered_tree.radial($(this).prop("checked")).update(true);
@@ -494,7 +493,7 @@ document.addEventListener("keydown", event => {
     var key = event.key;
     if (key == "F11") {
         // Ask main process to toggle fullscreen
-        ipcRenderer.send('toggle-fullscreen');
+        ipcRenderer.send('toggle-fullscreen', instanceId);
     }
 });
 

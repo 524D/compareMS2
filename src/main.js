@@ -8,12 +8,12 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 }
 const path = require('path')
 
-// Keep a global reference of the window object, if you don't, the window will
+// Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
-let treeWindow;
+let treeWindows=[];
+let treeInstanceCount=0;
 
-let params; // User parameters set in main window
 const iconPath = path.join(app.getAppPath(), 'src', 'assets', 'images');
 // Icons were obtained from http://xtoolkit.github.io/Micon/icons/
 // Convert to png e.g.:
@@ -188,10 +188,9 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 })
 
 // Display tree windows and send params
-ipcMain.on('maketree', (event, args) => {
+ipcMain.on('maketree', (event, params) => {
   const treePath = path.join('file://', __dirname, '/tree.html')
-  params = args;
-  treeWindow = new BrowserWindow({
+  let treeWindow = new BrowserWindow({
     width: 1000,
     height: 780,
     parent: mainWindow,
@@ -204,10 +203,14 @@ ipcMain.on('maketree', (event, args) => {
     },
     icon: path.join(iconPath, 'tree.png'),
   });
+  treeInstanceCount++;
+  treeWindows[treeInstanceCount] = treeWindow;
   //treeWindow.maximize();
   treeWindow.on('close', () => { treeWindow = null })
   treeWindow.removeMenu();
-  treeWindow.loadURL(treePath);
+  treeWindow.loadFile(path.join(__dirname, '/tree.html'),
+    {query: {"userparams": JSON.stringify(params),
+             "instanceId": treeInstanceCount}});
   if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
     // Open the DevTools.
     treeWindow.webContents.openDevTools();
@@ -216,12 +219,7 @@ ipcMain.on('maketree', (event, args) => {
   treeWindow.show();
 })
 
-// Send parameters to tree window
-ipcMain.on('get-userparms', () => {
-  treeWindow.send('userparams', params);
-})
-
 // Toggle full screen tree window. Doesn't work :(
-ipcMain.on('toggle-fullscreen', (event) => {
-  treeWindow.setFullScreen(!treeWindow.isFullScreen());
+ipcMain.on('toggle-fullscreen', (event, instanceId) => {
+  treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
 })
