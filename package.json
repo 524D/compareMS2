@@ -1,7 +1,7 @@
 {
   "name": "compare-ms2",
   "productName": "compareMS2",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
   "scripts": {
@@ -58,11 +58,9 @@
     "electron-compile": "^6.4.4",
     "electron-log": "^4.4.1",
     "electron-squirrel-startup": "^1.0.0",
-    "jspdf": "^2.5.1",
     "line-reader": "^0.4.0",
     "node.js": "^0.0.1-security",
-    "svg-crowbar": "^0.7.0",
-    "svg2pdf.js": "^2.2.0"
+    "svg-crowbar": "^0.7.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.61",
