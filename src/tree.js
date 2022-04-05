@@ -15,6 +15,30 @@ let query = querystring.parse(global.location.search);
 let userparams = JSON.parse(query['?userparams']);
 let instanceId = query['instanceId'];
 
+// The color scale for converting quality values into color.
+// Overwritten when min/max quality values are known
+let color_scale = d3.scaleLinear().domain([0, 5, 9]).range(["#FF0000", "#0000FF", "#00FF00"]);
+
+// Quality is stored in a map for easy/fast lookup
+// There seems no way to transfer extra data to colorNodesByName 'node-styler' function,
+// so this is a global variable
+let qualMap= new Map();
+
+// Get the spectrum quality for a given specie
+function specQual(specie) {
+    let q=parseInt(specie.slice(-1));
+    return q;
+}
+
+function colorNodesByName(element, data) {
+    let specie=data.data.name;
+    let q = qualMap.get(specie);
+    if (q) {
+        let s=color_scale(q);
+        element.style ("fill", s);
+    }
+};
+
 let treeOptions = {
     'container': "#main-tree-item",
     'draw-size-bubbles': false,
@@ -28,10 +52,8 @@ let treeOptions = {
     compression: 1.0,
     "align-tips": false,
     scaling: true,
+    'node-styler': colorNodesByName,
 };
-
-// Same options, but with transitions
-let treeOptionsTransition = Object.assign({}, treeOptions, { 'transitions': true });
 
 var test_string = "(((EELA:0.150276,CONGERA:0.213019):0.230956,(EELB:0.263487,CONGERB:0.202633):0.246917):0.094785,((CAVEFISH:0.451027,(GOLDFISH:0.340495,ZEBRAFISH:0.390163):0.220565):0.067778,((((((NSAM:0.008113,NARG:0.014065):0.052991,SPUN:0.061003,(SMIC:0.027806,SDIA:0.015298,SXAN:0.046873):0.046977):0.009822,(NAUR:0.081298,(SSPI:0.023876,STIE:0.013652):0.058179):0.091775):0.073346,(MVIO:0.012271,MBER:0.039798):0.178835):0.147992,((BFNKILLIFISH:0.317455,(ONIL:0.029217,XCAU:0.084388):0.201166):0.055908,THORNYHEAD:0.252481):0.061905):0.157214,LAMPFISH:0.717196,((SCABBARDA:0.189684,SCABBARDB:0.362015):0.282263,((VIPERFISH:0.318217,BLACKDRAGON:0.109912):0.123642,LOOSEJAW:0.397100):0.287152):0.140663):0.206729):0.222485,(COELACANTH:0.558103,((CLAWEDFROG:0.441842,SALAMANDER:0.299607):0.135307,((CHAMELEON:0.771665,((PIGEON:0.150909,CHICKEN:0.172733):0.082163,ZEBRAFINCH:0.099172):0.272338):0.014055,((BOVINE:0.167569,DOLPHIN:0.157450):0.104783,ELEPHANT:0.166557):0.367205):0.050892):0.114731):0.295021)myroot";
 let tree = new phylotree.phylotree(test_string)
@@ -247,6 +269,37 @@ function compareFinished(compResultListFile, cmpFile) {
     }
 }
 
+// Parse distance matrix that is output by compareMS2_to_distance_matrices
+function parseDistanceMatrixLine(line, distanceParse) {
+    if ((distanceParse.parseState == 'init') ||
+        (distanceParse.parseState == 'labels')) {
+        let s = line.match(distanceParse.reSpecies);
+        if ((s) && (s.length != 0)) {
+            distanceParse.parseState = 'labels';
+            // Replace characters that are not allowed in a Newick string
+            let specie = s[1].replace(/[ :;,()\[\]]/g, "_");
+            distanceParse.labels.push(specie);
+            // Store the quality score, and keep track of min/max values
+            let q = parseFloat(s[2]);
+            qualMap.set(specie,q);
+            distanceParse.qualMin = Math.min(q, distanceParse.qualMin);
+            distanceParse.qualMax = Math.max(q, distanceParse.qualMax);
+        } else if (distanceParse.parseState == 'labels') {
+            distanceParse.parseState = 'matrix';
+        }
+    }
+    if (distanceParse.parseState == 'matrix') {
+        if (distanceParse.reMatrix.test(line)) {
+            let row = line.match(distanceParse.reMatrixCapt);
+            // First one contains whole string, remove
+            // row.shift();
+            // Convert strings to numbers
+            row = row.map(x => +x)
+            distanceParse.matrix.push(row);
+        }
+    }
+}
+
 function makeTree() {
     let act = document.getElementById('activity');
     act.innerHTML = 'Creating tree';
@@ -289,42 +342,30 @@ function makeTree() {
     c2d.on('close', (code) => {
         act.innerHTML = 'Computing tree';
         // Extract matrix and names from compareMS2_to_distance_matrices output
-        let parseState = 'init';
-        const reSpecies = /^QC\s+(.+)\s+([0-9\.]+)$/;
-        const reMatrix = /^[0-9. \t]+$/;
-        const reMatrixCapt = /([0-9\.]+)/g;
-        let labels = [];
-        let matrix = []; // Will be filled with rows -> 2D matrix
-        matrix[0] = []; // First element must be empty
+        let distanceParse = {
+            parseState: 'init',
+            reSpecies: /^QC\s+(.+)\s+([0-9\.]+)$/,
+            reMatrix: /^[0-9. \t]+$/,
+            reMatrixCapt: /([0-9\.]+)/g,
+            labels: [],
+            qualMin: Number.MAX_VALUE,
+            qualMax: Number.MIN_VALUE,
+            matrix: [], // Will be filled with rows -> 2D matrix
+        }
+        distanceParse.matrix[0] = []; // First element must be empty
         const df = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename + '_distance_matrix.meg');
+        // Reading line by line
         lineReader.eachLine(df, (line, last) => {
-            // Reading line by line
-            if ((parseState == 'init') ||
-                (parseState == 'labels')) {
-                let s = line.match(reSpecies);
-                if ((s) && (s.length != 0)) {
-                    parseState = 'labels';
-                    labels.push(s[1]);
-                    // TODO: use CQ value
-                } else if (parseState == 'labels') {
-                    parseState = 'matrix';
-                }
-            }
-            if (parseState == 'matrix') {
-                if (reMatrix.test(line)) {
-                    let row = line.match(reMatrixCapt);
-                    // First one contains whole string, remove
-                    // row.shift();
-                    // Convert strings to numbers
-                    row = row.map(x => +x)
-                    matrix.push(row);
-                }
-            }
+            parseDistanceMatrixLine(line, distanceParse);
             // Create new tree when file has finished loading
             if (last) {
+                // Update quality color scale
+                color_scale = d3.scaleLinear().domain([distanceParse.qualMin,
+                                                       (distanceParse.qualMin+distanceParse.qualMax)/2,
+                                                       distanceParse.qualMax]).range(["#FF0000", "#0000FF", "#00FF00"]);
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
-                newick = UPGMA(matrix, labels);
+                newick = UPGMA(distanceParse.matrix, distanceParse.labels);
                 // Create topology only string by removing distances from newick
                 topology = newick.replace(/:[-0-9.]+/g, "");
                 console.log('newick', newick, 'topology', topology);
