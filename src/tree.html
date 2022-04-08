@@ -35,12 +35,21 @@
               &nbsp;<button id="pause"><i class="mi mi-Pause mi-lg icon-valign"></i>Pause</button>
             </div>
             <div class="control-item">
+                <label for="cars">Quality color scale:</label>
+                <select id="qscale">
+                  <option value="black">None (black)</option>
+                  <option value="gray">Grayscale</option>
+                  <option value="rbg" selected="selected">Red-blue-green</option>
+                  <option value="ylgnbu">Yellow-green-blue</option>
+                </select>
+                <br><br>
+            </div>
+            <div class="control-item">
               &nbsp;<button id="store-svg"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save picture</button>
               <label class="small-input">image type:</label>
               <select class="small-input" name="img-type" id="img-type">
                 <option value="png">PNG</option>
                 <option value="svg">SVG</option>
-<!--- Does not work properly                <option value="pdf">PDF</option>  --->
               </select>
             </div>
           </div>

@@ -23,6 +23,7 @@ let color_scale = d3.scaleLinear().domain([0, 5, 9]).range(["#FF0000", "#0000FF"
 // There seems no way to transfer extra data to colorNodesByName 'node-styler' function,
 // so this is a global variable
 let qualMap= new Map();
+let qualMax=0; // Maximum of sample/species quality
 
 // Get the spectrum quality for a given specie
 function specQual(specie) {
@@ -357,14 +358,12 @@ function makeTree() {
         // Reading line by line
         lineReader.eachLine(df, (line, last) => {
             parseDistanceMatrixLine(line, distanceParse);
+            qualMax = distanceParse.qualMax;
             // Create new tree when file has finished loading
             if (last) {
                 // Update quality color scale
-                color_scale = d3.scaleLinear().domain([0,
-                                                       distanceParse.qualMax/3,
-                                                       2*distanceParse.qualMax/3,
-                                                       distanceParse.qualMax]).range(["#FF0000", "#FF0000", "#0000FF", "#00FF00"]);
-                // Convert matrix and names into Newick format
+                setColorScale();
+                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
                 newick = UPGMA(distanceParse.matrix, distanceParse.labels);
                 // Create topology only string by removing distances from newick
@@ -382,6 +381,36 @@ function makeTree() {
             }
         });
     });
+}
+
+function setColorScale() {
+    let qscale= $("#qscale").children("option:selected").val();
+    switch (qscale) {
+        case "black":
+            color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
+            break;
+        case "gray":
+            color_scale = d3.scaleLinear().domain([0,
+                                        qualMax/2,
+                                        qualMax]).range(["#C0C0C0", "#C0C0C0", "#000000"]);
+            break;
+        case "rbg":
+            color_scale = d3.scaleLinear().domain([0,
+                                        qualMax/3,
+                                        2*qualMax/3,
+                                        qualMax]).range(["#FF0000", "#FF0000", "#0000FF", "#00FF00"]);
+            break;
+        case "ylgnbu":
+            // from https://colorbrewer2.org/#type=sequential&scheme=YlGnBu&n=3
+            color_scale = d3.scaleLinear().domain([0,
+                                        qualMax/3,
+                                        2*qualMax/3,
+                                        qualMax]).range(['#edf8b1','#edf8b1','#7fcdbb','#2c7fb8']);
+            break;
+        default:
+            elog("Unknown color scale:", qscale);
+            color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
+    }
 }
 
 function sortFiles(files, compareOrder) {
@@ -496,6 +525,11 @@ $("#details").on("click", function (e) {
 
 $("#pause").on("click", function (e) {
     alert("Paused");
+});
+
+$("#qscale").change(function (e) {
+    setColorScale();
+    rendered_tree.update(true);
 });
 
 $("#store-svg").on("click", function (e) {
