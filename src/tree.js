@@ -360,9 +360,10 @@ function makeTree() {
             // Create new tree when file has finished loading
             if (last) {
                 // Update quality color scale
-                color_scale = d3.scaleLinear().domain([distanceParse.qualMin,
-                                                       (distanceParse.qualMin+distanceParse.qualMax)/2,
-                                                       distanceParse.qualMax]).range(["#FF0000", "#0000FF", "#00FF00"]);
+                color_scale = d3.scaleLinear().domain([0,
+                                                       distanceParse.qualMax/3,
+                                                       2*distanceParse.qualMax/3,
+                                                       distanceParse.qualMax]).range(["#FF0000", "#FF0000", "#0000FF", "#00FF00"]);
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
                 newick = UPGMA(distanceParse.matrix, distanceParse.labels);
