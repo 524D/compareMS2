@@ -14,6 +14,7 @@ const querystring = nodeRequire('querystring');
 let query = querystring.parse(global.location.search);
 let userparams = JSON.parse(query['?userparams']);
 let instanceId = query['instanceId'];
+let legendTimer;
 
 // The color scale for converting quality values into color.
 // Overwritten when min/max quality values are known
@@ -23,7 +24,10 @@ let color_scale = d3.scaleLinear().domain([0, 5, 9]).range(["#FF0000", "#0000FF"
 // There seems no way to transfer extra data to colorNodesByName 'node-styler' function,
 // so this is a global variable
 let qualMap= new Map();
-let qualMax=0; // Maximum of sample/species quality
+ // Maximum/min/avg of sample/species quality
+let qualMax=0;
+let qualMin=0;
+let qualAvg=0;
 
 // Get the spectrum quality for a given specie
 function specQual(specie) {
@@ -285,6 +289,8 @@ function parseDistanceMatrixLine(line, distanceParse) {
             qualMap.set(specie,q);
             distanceParse.qualMin = Math.min(q, distanceParse.qualMin);
             distanceParse.qualMax = Math.max(q, distanceParse.qualMax);
+            distanceParse.qualSum += q;
+            distanceParse.qualN++;
         } else if (distanceParse.parseState == 'labels') {
             distanceParse.parseState = 'matrix';
         }
@@ -351,6 +357,8 @@ function makeTree() {
             labels: [],
             qualMin: Number.MAX_VALUE,
             qualMax: Number.MIN_VALUE,
+            qualSum: 0,
+            qualN: 0,
             matrix: [], // Will be filled with rows -> 2D matrix
         }
         distanceParse.matrix[0] = []; // First element must be empty
@@ -358,7 +366,15 @@ function makeTree() {
         // Reading line by line
         lineReader.eachLine(df, (line, last) => {
             parseDistanceMatrixLine(line, distanceParse);
-            qualMax = distanceParse.qualMax;
+            if (distanceParse.qualN > 0) {
+                qualMax = distanceParse.qualMax;
+                qualMin = distanceParse.qualMin;
+                qualAvg = distanceParse.qualSum/distanceParse.qualN;
+            } else {
+                qualMax = 0;
+                qualMin = 0;
+                qualAvg = 0;
+            }
             // Create new tree when file has finished loading
             if (last) {
                 // Update quality color scale
@@ -373,7 +389,7 @@ function makeTree() {
                 rendered_tree = tree.render(treeOptions);
                 $(rendered_tree.container).html(rendered_tree.show())
                 addLegend();
-                
+
                 file2Idx = 0;
                 file1Idx++;
                 document.getElementById('stdout').innerHTML = '';
@@ -384,30 +400,59 @@ function makeTree() {
     });
 }
 
+function getQScale() {
+    return $("#qscale").children("option:selected").val();
+}
+
 function setColorScale() {
-    let qscale= $("#qscale").children("option:selected").val();
+    let qscale = getQScale();
     switch (qscale) {
         case "black":
             color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
             break;
         case "gray":
-            color_scale = d3.scaleLinear().domain([0,
-                                        qualMax/2,
-                                        qualMax]).range(["#C0C0C0", "#C0C0C0", "#000000"]);
+            color_scale = d3.scaleLinear().domain([
+                                        qualMin,
+                                        qualMax]).range(["#C0C0C0", "#000000"]);
             break;
-        case "rbg":
+        case "rgb":
             color_scale = d3.scaleLinear().domain([0,
-                                        qualMax/3,
-                                        2*qualMax/3,
-                                        qualMax]).range(["#FF0000", "#FF0000", "#0000FF", "#00FF00"]);
+                                        qualAvg/2,
+                                        qualAvg,
+                                        qualAvg*3/2, // Add intermediate value for tick point on legend
+                                        qualAvg*2])
+                                        .range(["#FF0000",
+                                         "#FF0000",
+                                          "#00FF00",
+                                          "#2890FF", /* intermediate color */,
+                                          "#5050FF"]);
             break;
         case "ylgnbu":
             // from https://colorbrewer2.org/#type=sequential&scheme=YlGnBu&n=3
             color_scale = d3.scaleLinear().domain([0,
-                                        qualMax/3,
-                                        2*qualMax/3,
-                                        qualMax]).range(['#edf8b1','#edf8b1','#7fcdbb','#2c7fb8']);
+                                        qualAvg/2,
+                                        qualAvg,
+                                        qualAvg*3/2, // Add intermediate value for tick point on legend
+                                        qualAvg*2])
+                                        .range(['#edf8b1',
+                                        '#edf8b1',
+                                        '#7fcdbb',
+                                        '#55A6b9' /* intermediate color */,
+                                        '#2c7fb8']);
             break;
+        case "rblkb":
+            // red black blue
+            color_scale = d3.scaleLinear().domain([0,
+                                        qualAvg/2,
+                                        qualAvg,
+                                        qualAvg*3/2, // Add intermediate value for tick point on legend
+                                        qualAvg*2])
+                                        .range(['#ff0000',
+                                        '#ff0000',
+                                        '#000000',
+                                        "#282880", /* intermediate color */,
+                                        "#5050FF"]);
+          break;
         default:
             elog("Unknown color scale:", qscale);
             color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
@@ -415,11 +460,28 @@ function setColorScale() {
 }
 
 function addLegend() {
-    let l= Legend(color_scale, {
-        title: "Quality"
-      });
+    // FIXME: Awful use of timer, to delay the resize of SVG until phylotree/d3 is done with it.
+    clearTimeout(legendTimer);
+    legendTimer = setTimeout(function() {
+        // Delete old legend if needed
+        let svg=d3.select("svg");
+        svg.selectAll(".legend-container").remove();
+        if (getQScale() != "black") {
+            // Make room for legend in svg
+            let h = parseInt(svg.attr("height"));
+            d3.select("svg").attr("height", h+70);
 
-    d3.select("svg").node().appendChild(l);
+            // Add container for legend, move to desired location
+            let y = h + 10;
+            let containerSvg=svg.append("g")
+                .attr("class", "legend-container")
+                .attr("transform", `translate(10,${y})`);
+            Legend(containerSvg, color_scale, {
+                title: "Quality",
+            });
+        }
+    },
+    500);
 }
 
 function sortFiles(files, compareOrder) {
@@ -567,13 +629,12 @@ document.addEventListener("keydown", event => {
 
 
 // ************************************************************************************
-// create legend, copied from from https://observablehq.com/@d3/color-legend
-// copied verbatim, code in not available on npm
+// create legend, modified from from https://observablehq.com/@d3/color-legend
 //
 // Copyright 2021, Observable Inc.
 // Released under the ISC license.
 // https://observablehq.com/@d3/color-legend
-function Legend(color, {
+function Legend(svg, color, {
     title,
     tickSize = 6,
     width = 320, 
@@ -598,13 +659,6 @@ function Legend(color, {
       }
       return canvas;
     }
-  
-    const svg = d3.create("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("viewBox", [0, 0, width, height])
-        .style("overflow", "visible")
-        .style("display", "block");
   
     let tickAdjust = g => g.selectAll(".tick line").attr("y1", marginTop + marginBottom - height);
     let x;
