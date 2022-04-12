@@ -10,6 +10,8 @@ const log = nodeRequire('electron-log');
 const downloadSvg = nodeRequire('svg-crowbar').downloadSvg;
 const d3ToPng = nodeRequire('d3-svg-to-png');
 const querystring = nodeRequire('querystring');
+const d3 = nodeRequire('d3');
+const phylotree = nodeRequire('phylotree');
 
 let query = querystring.parse(global.location.search);
 let userparams = JSON.parse(query['?userparams']);
@@ -385,10 +387,13 @@ function makeTree() {
                 // Create topology only string by removing distances from newick
                 topology = newick.replace(/:[-0-9.]+/g, "");
                 console.log('newick', newick, 'topology', topology);
-                tree = new phylotree.phylotree($("#topology").prop("checked") ? topology : newick);
-                rendered_tree = tree.render(treeOptions);
-                $(rendered_tree.container).html(rendered_tree.show())
-                addLegend();
+                // If there is only one node, skip (phylotree crashes)
+                if (newick.includes(",")) {
+                    tree = new phylotree.phylotree($("#topology").prop("checked") ? topology : newick);
+                    rendered_tree = tree.render(treeOptions);
+                    $(rendered_tree.container).html(rendered_tree.show())
+                    addLegend();
+                }
 
                 file2Idx = 0;
                 file1Idx++;
