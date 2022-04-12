@@ -451,10 +451,10 @@ function setColorScale() {
                 qualAvg,
                 qualAvg * 3 / 2, // Add intermediate value for tick point on legend
                 qualAvg * 2])
-                .range(['#ff0000',
-                    '#ff0000',
-                    '#000000',
-                    "#282880", /* intermediate color */,
+                .range(["#FF0000",
+                    "#FF0000",
+                    "#000000",
+                    "#5050FF", /* intermediate color */,
                     "#5050FF"]);
             break;
         default:
