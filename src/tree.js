@@ -577,12 +577,14 @@ runCompare(userparams);
 
 $("#layout").on("click", function (e) {
     rendered_tree.radial($(this).prop("checked")).update(true);
+    addLegend();
 });
 
 $("#topology").on("click", function (e) {
     tree = new phylotree.phylotree($(this).prop("checked") ? topology : newick);
     rendered_tree = tree.render(treeOptions);
     $(rendered_tree.container).html(rendered_tree.show())
+    addLegend();
 });
 
 $("#details").on("click", function (e) {
