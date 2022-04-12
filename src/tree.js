@@ -25,24 +25,24 @@ let color_scale = d3.scaleLinear().domain([0, 5, 9]).range(["#FF0000", "#0000FF"
 // Quality is stored in a map for easy/fast lookup
 // There seems no way to transfer extra data to colorNodesByName 'node-styler' function,
 // so this is a global variable
-let qualMap= new Map();
- // Maximum/min/avg of sample/species quality
-let qualMax=0;
-let qualMin=0;
-let qualAvg=0;
+let qualMap = new Map();
+// Maximum/min/avg of sample/species quality
+let qualMax = 0;
+let qualMin = 0;
+let qualAvg = 0;
 
 // Get the spectrum quality for a given specie
 function specQual(specie) {
-    let q=parseInt(specie.slice(-1));
+    let q = parseInt(specie.slice(-1));
     return q;
 }
 
 function colorNodesByName(element, data) {
-    let specie=data.data.name;
+    let specie = data.data.name;
     let q = qualMap.get(specie);
     if (q) {
-        let s=color_scale(q);
-        element.style ("fill", s);
+        let s = color_scale(q);
+        element.style("fill", s);
     }
 };
 
@@ -54,7 +54,6 @@ let treeOptions = {
     'transitions': false,
     'zoom': false, // Zoom = true doesn't work, SVG size is not updated
     'max-radius': 2000,
-
     "annular-limit": 0.1, // 0.38196601125010515,
     compression: 1.0,
     "align-tips": false,
@@ -203,7 +202,7 @@ function compareNext() {
                 '-N', paramsGlobal.topN,
             ]
         // Create a unique filename based on parameters
-        const hashName=shortHashObj({ cmdArgs });
+        const hashName = shortHashObj({ cmdArgs });
         let cmpFile = path.join(compareDir, hashName + ".txt");
 
         // Temporary output filename of compare ms2
@@ -288,7 +287,7 @@ function parseDistanceMatrixLine(line, distanceParse) {
             distanceParse.labels.push(specie);
             // Store the quality score, and keep track of min/max values
             let q = parseFloat(s[2]);
-            qualMap.set(specie,q);
+            qualMap.set(specie, q);
             distanceParse.qualMin = Math.min(q, distanceParse.qualMin);
             distanceParse.qualMax = Math.max(q, distanceParse.qualMax);
             distanceParse.qualSum += q;
@@ -371,7 +370,7 @@ function makeTree() {
             if (distanceParse.qualN > 0) {
                 qualMax = distanceParse.qualMax;
                 qualMin = distanceParse.qualMin;
-                qualAvg = distanceParse.qualSum/distanceParse.qualN;
+                qualAvg = distanceParse.qualSum / distanceParse.qualN;
             } else {
                 qualMax = 0;
                 qualMin = 0;
@@ -381,7 +380,7 @@ function makeTree() {
             if (last) {
                 // Update quality color scale
                 setColorScale();
-                 // Convert matrix and names into Newick format
+                // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
                 newick = UPGMA(distanceParse.matrix, distanceParse.labels);
                 // Create topology only string by removing distances from newick
@@ -417,47 +416,47 @@ function setColorScale() {
             break;
         case "gray":
             color_scale = d3.scaleLinear().domain([
-                                        qualMin,
-                                        qualMax]).range(["#C0C0C0", "#000000"]);
+                qualMin,
+                qualMax]).range(["#C0C0C0", "#000000"]);
             break;
         case "rgb":
             color_scale = d3.scaleLinear().domain([0,
-                                        qualAvg/2,
-                                        qualAvg,
-                                        qualAvg*3/2, // Add intermediate value for tick point on legend
-                                        qualAvg*2])
-                                        .range(["#FF0000",
-                                         "#FF0000",
-                                          "#00FF00",
-                                          "#2890FF", /* intermediate color */,
-                                          "#5050FF"]);
+                qualAvg / 2,
+                qualAvg,
+                qualAvg * 3 / 2, // Add intermediate value for tick point on legend
+                qualAvg * 2])
+                .range(["#FF0000",
+                    "#FF0000",
+                    "#00FF00",
+                    "#2890FF", /* intermediate color */,
+                    "#5050FF"]);
             break;
         case "ylgnbu":
             // from https://colorbrewer2.org/#type=sequential&scheme=YlGnBu&n=3
             color_scale = d3.scaleLinear().domain([0,
-                                        qualAvg/2,
-                                        qualAvg,
-                                        qualAvg*3/2, // Add intermediate value for tick point on legend
-                                        qualAvg*2])
-                                        .range(['#edf8b1',
-                                        '#edf8b1',
-                                        '#7fcdbb',
-                                        '#55A6b9' /* intermediate color */,
-                                        '#2c7fb8']);
+                qualAvg / 2,
+                qualAvg,
+                qualAvg * 3 / 2, // Add intermediate value for tick point on legend
+                qualAvg * 2])
+                .range(['#edf8b1',
+                    '#edf8b1',
+                    '#7fcdbb',
+                    '#55A6b9' /* intermediate color */,
+                    '#2c7fb8']);
             break;
         case "rblkb":
             // red black blue
             color_scale = d3.scaleLinear().domain([0,
-                                        qualAvg/2,
-                                        qualAvg,
-                                        qualAvg*3/2, // Add intermediate value for tick point on legend
-                                        qualAvg*2])
-                                        .range(['#ff0000',
-                                        '#ff0000',
-                                        '#000000',
-                                        "#282880", /* intermediate color */,
-                                        "#5050FF"]);
-          break;
+                qualAvg / 2,
+                qualAvg,
+                qualAvg * 3 / 2, // Add intermediate value for tick point on legend
+                qualAvg * 2])
+                .range(['#ff0000',
+                    '#ff0000',
+                    '#000000',
+                    "#282880", /* intermediate color */,
+                    "#5050FF"]);
+            break;
         default:
             elog("Unknown color scale:", qscale);
             color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
@@ -467,18 +466,18 @@ function setColorScale() {
 function addLegend() {
     // FIXME: Awful use of timer, to delay the resize of SVG until phylotree/d3 is done with it.
     clearTimeout(legendTimer);
-    legendTimer = setTimeout(function() {
+    legendTimer = setTimeout(function () {
         // Delete old legend if needed
-        let svg=d3.select("svg");
+        let svg = d3.select("svg");
         svg.selectAll(".legend-container").remove();
         if (getQScale() != "black") {
             // Make room for legend in svg
             let h = parseInt(svg.attr("height"));
-            d3.select("svg").attr("height", h+70);
+            d3.select("svg").attr("height", h + 70);
 
             // Add container for legend, move to desired location
             let y = h + 10;
-            let containerSvg=svg.append("g")
+            let containerSvg = svg.append("g")
                 .attr("class", "legend-container")
                 .attr("transform", `translate(10,${y})`);
             Legend(containerSvg, color_scale, {
@@ -486,7 +485,7 @@ function addLegend() {
             });
         }
     },
-    500);
+        500);
 }
 
 function sortFiles(files, compareOrder) {
@@ -611,16 +610,17 @@ $("#qscale").change(function (e) {
 
 $("#store-svg").on("click", function (e) {
     const v = $('#img-type').val();
-    if (v=="svg") {
+    if (v == "svg") {
         const svg = document.querySelector('#main-tree-item svg');
         downloadSvg(svg, "phylotree");
     }
-    else if (v=="png") {
+    else if (v == "png") {
         d3ToPng('#main-tree-item svg', 'phylotree', {
-            scale: 5 }
+            scale: 5
+        }
         );
     }
-    
+
 })
 
 // Toggle full screen on F11
@@ -642,7 +642,7 @@ document.addEventListener("keydown", event => {
 function Legend(svg, color, {
     title,
     tickSize = 6,
-    width = 320, 
+    width = 320,
     height = 44 + tickSize,
     marginTop = 18,
     marginRight = 0,
@@ -651,133 +651,133 @@ function Legend(svg, color, {
     ticks = width / 64,
     tickFormat,
     tickValues
-  } = {}) {
-  
+} = {}) {
+
     function ramp(color, n = 256) {
-      const canvas = document.createElement("canvas");
-      canvas.width = n;
-      canvas.height = 1;
-      const context = canvas.getContext("2d");
-      for (let i = 0; i < n; ++i) {
-        context.fillStyle = color(i / (n - 1));
-        context.fillRect(i, 0, 1, 1);
-      }
-      return canvas;
+        const canvas = document.createElement("canvas");
+        canvas.width = n;
+        canvas.height = 1;
+        const context = canvas.getContext("2d");
+        for (let i = 0; i < n; ++i) {
+            context.fillStyle = color(i / (n - 1));
+            context.fillRect(i, 0, 1, 1);
+        }
+        return canvas;
     }
-  
+
     let tickAdjust = g => g.selectAll(".tick line").attr("y1", marginTop + marginBottom - height);
     let x;
-  
+
     // Continuous
     if (color.interpolate) {
-      const n = Math.min(color.domain().length, color.range().length);
-  
-      x = color.copy().rangeRound(d3.quantize(d3.interpolate(marginLeft, width - marginRight), n));
-  
-      svg.append("image")
-          .attr("x", marginLeft)
-          .attr("y", marginTop)
-          .attr("width", width - marginLeft - marginRight)
-          .attr("height", height - marginTop - marginBottom)
-          .attr("preserveAspectRatio", "none")
-          .attr("xlink:href", ramp(color.copy().domain(d3.quantize(d3.interpolate(0, 1), n))).toDataURL());
+        const n = Math.min(color.domain().length, color.range().length);
+
+        x = color.copy().rangeRound(d3.quantize(d3.interpolate(marginLeft, width - marginRight), n));
+
+        svg.append("image")
+            .attr("x", marginLeft)
+            .attr("y", marginTop)
+            .attr("width", width - marginLeft - marginRight)
+            .attr("height", height - marginTop - marginBottom)
+            .attr("preserveAspectRatio", "none")
+            .attr("xlink:href", ramp(color.copy().domain(d3.quantize(d3.interpolate(0, 1), n))).toDataURL());
     }
-  
+
     // Sequential
     else if (color.interpolator) {
-      x = Object.assign(color.copy()
-          .interpolator(d3.interpolateRound(marginLeft, width - marginRight)),
-          {range() { return [marginLeft, width - marginRight]; }});
-  
-      svg.append("image")
-          .attr("x", marginLeft)
-          .attr("y", marginTop)
-          .attr("width", width - marginLeft - marginRight)
-          .attr("height", height - marginTop - marginBottom)
-          .attr("preserveAspectRatio", "none")
-          .attr("xlink:href", ramp(color.interpolator()).toDataURL());
-  
-      // scaleSequentialQuantile doesn’t implement ticks or tickFormat.
-      if (!x.ticks) {
-        if (tickValues === undefined) {
-          const n = Math.round(ticks + 1);
-          tickValues = d3.range(n).map(i => d3.quantile(color.domain(), i / (n - 1)));
+        x = Object.assign(color.copy()
+            .interpolator(d3.interpolateRound(marginLeft, width - marginRight)),
+            { range() { return [marginLeft, width - marginRight]; } });
+
+        svg.append("image")
+            .attr("x", marginLeft)
+            .attr("y", marginTop)
+            .attr("width", width - marginLeft - marginRight)
+            .attr("height", height - marginTop - marginBottom)
+            .attr("preserveAspectRatio", "none")
+            .attr("xlink:href", ramp(color.interpolator()).toDataURL());
+
+        // scaleSequentialQuantile doesn’t implement ticks or tickFormat.
+        if (!x.ticks) {
+            if (tickValues === undefined) {
+                const n = Math.round(ticks + 1);
+                tickValues = d3.range(n).map(i => d3.quantile(color.domain(), i / (n - 1)));
+            }
+            if (typeof tickFormat !== "function") {
+                tickFormat = d3.format(tickFormat === undefined ? ",f" : tickFormat);
+            }
         }
-        if (typeof tickFormat !== "function") {
-          tickFormat = d3.format(tickFormat === undefined ? ",f" : tickFormat);
-        }
-      }
     }
-  
+
     // Threshold
     else if (color.invertExtent) {
-      const thresholds
-          = color.thresholds ? color.thresholds() // scaleQuantize
-          : color.quantiles ? color.quantiles() // scaleQuantile
-          : color.domain(); // scaleThreshold
-  
-      const thresholdFormat
-          = tickFormat === undefined ? d => d
-          : typeof tickFormat === "string" ? d3.format(tickFormat)
-          : tickFormat;
-  
-      x = d3.scaleLinear()
-          .domain([-1, color.range().length - 1])
-          .rangeRound([marginLeft, width - marginRight]);
-  
-      svg.append("g")
-        .selectAll("rect")
-        .data(color.range())
-        .join("rect")
-          .attr("x", (d, i) => x(i - 1))
-          .attr("y", marginTop)
-          .attr("width", (d, i) => x(i) - x(i - 1))
-          .attr("height", height - marginTop - marginBottom)
-          .attr("fill", d => d);
-  
-      tickValues = d3.range(thresholds.length);
-      tickFormat = i => thresholdFormat(thresholds[i], i);
+        const thresholds
+            = color.thresholds ? color.thresholds() // scaleQuantize
+                : color.quantiles ? color.quantiles() // scaleQuantile
+                    : color.domain(); // scaleThreshold
+
+        const thresholdFormat
+            = tickFormat === undefined ? d => d
+                : typeof tickFormat === "string" ? d3.format(tickFormat)
+                    : tickFormat;
+
+        x = d3.scaleLinear()
+            .domain([-1, color.range().length - 1])
+            .rangeRound([marginLeft, width - marginRight]);
+
+        svg.append("g")
+            .selectAll("rect")
+            .data(color.range())
+            .join("rect")
+            .attr("x", (d, i) => x(i - 1))
+            .attr("y", marginTop)
+            .attr("width", (d, i) => x(i) - x(i - 1))
+            .attr("height", height - marginTop - marginBottom)
+            .attr("fill", d => d);
+
+        tickValues = d3.range(thresholds.length);
+        tickFormat = i => thresholdFormat(thresholds[i], i);
     }
-  
+
     // Ordinal
     else {
-      x = d3.scaleBand()
-          .domain(color.domain())
-          .rangeRound([marginLeft, width - marginRight]);
-  
-      svg.append("g")
-        .selectAll("rect")
-        .data(color.domain())
-        .join("rect")
-          .attr("x", x)
-          .attr("y", marginTop)
-          .attr("width", Math.max(0, x.bandwidth() - 1))
-          .attr("height", height - marginTop - marginBottom)
-          .attr("fill", color);
-  
-      tickAdjust = () => {};
+        x = d3.scaleBand()
+            .domain(color.domain())
+            .rangeRound([marginLeft, width - marginRight]);
+
+        svg.append("g")
+            .selectAll("rect")
+            .data(color.domain())
+            .join("rect")
+            .attr("x", x)
+            .attr("y", marginTop)
+            .attr("width", Math.max(0, x.bandwidth() - 1))
+            .attr("height", height - marginTop - marginBottom)
+            .attr("fill", color);
+
+        tickAdjust = () => { };
     }
-  
+
     svg.append("g")
         .attr("transform", `translate(0,${height - marginBottom})`)
         .call(d3.axisBottom(x)
-          .ticks(ticks, typeof tickFormat === "string" ? tickFormat : undefined)
-          .tickFormat(typeof tickFormat === "function" ? tickFormat : undefined)
-          .tickSize(tickSize)
-          .tickValues(tickValues))
+            .ticks(ticks, typeof tickFormat === "string" ? tickFormat : undefined)
+            .tickFormat(typeof tickFormat === "function" ? tickFormat : undefined)
+            .tickSize(tickSize)
+            .tickValues(tickValues))
         .call(tickAdjust)
         .call(g => g.select(".domain").remove())
         .call(g => g.append("text")
-          .attr("x", marginLeft)
-          .attr("y", marginTop + marginBottom - height - 6)
-          .attr("fill", "currentColor")
-          .attr("text-anchor", "start")
-          .attr("font-weight", "bold")
-          .attr("class", "title")
-          .text(title));
-  
+            .attr("x", marginLeft)
+            .attr("y", marginTop + marginBottom - height - 6)
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "start")
+            .attr("font-weight", "bold")
+            .attr("class", "title")
+            .text(title));
+
     return svg.node();
-  }
+}
 // end of code copied from from https://observablehq.com/@d3/color-legend
 // ********************************************************************************************
 

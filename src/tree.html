@@ -1,85 +1,88 @@
 <!DOCTYPE html>
 <html lang='en'>
-<meta http-equiv="Content-Security-Policy" content="img-src 'self' data:;default-src 'self';style-src 'self' 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy"
+    content="img-src 'self' data:;default-src 'self';style-src 'self' 'unsafe-inline'">
 <!--- SPDX-License-Identifier: MIT --->
 <!--- Copyright 2022 Rob Marissen. --->
 
 <head>
-  <meta charset="utf-8">
+    <meta charset="utf-8">
 
-  <link rel="stylesheet" href="assets/bootstrap.min.css">
-  <link href="assets/phylotree.css" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/micon_nb.min.css">
-  <link rel="stylesheet" href="local.css">
-  <link rel="stylesheet" href="tree.css">
+    <link rel="stylesheet" href="assets/bootstrap.min.css">
+    <link href="assets/phylotree.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/micon_nb.min.css">
+    <link rel="stylesheet" href="local.css">
+    <link rel="stylesheet" href="tree.css">
 </head>
 
 <body>
-  <div class="tvert-container">
-    <div class="tvert-progress">
-      <progress id="progress" value="0" max="100"></progress>
-    </div>
-    <div class="tvert-main">
-      <div class="mainhor-container">
-        <div class="main-control-item">
-          <div class="control-container">
-            <div class="control-item">
-              &nbsp;&nbsp;<input type="checkbox" id="layout" name="radial_layout">
-              &nbsp;<label>Radial layout</label>
-            </div>
-            <div class="control-item">
-              &nbsp;&nbsp;<input type="checkbox" id="topology" name="topology_only">
-              &nbsp;<label>Topology only</label>
-            </div>
-            <div class="control-item">
-              &nbsp;<button id="pause"><i class="mi mi-Pause mi-lg icon-valign"></i>Pause</button>
-            </div>
-            <div class="control-item">
-                <label for="cars">Quality color scale:</label>
-                <select id="qscale">
-                  <option value="rblkb" selected="selected">Red-black-blue</option>
-                  <option value="black">None (black)</option>
-                  <option value="gray">Grayscale</option>
-                  <option value="rgb" >Red-blue-green</option>
-                  <option value="ylgnbu">Yellow-green-blue</option>
-                </select>
-                <br><br>
-            </div>
-            <div class="control-item">
-              &nbsp;<button id="store-svg"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save picture</button>
-              <label class="small-input">image type:</label>
-              <select class="small-input" name="img-type" id="img-type">
-                <option value="png">PNG</option>
-                <option value="svg">SVG</option>
-              </select>
-            </div>
-          </div>
+    <div class="tvert-container">
+        <div class="tvert-progress">
+            <progress id="progress" value="0" max="100"></progress>
         </div>
-        <div id="main-tree-item">
+        <div class="tvert-main">
+            <div class="mainhor-container">
+                <div class="main-control-item">
+                    <div class="control-container">
+                        <div class="control-item">
+                            &nbsp;&nbsp;<input type="checkbox" id="layout" name="radial_layout">
+                            &nbsp;<label>Radial layout</label>
+                        </div>
+                        <div class="control-item">
+                            &nbsp;&nbsp;<input type="checkbox" id="topology" name="topology_only">
+                            &nbsp;<label>Topology only</label>
+                        </div>
+                        <div class="control-item">
+                            &nbsp;<button id="pause"><i class="mi mi-Pause mi-lg icon-valign"></i>Pause</button>
+                        </div>
+                        <div class="control-item">
+                            <label for="cars">Quality color scale:</label>
+                            <select id="qscale">
+                                <option value="rblkb" selected="selected">Red-black-blue</option>
+                                <option value="black">None (black)</option>
+                                <option value="gray">Grayscale</option>
+                                <option value="rgb">Red-blue-green</option>
+                                <option value="ylgnbu">Yellow-green-blue</option>
+                            </select>
+                            <br><br>
+                        </div>
+                        <div class="control-item">
+                            &nbsp;<button id="store-svg"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save
+                                picture</button>
+                            <label class="small-input">image type:</label>
+                            <select class="small-input" name="img-type" id="img-type">
+                                <option value="png">PNG</option>
+                                <option value="svg">SVG</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="main-tree-item">
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="tvert-activity">
-      <div class="act-hor-container">
-        <div class="act-text-item">
-          <div id="activity" class="info-activity"></div>
+        <div class="tvert-activity">
+            <div class="act-hor-container">
+                <div class="act-text-item">
+                    <div id="activity" class="info-activity"></div>
+                </div>
+                <div class="act-details-button-item">
+                    <div class="info-control"><button id="details">Show details</botton>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="act-details-button-item">
-          <div class="info-control"><button id="details">Show details</botton></div>
+        <div class="tvert-details">
+            <div id="stdout" class="info-details"></div>
         </div>
-      </div>
     </div>
-    <div class="tvert-details">
-      <div id="stdout" class="info-details"></div>
-    </div>
-  </div>
-  
-  <script src="util.js"></script>
-  <script src="assets/jquery-3.6.0.min.js"></script>
-  <script src="assets/bootstrap.bundle.min.js"></script>
-  <script src="assets/underscore-min.js" charset="utf-8"></script>
-  <script src="tree.js"></script>
-  <script src="upgma.js"></script>
+
+    <script src="util.js"></script>
+    <script src="assets/jquery-3.6.0.min.js"></script>
+    <script src="assets/bootstrap.bundle.min.js"></script>
+    <script src="assets/underscore-min.js" charset="utf-8"></script>
+    <script src="tree.js"></script>
+    <script src="upgma.js"></script>
 
 </body>
 
