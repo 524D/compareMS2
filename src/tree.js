@@ -168,6 +168,11 @@ function compareNext() {
         // Hide "details" section
         $(".tvert-details").css("visibility", "hidden");
         $(".info-details").css("height", "1px");
+        if (paramsGlobal.outNewick) {
+            llog('Creating Newick output');
+            const newickFn = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + ".nwk";
+            ipcRenderer.send('write-newick', newickFn, newick + ";");
+        }
         if (paramsGlobal.outNexus) {
             llog('Creating Nexus output');
             runToDistance(false);

@@ -34,6 +34,7 @@ const defaultOptions = {
     outBasename: "comp",
     avgSpecie: true,
     outNexus: false,
+    outNewick: false,
     outMega: true,
     impMissing: false,
     compareOrder: "smallest-largest",
@@ -61,6 +62,7 @@ function setOptions(options) {
     document.getElementById("outbasename").value = options.outBasename;
     document.getElementById("avgspecie").checked = options.avgSpecie;
     document.getElementById("outnexus").checked = options.outNexus;
+    document.getElementById("outnewick").checked = options.outNewick;
     document.getElementById("outmega").checked = options.outMega;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
@@ -90,6 +92,7 @@ function getOptions() {
         outBasename: document.getElementById("outbasename").value,
         avgSpecie: document.getElementById("avgspecie").checked,
         outNexus: document.getElementById("outnexus").checked,
+        outNewick: document.getElementById("outnewick").checked,
         outMega: document.getElementById("outmega").checked,
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,

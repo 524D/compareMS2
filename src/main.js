@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright 2022 Rob Marissen.
 import { app, BrowserWindow, Menu, shell } from 'electron';
+const fs = require('fs');
+
 app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -226,4 +228,12 @@ ipcMain.on('maketree', (event, params) => {
 // Toggle full screen tree window. Doesn't work :(
 ipcMain.on('toggle-fullscreen', (event, instanceId) => {
     treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
+})
+
+ipcMain.on('write-newick', (event, newickFn, newick) => {
+    fs.writeFile(newickFn, newick, function (err) {
+        if (err) {
+            return console.log(err);
+        }
+    });
 })
