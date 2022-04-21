@@ -168,6 +168,14 @@ function compareNext() {
         // Hide "details" section
         $(".tvert-details").css("visibility", "hidden");
         $(".info-details").css("height", "1px");
+
+        // Rename the result file of our instance to the final name
+        const tmpResultFn = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + "-" + instanceId + "_distance_matrix.meg";
+        const resultFn = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename + '_distance_matrix.meg');
+        ipcRenderer.send('move-file', tmpResultFn, resultFn);
+        const listFn = path.join(paramsGlobal.mgfDir, "cmp_list.txt");
+        ipcRenderer.send('move-file', compResultListFile, listFn);
+        
         if (paramsGlobal.outNewick) {
             llog('Creating Newick output');
             const newickFn = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + ".nwk";
@@ -317,8 +325,10 @@ function makeTree() {
     let act = document.getElementById('activity');
     act.innerHTML = 'Creating tree';
 
+    // To avoid problems when multiple compares are ran simultaneous,
+    // the intermediate result file gets a "unique" name based on the instance number.
     let cmdArgs = ['-i', compResultListFile,
-        '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename),
+        '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + "-" + instanceId,
         '-c', paramsGlobal.cutoff,
         '-m'  // Generate MEGA format
     ]
@@ -368,7 +378,7 @@ function makeTree() {
             matrix: [], // Will be filled with rows -> 2D matrix
         }
         distanceParse.matrix[0] = []; // First element must be empty
-        const df = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename + '_distance_matrix.meg');
+        const df = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + "-" + instanceId + "_distance_matrix.meg";
         // Reading line by line
         lineReader.eachLine(df, (line, last) => {
             parseDistanceMatrixLine(line, distanceParse);
@@ -553,7 +563,7 @@ function runCompare(params) {
     file2Idx = 0;
 
     // Create empty comparison list file
-    compResultListFile = path.join(paramsGlobal.mgfDir, 'cmp_list.txt');
+    compResultListFile = path.join(paramsGlobal.mgfDir, "cmp_list-" + instanceId + ".txt");
     fs.closeSync(fs.openSync(compResultListFile, 'w'))
     compareNext();
 }

@@ -237,3 +237,11 @@ ipcMain.on('write-newick', (event, newickFn, newick) => {
         }
     });
 })
+
+ipcMain.on('move-file', (event, fn1, fn2) => {
+    fs.rename(fn1, fn2, function (err) {
+        if (err) {
+            return console.log(err);
+        }
+    });
+})
