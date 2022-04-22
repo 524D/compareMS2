@@ -101,6 +101,14 @@ let template = [{
             shell.openExternal('https://github.com/524D/compareMS2')
         },
         icon: path.join(iconPath, 'Help.png'),
+    },
+    {
+        label: 'About',
+        click: (item, focusedWindow) => {
+            if (focusedWindow) {
+                focusedWindow.send('show-about');
+            }
+        }
     }],
 }]
 
@@ -136,6 +144,15 @@ const createWindow = () => {
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
         mainWindow = null;
+    });
+
+    // mainWindow.setWindowOpenHandler(function(details) {
+    //     require('electron').shell.openExternal(details.url);
+    // });
+
+    mainWindow.webContents.on('new-window', function (e, url) {
+        e.preventDefault();
+        require('electron').shell.openExternal(url);
     });
 };
 

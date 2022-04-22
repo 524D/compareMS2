@@ -186,6 +186,12 @@ $('#topAll').change(function () {
     }
 });
 
+// Handle closing the "about" overlay
+$("#about-close").click(function() {
+//    $("#about").removeClass( "modal" ).addClass( "hidden");
+    $('#about').hide();
+});
+
 // Handle messages from main process
 ipcRenderer.on('load-options', (event, p) => {
     var fn = `${p}`;
@@ -224,6 +230,10 @@ ipcRenderer.on('selected-speciesfile', (event, p) => {
     document.getElementById("s2sfile").value = fn;
     s2sFileManualSet = true;
 })
+
+ipcRenderer.on('show-about', (event) => {
+    $('#about').show();
+});
 
 // Handle submit button
 const submitBtn = document.getElementById('submit');
