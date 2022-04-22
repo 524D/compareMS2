@@ -1,7 +1,7 @@
 {
   "name": "compare-ms2",
   "productName": "compareMS2",
-  "version": "2.0.0-alpha.3",
+  "version": "2.0.0-beta.1",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
   "scripts": {
