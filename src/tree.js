@@ -596,7 +596,9 @@ $("#layout").on("click", function (e) {
 });
 
 $("#topology").on("click", function (e) {
-    tree = new phylotree.phylotree($(this).prop("checked") ? topology : newick);
+    let topologyOnly=$(this).prop("checked");
+    treeOptions['show-scale'] = !topologyOnly; /* Hide scale is topology only */
+    tree = new phylotree.phylotree(topologyOnly ? topology : newick);
     rendered_tree = tree.render(treeOptions);
     $(rendered_tree.container).html(rendered_tree.show())
     addLegend();
