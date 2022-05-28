@@ -13,6 +13,8 @@ const querystring = nodeRequire('querystring');
 const d3 = nodeRequire('d3');
 const phylotree = nodeRequire('phylotree');
 
+const legendWidth = 320; // With of the legend
+
 let query = querystring.parse(global.location.search);
 let userparams = JSON.parse(query['?userparams']);
 let instanceId = query['instanceId'];
@@ -175,7 +177,7 @@ function compareNext() {
         ipcRenderer.send('move-file', tmpResultFn, resultFn);
         const listFn = path.join(paramsGlobal.mgfDir, "cmp_list.txt");
         ipcRenderer.send('move-file', compResultListFile, listFn);
-        
+
         if (paramsGlobal.outNewick) {
             llog('Creating Newick output');
             const newickFn = path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + ".nwk";
@@ -439,7 +441,7 @@ function setColorScale() {
                 qualAvg / 2,
                 qualAvg,
                 qualAvg * 3 / 2, // Add intermediate value for tick point on legend
-                qualAvg * 2])
+                qualAvg * 2.01]) // Add 0.01 so tick text shows if value is close to round number
                 .range(["#FF0000",
                     "#FF0000",
                     "#00FF00",
@@ -452,7 +454,7 @@ function setColorScale() {
                 qualAvg / 2,
                 qualAvg,
                 qualAvg * 3 / 2, // Add intermediate value for tick point on legend
-                qualAvg * 2])
+                qualAvg * 2.01]) // Add 0.01 so tick text shows if value is close to round number
                 .range(['#edf8b1',
                     '#edf8b1',
                     '#7fcdbb',
@@ -465,7 +467,7 @@ function setColorScale() {
                 qualAvg / 2,
                 qualAvg,
                 qualAvg * 3 / 2, // Add intermediate value for tick point on legend
-                qualAvg * 2])
+                qualAvg * 2.01]) // Add 0.01 so tick text shows if value is close to round number
                 .range(["#FF0000",
                     "#FF0000",
                     "#000000",
@@ -489,6 +491,10 @@ function addLegend() {
             // Make room for legend in svg
             let h = parseInt(svg.attr("height"));
             d3.select("svg").attr("height", h + 70);
+            let w = parseInt(svg.attr("width"));
+            if (w < legendWidth + 200) {  // + 200 to ensure enough room for tick text
+                d3.select("svg").attr("width", legendWidth + 200);
+            }
 
             // Add container for legend, move to desired location
             let y = h + 10;
@@ -596,7 +602,7 @@ $("#layout").on("click", function (e) {
 });
 
 $("#topology").on("click", function (e) {
-    let topologyOnly=$(this).prop("checked");
+    let topologyOnly = $(this).prop("checked");
     treeOptions['show-scale'] = !topologyOnly; /* Hide scale is topology only */
     tree = new phylotree.phylotree(topologyOnly ? topology : newick);
     rendered_tree = tree.render(treeOptions);
@@ -661,7 +667,7 @@ document.addEventListener("keydown", event => {
 function Legend(svg, color, {
     title,
     tickSize = 6,
-    width = 320,
+    width = legendWidth,
     height = 44 + tickSize,
     marginTop = 18,
     marginRight = 0,
