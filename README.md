@@ -143,11 +143,9 @@ compareMS2 provides a very quick overview of large number of datasets to see if 
 
 In addition, compareMS2 collects metadata on each dataset (currently only the number of tandem mass spectra) for overlay on the hierarcical clustering or phylogenetic tree as a color.
 
-## 4. Credits
+## 4. Acknowledgements
 
-Many thanks to dr. Michael Dondrup for providing changes and additions to make CompareMS2 work on macOS.
-
-Also, we'd like thank our test users for the valuable feedback that helped to further improve compareMS2.
+The developers wish to thank Dr. Michael Dondrup at the University of Bergen for providing changes and additions to make compareMS2 work under macOS. All users and beta testers are also acknowledged for their valuable feedback that helped to improve compareMS2.
 
 ## 5. Further reading
 
