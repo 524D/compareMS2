@@ -148,7 +148,7 @@ In addition, compareMS2 collects metadata on each dataset (by default the number
 
 Starting in version 2.0, we have begun to include experimental features in compareMS2. These are only available on the command line, but allow extraction of additional information from the comparisons, such as the distribution of similarity between tandem mass spectra as function of precursor mass measurement error, allowing identification of isotope errors and charge state distributions *before* any database search:
 
-![Experimental feature](./pictures/experimental_feature.png)
+![Experimental feature](./pictures/experimental_features.png)
 
 ## 4. Acknowledgements
 
