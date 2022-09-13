@@ -8,6 +8,7 @@
 
     <link rel="stylesheet" href="assets/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/micon_nb.min.css">
+    <link rel="stylesheet" href="assets/jquery-ui.min.css">
     <link rel="stylesheet" href="local.css">
     <link rel="stylesheet" href="index.css">
 
@@ -40,7 +41,7 @@
                             FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
                             SOFTWARE.</p>
                     </details>
-                    
+
                     <button id="about-close">Close</button>
                 </div>
             </div>
@@ -66,59 +67,78 @@
 
     <div id="AdvSettings" class="tabcontent">
         <div><label class="input-label">Maximum precursor mass difference</label>
-            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001">&nbsp;(<it>m/z</it>)
+            <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001"
+                title="Maximum difference between precursor masses for which MS2 spectra are compared">
+            &nbsp;(<it>m/z</it>)
         </div>
         <div><label class="input-label">Score cutoff:</label>
-            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001">
+            <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001"
+                title="Comparison score for spectra to be considered similar">
         </div>
         <div><label class="input-label">Minimum basepeak intensity</label>
-            <input class="input-value" type="number" id="minBasepeakIntensity">
+            <input class="input-value" type="number" id="minBasepeakIntensity"
+                title="Basepeak below which spectra are excluded">
         </div>
         <div><label class="input-label">Minimum total ion current</label>
-            <input class="input-value" type="number" id="minTotalIonCurrent">
+            <input class="input-value" type="number" id="minTotalIonCurrent"
+                title="Total ion current below which spectra are excluded">
         </div>
         <div><label class="input-label">Maximum retention time difference</label>
-            <input class="input-value" type="number" id="maxRTDifference" min="0" max="100000" step="1">&nbsp;(s)
+            <input class="input-value" type="number" id="maxRTDifference" min="0" max="100000" step="1"
+                title="Only spectra for which the the retention time differs less than this are used for comparison">&nbsp;(s)
         </div>
         <div><label class="input-label">Start retention time</label>
-            <input class="input-value" type="number" id="startRT" min="0" max="1000000" step="1">&nbsp;(s)
+            <input class="input-value" type="number" id="startRT" min="0" max="1000000" step="1"
+                title="Retention time below which spectra are excluded">&nbsp;(s)
         </div>
         <div><label class="input-label">End retention time</label>
-            <input class="input-value" type="number" id="endRT" min="0" max="1000000" step="1">&nbsp;(s)
+            <input class="input-value" type="number" id="endRT" min="0" max="1000000" step="1"
+                title="Retention time beyond which spectra are excluded">&nbsp;(s)
         </div>
         <div><label class="input-label">Maximum scan number difference</label>
-            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000">&nbsp;(scans)
+            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000"
+                title="Only spectra for which the scan number differs less than this number are used for comparison">&nbsp;(scans)
         </div>
         <div><label class="input-label">Start scan</label>
-            <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1">
+            <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1"
+                title="Scan number below which spectra are excluded">
         </div>
         <div><label class="input-label">End scan</label>
-            <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1">
+            <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1"
+                title="Scan number beyond which spectra are excluded">
         </div>
         <div><label class="input-label">Scaling</label>
-            <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001">
+            <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001"
+                title="ScaledIntensity = Intensity ^ Scaling">
         </div>
         <div><label class="input-label">Noise</label>
-            <input class="input-value" type="number" id="noise" min="0" max="10000" step="1">
+            <input class="input-value" type="number" id="noise" min="0" max="10000" step="1"
+                title="Peaks with intensity below noise level are removed">
         </div>
         <div><label class="input-label">Version of set distance metric</label>
-            <input class="input-value" type="number" id="metric" min="1" max="2" step="1">
+            <input class="input-value" type="number" id="metric" min="0" max="2" step="1"
+                title="0=original compareMS2 metric, 1=symmetric metric, 2=compareMS2 2.0 symmetric metric">
         </div>
         <div><label class="input-label">Version of QC metric</label>
-            <input class="input-value" type="number" id="qc" min="0" max="0" step="1">
+            <input class="input-value" type="number" id="qc" min="0" max="0" step="1" title="0: QC=number of spectra">
         </div>
         <div><label class="input-label">Compare only the N most intense spectra</label>
             <span id="topInp1"> <input type="checkbox" id="topAll" checked>&nbsp;All </span>
-            <span id="topInp2"> <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1">
+            <span id="topInp2"> <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1"
+                    title="For this filter, the spectrum intensity is equal to the sum of all peaks in a spectrum.">
             </span>
         </div>
         <div><label class="input-label">Sample to species file</label>
-            <input class="input-value" type="text" id="s2sfile">&nbsp;
-            <button type="button" id="select-speciesfile"><i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select
-                file</button>
+            <input class="input-value" type="text" id="s2sfile"
+                title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
+            &nbsp;
+            <button type="button" id="select-speciesfile" title="">
+                <i class="mi mi-OpenFile mi-lg icon-valign"></i>
+                &nbsp;Select file
+            </button>
         </div>
         <div><label class="input-label">Output filename root</label>
-            <input class="input-value" type="text" id="outbasename">
+            <input class="input-value" type="text" id="outbasename" title="Root filename for output file">
         </div>
         <div><label class="input-label">Output format</label>
             <input disabled type="checkbox" id="outmega" name="output-mega">
@@ -150,6 +170,7 @@
     </div>
     <script src="util.js"></script>
     <script src="assets/jquery-3.6.0.min.js"></script>
+    <script src="assets/jquery-ui.min.js"></script>
     <script src="index.js"></script>
 </body>
 

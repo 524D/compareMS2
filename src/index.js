@@ -187,8 +187,8 @@ $('#topAll').change(function () {
 });
 
 // Handle closing the "about" overlay
-$("#about-close").click(function() {
-//    $("#about").removeClass( "modal" ).addClass( "hidden");
+$("#about-close").click(function () {
+    //    $("#about").removeClass( "modal" ).addClass( "hidden");
     $('#about').hide();
 });
 
@@ -245,3 +245,12 @@ submitBtn.addEventListener('click', (event) => {
 // Show version
 const versDiv = document.getElementById('versioninfo');
 versDiv.innerHTML = "version: " + appVersion;
+
+// Enable tooltips
+$(document).tooltip({
+    position: {
+      my: "left top",
+      at: "left+50 bottom-2",
+      collision: "none"
+    }
+  });
