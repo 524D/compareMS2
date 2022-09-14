@@ -29,11 +29,33 @@ compareMS2 is a tool for direct comparison of tandem mass spectrometry datasets,
 
 Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen most application to this type of data. There are four broad categories of tools for the analysis of peptide tandem mass spectra in mass spectrometry-based proteomics based on what prior information they utilize. compareMS2 belongs to a class of tools that do not use existing sequence data or libraries of spectra assigned to a specific peptide sequence, but compare tandem mass spectra directly with other tandem mass spectra:
 
-|                                     |      | (translated) genome sequences                    |                                                   |
-| :---                                | :--- | :---                                             | :---                                              |
-|                                     |      | +                                                | -                                                 |
-| **prior/other tandem mass spectra** | +    | spectral libraries ([BiblioSpec](http://doi.org/10.1021/ac060279n), [SpectraST](http://doi.org/10.1002/pmic.200600625), ...)  | direct comparison (**[compareMS2](http://doi.org/10.1002/rcm.6162)**, [DISMS2](http://doi.org/10.1186/s12859-017-1514-2), ...)  |
-|                                     | -    | database search ([Mascot](https://doi.org/10.1002/(SICI)1522-2683(19991201)20:18<3551::AID-ELPS3551>3.0.CO;2-2), [Comet](https://doi.org/10.1038/msb4100024), ...)             | *de novo* sequencing ([LUTEFISK](https://doi.org/10.1002/pro.5560010902), [PepNovo](https://doi.org/10.1021/ac048788h), ...)     |
+<table>
+    <tbody>
+        <tr>
+            <th rowspan=2 colspan=2></th>
+            <th colspan=2>(translated) genome sequences available</th>
+        </tr>
+        <tr>
+            <td>+</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <th rowspan=2>prior/other tandem <br>mass spectra available</th>
+            <td>+</td>
+            <td>spectral libraries (<a href="https://doi.org/10.1021/ac060279n">BiblioSpec</a>,
+                <a href="https://doi.org/10.1002/pmic.200600625">SpectraST</a>, ...)</td>
+            <td>direct comparison (<a href="https://doi.org/10.1002/rcm.6162"><b>compareMS2</b></a>,
+                <a href="https://doi.org/10.1186/s12859-017-1514-2">DISMS2</a>, ...)</td>
+        </tr>
+        <tr>
+            <td>-</td>
+            <td>database search (<a href="https://doi.org/10.1002/(SICI)1522-2683(19991201)20:18<3551::AID-ELPS3551>3.0.CO;2-2">Mascot</a>,
+                <a href="https://doi.org/10.1038/msb4100024">Comet</a>, ...)</td>
+            <td><i>de novo</i> sequencing (<a href="https://doi.org/10.1002/pro.5560010902">LUTEFISK</a>,
+                <a href="https://doi.org/10.1021/ac048788h">PepNovo</a>, ...)</td>
+        </tr>
+    </tbody>
+</table>
 
 ### 1.3 What can compareMS2 be used for?
 
