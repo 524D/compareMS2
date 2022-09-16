@@ -13,7 +13,7 @@ const querystring = nodeRequire('querystring');
 const d3 = nodeRequire('d3');
 const phylotree = nodeRequire('phylotree');
 
-const legendWidth = 320; // With of the legend
+const legendWidth = 320; // Width of the legend
 
 let query = querystring.parse(global.location.search);
 let userparams = JSON.parse(query['?userparams']);
@@ -594,6 +594,13 @@ else {
 /////////////////////////
 // The main program
 /////////////////////////
+
+// Set the path/name of the log output to the data folder and current timestamp
+var now = new Date();
+var timeStr = "" + now.getFullYear() + (now.getMonth() + 1) + now.getDate() + "-" +
+    + now.getHours() + now.getMinutes() + now.getSeconds();
+log.transports.file.resolvePath = () => path.join(userparams.mgfDir, "comparems2-" + timeStr + ".log");
+
 runCompare(userparams);
 
 $("#layout").on("click", function (e) {
