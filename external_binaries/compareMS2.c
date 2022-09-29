@@ -3,7 +3,7 @@
 /*                                                                                                                   */
 /* MIT License                                                                                                       */
 /*                                                                                                                   */
-/* Copyright (c) 2021 Magnus Palmblad                                                                                */
+/* Copyright (c) 2022 Magnus Palmblad                                                                                */
 /*                                                                                                                   */
 /* Permission is hereby granted, free of charge, to any person obtaining a copy                                      */
 /* of this software and associated documentation files (the "Software"), to deal                                     */
@@ -35,7 +35,10 @@
 #include <math.h>
 
 #define MAX_LEN 8192
-#define HISTOGRAM_BINS 200
+#define DOTPROD_HISTOGRAM_BINS 200
+#define MASSDIFF_HISTOGRAM_BINS 320
+#define USAGE_STRING "usage: compareMS2 -A <first dataset filename> -B <second dataset filename> [-W <first scan number>,<last scan number> -R <first retention time>,<last retention time> -c <score cutoff> -o <output filename> -m <minimum base peak signal in MS/MS spectrum for comparison>,<minimum total ion signal in MS/MS spectrum for comparison> -w <maximum scan number difference> -r <maximum retention time difference> -p <maximum difference in precursor mass> -e <maximum mass measurement error> -s <scaling power> -n <noise threshold> -d <distance metric (0, 1 or 2)> -q <QC measure (0)>]"
+
 #define	DEFAULT_MIN_BASEPEAK_INTENSITY 0
 #define	DEFAULT_MIN_TOTAL_ION_CURRENT 0
 #define	DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE 10000
@@ -48,6 +51,7 @@
 #define	DEFAULT_CUTOFF 0.8
 #define	DEFAULT_SCALING 0.5
 #define	DEFAULT_NOISE 0
+#define DEFAULT_SPECTRUM_METRIC 0
 #define	DEFAULT_METRIC 2
 #define	DEFAULT_QC 0
 #define	DEFAULT_BIN_SIZE 0.2
@@ -58,10 +62,8 @@
 #define	DEFAULT_N_BINS 9455
 #define	DEFAULT_TOP_N -1
 #define DEFAULT_EXPERIMENTAL_FEATURES 0
-#define MASS_DIFF_HISTOGRAM_BINS 320
 #define DEFAULT_SCAN_NUMBERS_COULD_BE_READ 0
 #define DEFAULT_RTS_COULD_BE_READ 0
-#define USAGE_STRING "usage: compareMS2 -A <first dataset filename> -B <second dataset filename> [-W <first scan number>,<last scan number> -R <first retention time>,<last retention time> -c <score cutoff> -o <output filename> -m <minimum base peak signal in MS/MS spectrum for comparison>,<minimum total ion signal in MS/MS spectrum for comparison> -w <maximum scan number difference> -r <maximum retention time difference> -p <maximum difference in precursor mass> -e <maximum mass measurement error> -s <scaling power> -n <noise threshold> -d <distance metric (0, 1 or 2)> -q <QC measure (0)>]"
 
 /* atol0 acts the same as atol, but handles a null pointer without crashing */
 static int atol0(const char *p) {
@@ -114,12 +116,13 @@ int main(int argc, char *argv[]) {
 	FILE *datasetA, *datasetB, *output;
 	char datasetAFilename[MAX_LEN], datasetBFilename[MAX_LEN],
 			outputFilename[MAX_LEN], experimentalOutputFilename[MAX_LEN],
-			temp[MAX_LEN], line[MAX_LEN], *p, metric, qc, experimentalFeatures,
-			datasetAScanNumbersCouldBeRead, datasetBScanNumbersCouldBeRead,
-			datasetARTsCouldBeRead, datasetBRTsCouldBeRead;
+			temp[MAX_LEN], line[MAX_LEN], *p, metric, spectrum_metric, qc,
+			experimentalFeatures, datasetAScanNumbersCouldBeRead,
+			datasetBScanNumbersCouldBeRead, datasetARTsCouldBeRead,
+			datasetBRTsCouldBeRead;
 	long i, j, k, datasetASize, datasetBSize, startScan, endScan, nComparisons,
-			minPeaks, maxPeaks, nBins, nPeaks, topN, histogram[HISTOGRAM_BINS],
-			massDiffHistogram[HISTOGRAM_BINS], **massDiffDotProductHistogram,
+			minPeaks, maxPeaks, nBins, nPeaks, topN, dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
+			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
 			greaterThanCutoff, sAB, sBA, datasetAActualCompared,
 			datasetBActualCompared;
 	double minBasepeakIntensity, minTotalIonCurrent, maxScanNumberDifference,
@@ -159,7 +162,8 @@ int main(int argc, char *argv[]) {
 	/* test for correct number of parameters */
 
 	if (argc < 3) {
-		printf("%s (type compareMS2 --help for more information)\n", USAGE_STRING);
+		printf("%s (type compareMS2 --help for more information)\n",
+				USAGE_STRING);
 		return -1;
 	}
 
@@ -179,6 +183,7 @@ int main(int argc, char *argv[]) {
 	scaling = DEFAULT_SCALING;
 	noise = DEFAULT_NOISE;
 	metric = DEFAULT_METRIC;
+	spectrum_metric = DEFAULT_SPECTRUM_METRIC;
 	qc = DEFAULT_QC;
 	binSize = DEFAULT_BIN_SIZE;
 	minPeaks = DEFAULT_MIN_PEAKS;
@@ -262,6 +267,10 @@ int main(int argc, char *argv[]) {
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'd')) /* version of set distance metric */
 			metric = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'f')) /* version of spectrum comparison function */
+			spectrum_metric = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'q')) /* version of QC metric */
@@ -382,6 +391,8 @@ int main(int argc, char *argv[]) {
 				maxPeaks = nPeaks;
 			nPeaks = 0;
 		}
+		if (isdigit(p[0]))
+			nPeaks++;
 	}
 	printf("done (contains %ld MS2 spectra)\n", datasetBSize);
 	fflush(stdout);
@@ -424,10 +435,10 @@ int main(int argc, char *argv[]) {
 	B = (DatasetType*) malloc(datasetBSize * sizeof(DatasetType));
 	if (experimentalFeatures == 1) {
 		massDiffDotProductHistogram = (long**) malloc(
-		MASS_DIFF_HISTOGRAM_BINS * sizeof(long*));
-		for (i = 0; i < MASS_DIFF_HISTOGRAM_BINS; i++)
+		MASSDIFF_HISTOGRAM_BINS * sizeof(long*));
+		for (i = 0; i < MASSDIFF_HISTOGRAM_BINS; i++)
 			massDiffDotProductHistogram[i] = malloc(
-			HISTOGRAM_BINS * sizeof(long));
+			DOTPROD_HISTOGRAM_BINS * sizeof(long));
 	}
 
 	/* read in tandem mass spectra from MGF files */
@@ -487,12 +498,12 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		A[i].rt = startRT; /* default if no scan information is available */
-			if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-				A[i].rt = (double) atof0(strpbrk(p, "0123456789"));
-				// printf("A[%ld].rt = %ld\n", i, A[i].scan); fflush(stdout);
-				datasetARTsCouldBeRead = 1;
-				continue;
-			}
+		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+			A[i].rt = (double) atof0(strpbrk(p, "0123456789"));
+			// printf("A[%ld].rt = %ld\n", i, A[i].scan); fflush(stdout);
+			datasetARTsCouldBeRead = 1;
+			continue;
+		}
 		if (strcmp("END", p) == 0) {
 			A[i].nPeaks = j;
 			A[i].basepeakIntensity = 0;
@@ -562,12 +573,12 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 		B[i].rt = startRT; /* default if no scan information is available */
-			if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-				B[i].rt = (double) atof0(strpbrk(p, "0123456789"));
-				// printf("B[%ld].rt = %ld\n", i, B[i].scan); fflush(stdout);
-				datasetBRTsCouldBeRead = 1;
-				continue;
-			}
+		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+			B[i].rt = (double) atof0(strpbrk(p, "0123456789"));
+			// printf("B[%ld].rt = %ld\n", i, B[i].scan); fflush(stdout);
+			datasetBRTsCouldBeRead = 1;
+			continue;
+		}
 		if (strcmp("END", p) == 0) {
 			B[i].nPeaks = j;
 			B[i].basepeakIntensity = 0;
@@ -599,15 +610,16 @@ int main(int argc, char *argv[]) {
 	fflush(stdout);
 
 	if (datasetARTsCouldBeRead == 0) {
-		printf("warning: retention times could not be read from dataset A (%s)\n",
+		printf(
+				"warning: retention times could not be read from dataset A (%s)\n",
 				datasetAFilename);
 	}
 	if (datasetBRTsCouldBeRead == 0) {
-		printf("warning: retention times could not be read from dataset B (%s)\n",
+		printf(
+				"warning: retention times could not be read from dataset B (%s)\n",
 				datasetBFilename);
 	}
-	if ((datasetARTsCouldBeRead == 0)
-			|| (datasetBRTsCouldBeRead == 0)) {
+	if ((datasetARTsCouldBeRead == 0) || (datasetBRTsCouldBeRead == 0)) {
 		maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
 		printf("retention time filters will be ignored\n");
 	}
@@ -657,6 +669,7 @@ int main(int argc, char *argv[]) {
 		for (k = 0; k < nBins; k++)
 			B[j].bin[k] = 0; /* set all bins to zero */
 		for (k = 0; k < B[j].nPeaks; k++) {
+			B[j].intensity[k] = B[j].intensity[k] / rootSquareSum;
 			if ((B[j].mz[k] >= minMz) && (B[j].mz[k] < maxMz))
 				B[j].bin[(long) floor(
 						binSize * (B[j].mz[k] - minMz) + binSize / 2)] +=
@@ -681,13 +694,13 @@ int main(int argc, char *argv[]) {
 	sBA = 0;
 	datasetAActualCompared = 0;
 	datasetBActualCompared = 0;
-	for (i = 0; i < HISTOGRAM_BINS; i++) {
-		histogram[i] = 0;
+	for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++) {
+		dotprodHistogram[i] = 0;
 		massDiffHistogram[i] = 0;
 	}
 	if (experimentalFeatures == 1) {
-		for (i = 0; i < HISTOGRAM_BINS; i++)
-			for (j = 0; j < MASS_DIFF_HISTOGRAM_BINS; j++)
+		for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++)
+			for (j = 0; j < MASSDIFF_HISTOGRAM_BINS; j++)
 				massDiffDotProductHistogram[j][i] = 0;
 	}
 
@@ -728,19 +741,23 @@ int main(int argc, char *argv[]) {
 				dotProd = 0;
 				for (k = 0; k < nBins; k++)
 					dotProd += A[i].bin[k] * B[j].bin[k];
+
+				if(spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141592); /* use spectral angle (SA) instead */
+
 				if (fabs(dotProd) <= 1.00) {
-					histogram[(int) (HISTOGRAM_BINS / 2)
-							+ (int) floor(dotProd * (HISTOGRAM_BINS / 2 - 1E-9))]++;
+					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
+							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
 					if (experimentalFeatures == 1)
-						massDiffDotProductHistogram[(int) (MASS_DIFF_HISTOGRAM_BINS
+						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
 								/ 2)
 								+ (int) floor(
 										(B[j].precursorMz - A[i].precursorMz)
-												* 99.99999999999999999)][(int) (HISTOGRAM_BINS
+												* 999.999999999999)][(int) (DOTPROD_HISTOGRAM_BINS
 								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
-						+ (int) floor(dotProd * (HISTOGRAM_BINS / 2 - 1E-9))]++;
+						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
 				}
 				nComparisons++;
+
 				if (dotProd > maxDotProd) {
 					maxDotProd = dotProd;
 				}
@@ -793,10 +810,14 @@ int main(int argc, char *argv[]) {
 				dotProd = 0;
 				for (k = 0; k < nBins; k++)
 					dotProd += B[i].bin[k] * A[j].bin[k];
+
+				if(spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141592); /* use spectral angle (SA) instead */
+
 				if (fabs(dotProd) <= 1.00)
-					histogram[(int) (HISTOGRAM_BINS / 2)
-							+ (int) floor(dotProd * (HISTOGRAM_BINS / 2 - 1E-9))]++;
+					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
+							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
 				nComparisons++;
+
 				if (dotProd > maxDotProd) {
 					maxDotProd = dotProd;
 				}
@@ -866,10 +887,10 @@ int main(int argc, char *argv[]) {
 	fprintf(output, "m/z_bin_size\t%.4f\n", binSize);
 	fprintf(output, "n_m/z_bins\t%ld\n", nBins);
 	/* fprintf(output,"histogram (interval, midpoint, comparisons)\n"); */
-	for (i = 0; i < HISTOGRAM_BINS; i++)
+	for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++)
 		fprintf(output, "histogram\t%1.3f\t%1.3f\t%1.3f\t%ld\t%ld\n",
 				(double) (i - 100) / 100, (double) (i + 1 - 100) / 100,
-				(double) (i + 0.5 - 100) / 100, histogram[i],
+				(double) (i + 0.5 - 100) / 100, dotprodHistogram[i],
 				massDiffHistogram[i]);
 	fflush(output);
 	fclose(output);
@@ -880,15 +901,15 @@ int main(int argc, char *argv[]) {
 					experimentalOutputFilename);
 			return -1;
 		}
-		for (i = 0; i < HISTOGRAM_BINS; i++) {
-			for (j = 0; j < MASS_DIFF_HISTOGRAM_BINS - 1; j++)
+		for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++) {
+			for (j = 0; j < MASSDIFF_HISTOGRAM_BINS - 1; j++)
 				fprintf(output, "%ld\t", massDiffDotProductHistogram[j][i]);
 			fprintf(output, "%ld\n",
-					massDiffDotProductHistogram[MASS_DIFF_HISTOGRAM_BINS - 1][i]);
+					massDiffDotProductHistogram[MASSDIFF_HISTOGRAM_BINS - 1][i]);
 		}
 		fflush(output);
 		fclose(output);
-    }
+	}
 
 	/* free memory */
 	printf("done\nfreeing memory...");
