@@ -153,7 +153,7 @@ static void read_sample_to_species(char* fn, species_t* species)
 		if (strcmp(line, "\n") == 0)
 			continue;
 		char* sample_name = strtok(line, "\t");
-		char* species_name = strtok('\0', "\t\n");
+		char* species_name = strtok(NULL, "\t\n");
 		add_sample_species(sample_name, species_name, species);
 	}
 	fclose(f);
@@ -475,11 +475,11 @@ int main(int argc, char* argv[])
 			p = strtok(line, "\t"); /* read in field name */
 
 			if (strcmp(p, "dataset_A") == 0) {
-				p = strtok('\0', "\t\n");
+				p = strtok(NULL, "\t\n");
 				x = sample_name_to_species_index(p, &species);
 				printf("\nread pairwise comparison %li (%s and ", i + 1, p);
 			} else if (strcmp(p, "dataset_B") == 0) {
-				p = strtok('\0', "\t\n");
+				p = strtok(NULL, "\t\n");
 				y = sample_name_to_species_index(p, &species);
 				// The distance matrix is (supposed to be) symmetric and we
 				// will only compute the lower left triangle, e.g. y>x
@@ -491,20 +491,20 @@ int main(int argc, char* argv[])
 				}
 				printf("%s)", p);
 			} else if (strcmp(p, "set_distance") == 0) {
-				p = strtok('\0', "\t");
+				p = strtok(NULL, "\t");
 				double d = atof(p);
 				long di = distance_index(x, y);
 				distance[di] += d;
 				distance_samples[di]++;
-				// p=strtok('\0',"\t");
+				// p=strtok(NULL,"\t");
 				// fraction_gt_cutoff[i]=atof(p);
 			} else if (strcmp(p, "dataset_A_QC") == 0) {
-				p = strtok('\0', "\t");
+				p = strtok(NULL, "\t");
 				double qc = atof(p);
 				qc_value[x] += qc;
 				qc_samples[x]++;
 			} else if (strcmp(p, "dataset_B_QC") == 0) {
-				p = strtok('\0', "\t");
+				p = strtok(NULL, "\t");
 				double qc = atof(p);
 				qc_value[y] += qc;
 				qc_samples[y]++;
