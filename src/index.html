@@ -116,10 +116,13 @@
                 title="Peaks with intensity below noise level are removed">
         </div>
         <div><label class="input-label">Version of set distance metric</label>
-            <input class="input-value" type="number" id="metric" min="0" max="2" step="1"
-                title="0=original compareMS2 metric, 1=symmetric metric, 2=compareMS2 2.0 symmetric metric">
+            <select id="metric" name="metric">
+                <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
+                <option value="0">Original compareMS2 metric</option>
+                <option value="1">Symmetric metric</option>
+            </select>
         </div>
-        <div><label class="input-label">Version of QC metric</label>
+        <div hidden><label class="input-label">Version of QC metric</label>
             <input class="input-value" type="number" id="qc" min="0" max="0" step="1" title="0: QC=number of spectra">
         </div>
         <div><label class="input-label">Compare only the N most intense spectra</label>
