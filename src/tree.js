@@ -210,6 +210,7 @@ function compareNext() {
                 '-r', paramsGlobal.maxRTDifference,
                 '-R', paramsGlobal.startRT + ',' + paramsGlobal.endRT,
                 '-c', paramsGlobal.cutoff,
+                '-f', paramsGlobal.specMetric,
                 '-s', paramsGlobal.scaling,
                 '-n', paramsGlobal.noise,
                 '-q', paramsGlobal.qc,
@@ -327,7 +328,7 @@ function makeTree() {
     let act = document.getElementById('activity');
     act.innerHTML = 'Creating tree';
 
-    // To avoid problems when multiple compares are ran simultaneous,
+    // To avoid problems when multiple compares are being executed simultaneous,
     // the intermediate result file gets a "unique" name based on the instance number.
     let cmdArgs = ['-i', compResultListFile,
         '-o', path.join(paramsGlobal.mgfDir, paramsGlobal.outBasename) + "-" + instanceId,

@@ -25,6 +25,7 @@ const defaultOptions = {
     startScan: 1,
     endScan: 1000000,
     cutoff: 0.8,
+    specMetric: 0,
     scaling: 0.5,
     noise: 10,
     metric: 2,
@@ -53,6 +54,7 @@ function setOptions(options) {
     document.getElementById("startScan").value = options.startScan;
     document.getElementById("endScan").value = options.endScan;
     document.getElementById("cutoff").value = options.cutoff;
+    document.getElementById("specMetric").value = options.specMetric;  
     document.getElementById("scaling").value = options.scaling;
     document.getElementById("noise").value = options.noise;
     document.getElementById("metric").value = options.metric;
@@ -83,6 +85,7 @@ function getOptions() {
         startScan: parseFloat(document.getElementById("startScan").value),
         endScan: parseFloat(document.getElementById("endScan").value),
         cutoff: parseFloat(document.getElementById("cutoff").value),
+        specMetric: parseFloat(document.getElementById("specMetric").value),
         scaling: parseFloat(document.getElementById("scaling").value),
         noise: parseFloat(document.getElementById("noise").value),
         metric: parseFloat(document.getElementById("metric").value),

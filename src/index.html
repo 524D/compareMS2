@@ -75,6 +75,12 @@
             <input class="input-value" type="number" id="cutoff" min="0" max="1" step=".001"
                 title="Comparison score for spectra to be considered similar">
         </div>
+        <div><label class="input-label">Spectrum metric</label>
+            <select id="specMetric" name="specMetric" title="Choose spectral angle to stretch out the high end of the score cutoff">
+                <option value="0" selected="selected">Dot product</option>
+                <option value="1">Spectral angle</option>
+            </select>
+        </div>
         <div><label class="input-label">Minimum basepeak intensity</label>
             <input class="input-value" type="number" id="minBasepeakIntensity"
                 title="Basepeak below which spectra are excluded">
