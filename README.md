@@ -65,14 +65,16 @@ However, not only the amino acid sequences of the peptides affect the distance m
 
 ## 2. Installing compareMS2
 
-On Windows, the easiest way to install compareMS2 is through the [installer](https://github.com/524D/compareMS2/releases) (under "assets").
+CompareMS2 can be run under Windows (64 bit AMD/Intel), Linux (64 bit AMD/Intel) and MacOS (ARM and Intel).
+
+On Windows and Ubuntu, the easiest way to install compareMS2 is through the [installer](https://github.com/524D/compareMS2/releases) (under "assets").
 
 Alternatively, and for other platforms, follow the instructions below.
 
 First install nodejs:
 
 * On Debian/Ubuntu Linux, run `apt install nodejs`
-* On Windows and macOS, download from: <https://nodejs.org/en/download/>
+* On Windows, macOS and other Linux flavors, download from: <https://nodejs.org/en/download/>
 
 Then run the following on the command line:
 
