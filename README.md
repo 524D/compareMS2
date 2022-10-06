@@ -120,7 +120,7 @@ compareMS2 can be used both from the command-line interface (CLI) and through th
 ![compareMS2 on primate datasets](./pictures/primates_circular.png)  
 Figure 1. Phylogenetic tree based on sample primate [sera datasets](https://osf.io/sg796/) of 1,000 tandem mass spectra, as displayed during a compareMS2 run. This is a good test dataset for compareMS2.
 
-See PRIDE Project [PXD034932](https://www.ebi.ac.uk/pride/archive/projects/PXD034932) for data to test compareMS2.
+See PRIDE Project [PXD034932](https://www.ebi.ac.uk/pride/archive/projects/PXD034932) for additional compareMS2 test data.
 
 ### 3.1 Configuring compareMS2  
 
