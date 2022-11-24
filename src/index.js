@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright 2022 Rob Marissen.
 
-const { BrowserWindow, getCurrentWindow } = nodeRequire('electron').remote
+const { BrowserWindow, app } = nodeRequire('@electron/remote')
 const path = nodeRequire('path')
 const { ipcRenderer } = nodeRequire('electron')
-var appVersion = nodeRequire('electron').remote.app.getVersion();
+var appVersion = app.getVersion();
 
 const selectDirBtn = document.getElementById('select-directory')
 const selectSpeciesfileBtn = document.getElementById('select-speciesfile')

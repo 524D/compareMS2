@@ -2,7 +2,7 @@
 // Copyright 2022 Rob Marissen.
 
 const { ipcRenderer } = nodeRequire('electron');
-const app = nodeRequire('electron').remote.app;
+const { app } = nodeRequire('@electron/remote')
 const path = nodeRequire('path');
 const { spawn } = nodeRequire('child_process');
 const lineReader = nodeRequire('line-reader');

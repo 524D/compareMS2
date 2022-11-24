@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright 2022 Rob Marissen.
-import { app, BrowserWindow, Menu, shell } from 'electron';
+const { app, BrowserWindow, Menu, shell, webContents } = require('electron');
+const path = require('path');
 const fs = require('fs');
 
+// FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
+require('@electron/remote/main').initialize();
+
+// FIXME: Remove. Not needed anymore, now default:
 app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
     app.quit();
 }
-const path = require('path')
 
 // Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -131,6 +135,7 @@ const createWindow = () => {
 
     // and load the index.html of the app.
     mainWindow.loadURL(`file://${__dirname}/index.html`);
+    require("@electron/remote/main").enable(mainWindow.webContents);
 
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         // Open the DevTools.
@@ -234,6 +239,7 @@ ipcMain.on('maketree', (event, params) => {
                 "instanceId": treeInstanceCount
             }
         });
+    require("@electron/remote/main").enable(treeWindow.webContents);
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         // Open the DevTools.
         treeWindow.webContents.openDevTools();

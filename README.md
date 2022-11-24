@@ -79,10 +79,9 @@ First install nodejs:
 Then run the following on the command line:
 
 ```text
-npm install -g electron-forge
 git clone https://github.com/524D/compareMS2
 cd compareMS2
-npm install
+yarn
 ```
 
 Ignore npm vulnerability warnings (**don't** run ```npm audit fix```). Since compareMS is not a web app, they are of limited relevance,
@@ -93,13 +92,13 @@ and they can't easily be fixed.
 To run compareMS2 in "development mode", simply issue:
 
 ```text
-electron-forge start
+yarn start
 ```
 
 For debug mode (enabling Chrome development tools):
 
 ```text
-CPM_MS2_DEBUG="x" electron-forge start
+CPM_MS2_DEBUG="x" yarn start
 ```
 
 ### 2.2 Building compareMS2
@@ -107,7 +106,7 @@ CPM_MS2_DEBUG="x" electron-forge start
 To build a distributable package (for the platform on which this command is executed):
 
 ```text
-electron-forge make
+yarn make
 ```
 
 For example, the resulting Windows installer can than be found (relative to the compareMS2 main directory) in

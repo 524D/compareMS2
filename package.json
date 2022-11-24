@@ -1,7 +1,7 @@
 {
   "name": "compare-ms2",
   "productName": "compareMS2",
-  "version": "2.0.0",
+  "version": "2.0.1-beta.1",
   "description": "Compare samples by MS2 spectra",
   "main": "src/main.js",
   "scripts": {
@@ -17,60 +17,35 @@
     "MS2",
     "proteomics"
   ],
-  "author": "Rob Marissen",
-  "license": "MIT",
-  "config": {
-    "forge": {
-      "make_targets": {
-        "win32": [
-          "squirrel"
-        ],
-        "darwin": [
-          "zip"
-        ],
-        "linux": [
-          "deb",
-          "rpm"
-        ]
-      },
-      "electronPackagerConfig": {
-        "packageManager": "npm",
-        "icon": "src/assets/images/logo-icon.ico"
-      },
-      "electronWinstallerConfig": {
-        "name": "compareMS2",
-        "setupIcon": "src/assets/images/logo-icon-install.ico"
-      },
-      "electronInstallerDebian": {},
-      "electronInstallerRedhat": {},
-      "github_repository": {
-        "owner": "",
-        "name": ""
-      },
-      "windowsStoreConfig": {
-        "packageName": "",
-        "name": "compareMS2"
-      }
-    }
+  "author": {
+    "name": "Rob Marissen",
+    "email": "r.j.marissen@lumc.nl"
   },
+  "license": "MIT",
   "dependencies": {
-    "d3": "~6.7.0",
-    "d3-svg-to-png": "^0.1.7",
-    "electron-compile": "^6.4.4",
-    "electron-log": "^4.4.1",
     "electron-squirrel-startup": "^1.0.0",
+    "@electron/remote": "^2.0.8",
     "line-reader": "^0.4.0",
-    "node.js": "^0.0.1-security",
-    "phylotree": "^1.0.13",
+    "electron-log": "^4.4.8",
+    "d3": "~6.7.0",
+    "phylotree": "^1.1.0",
+    "d3-svg-to-png": "^0.2.0",
     "svg-crowbar": "^0.7.0"
   },
-  "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.61",
-    "@electron-forge/maker-deb": "^6.0.0-beta.61",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.61",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
-    "@electron-forge/maker-zip": "^6.0.0-beta.61",
-    "electron": "16.0.4",
+  "rob-comment-dependencies": {
+    "electron-compile": "^6.4.4",
+    "node.js": "^0.0.1-security",
+    "svg-crowbar": "^0.7.0"
+  },
+  "rob-comment-dev-dependencies": {
     "electron-prebuilt-compile": "8.2.0"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.3",
+    "@electron-forge/maker-deb": "^6.0.3",
+    "@electron-forge/maker-rpm": "^6.0.3",
+    "@electron-forge/maker-squirrel": "^6.0.3",
+    "@electron-forge/maker-zip": "^6.0.3",
+    "electron": "21.3.0"
   }
 }
