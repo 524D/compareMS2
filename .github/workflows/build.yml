@@ -38,7 +38,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build
-        run: cd external_binaries && gcc -Wall -Wextra -O2 compareMS2.c -lm -o compareMS2.exe && gcc -Wall -Wextra -O2 compareMS2_to_distance_matrices.c -lm -o compareMS2_to_distance_matrices.exe
+        run: cd external_binaries && gcc -Wall -Wextra -O2 compareMS2.c -lm -o compareMS2.exe && strip compareMS2.exe && gcc -Wall -Wextra -O2 compareMS2_to_distance_matrices.c -lm -o compareMS2_to_distance_matrices.exe && strip compareMS2_to_distance_matrices.exe
       - name: Commit files
         # Continue in case there is nothing to commit
         continue-on-error: true
