@@ -189,10 +189,34 @@ static void initPar(ParametersType *par) {
 	strcpy(par->experimentalOutputFilename, "experimental_output.txt");
 }
 
-static void parseArgs(int argc, char *argv[], ParametersType *par,
-        DatasetType *datasetA, DatasetType *datasetB) {
+/*
+ * parseArgs parses command line arguments.
+ * Returns 0 if successful, 1 if not. If 1 is returned, err is set to the error code to be returned by the program.
+*/
+static int parseArgs(int argc, char *argv[], ParametersType *par,
+        DatasetType *datasetA, DatasetType *datasetB, int *err) {
     char temp[MAX_LEN], *p;
     int i;
+
+    if ((argc == 2)
+            && ((strcmp(argv[1], "--help") == 0)
+                    || (strcmp(argv[1], "-help") == 0)
+                    || (strcmp(argv[1], "-h") == 0))) /* want help? */
+            {
+        printf(
+                "compareMS2 - (c) Magnus Palmblad 2010-2021\n\ncompareMS2 is a tool for direct comparison of tandem mass spectrometry datasets, typically from liquid chromatography-tandem mass spectrometry (LC-MS/MS), defining similarity as a function of shared (similar) spectra and distance as the inverse of this similarity. Data with identical spectral content thus have similarity 1 and distance 0. The similarity of datasets with no similar spectra tend to 0 (distance positive infinity) as the size of the sets go to infinity.\n\n");
+        printf("%s\n", USAGE_STRING);
+        *err=0;
+        return 1;
+	}
+
+	/* test for correct number of parameters */
+	if (argc < 3) {
+		printf("%s (type compareMS2 --help for more information)\n",
+				USAGE_STRING);
+        *err = -1;
+        return 1;
+	}
 
 	for (i = 1; i < argc; i++) {
 		if ((argv[i][0] == '-') && (argv[i][1] == 'A')) /* dataset A filename */
@@ -295,6 +319,7 @@ static void parseArgs(int argc, char *argv[], ParametersType *par,
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 	}
+    return 0;
 }
 
 static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
@@ -311,7 +336,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 		printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
 		return -1;
 	}
-	printf("checking dataset A (\"%s\")...", dataset->Filename);
+	printf("checking dataset %c (\"%s\")...", dataset->id, dataset->Filename);
 	fflush(stdout);
 	dataset->Size = 0;
 	nPeaks = 0;
@@ -480,12 +505,13 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 
 int main(int argc, char *argv[]) {
 	FILE *output;
+    int err;
 	long i, j, k, nComparisons,
 			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
 			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
 			greaterThanCutoff, sAB, sBA, datasetAActualCompared,
 			datasetBActualCompared;
-	double  dotProd, maxDotProd;;
+	double  dotProd, maxDotProd;
 
 	SpecType *A, *B;
 
@@ -500,29 +526,13 @@ int main(int argc, char *argv[]) {
     /* Don't buffer standard output */
     setvbuf(stdout, NULL, _IONBF, 0);
 
-	if ((argc == 2)
-			&& ((strcmp(argv[1], "--help") == 0)
-					|| (strcmp(argv[1], "-help") == 0)
-					|| (strcmp(argv[1], "-h") == 0))) /* want help? */
-			{
-		printf(
-				"compareMS2 - (c) Magnus Palmblad 2010-2021\n\ncompareMS2 is a tool for direct comparison of tandem mass spectrometry datasets, typically from liquid chromatography-tandem mass spectrometry (LC-MS/MS), defining similarity as a function of shared (similar) spectra and distance as the inverse of this similarity. Data with identical spectral content thus have similarity 1 and distance 0. The similarity of datasets with no similar spectra tend to 0 (distance positive infinity) as the size of the sets go to infinity.\n\n");
-		printf("%s\n", USAGE_STRING);
-		return 0;
-	}
-
-	/* test for correct number of parameters */
-	if (argc < 3) {
-		printf("%s (type compareMS2 --help for more information)\n",
-				USAGE_STRING);
-		return -1;
-	}
-
 	/* assign default values */
     initPar(&par);
 
 	/* read and replace parameter values */
-    parseArgs(argc, argv, &par, &datasetA, &datasetB);
+    if (parseArgs(argc, argv, &par, &datasetA, &datasetB, &err) != 0) {
+        return err;
+    }
 
 	if (((par.maxMz - par.minMz) / par.binSize) == floor((par.maxMz - par.minMz) / par.binSize))
 		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize);
