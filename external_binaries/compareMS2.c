@@ -56,7 +56,7 @@
 #define	DEFAULT_QC 0
 #define	DEFAULT_BIN_SIZE 0.2
 #define	DEFAULT_MIN_PEAKS 20
-#define	DEFAULT_MAX_PEAKS 5000
+#define	DEFAULT_MAX_PEAKS 5000  // FIXME: this gives the impression that its a filter on the max peak count. It isn't
 #define	DEFAULT_MIN_MZ 109
 #define	DEFAULT_MAX_MZ 2000
 #define	DEFAULT_N_BINS 9455
@@ -64,6 +64,55 @@
 #define DEFAULT_EXPERIMENTAL_FEATURES 0
 #define DEFAULT_SCAN_NUMBERS_COULD_BE_READ 0
 #define DEFAULT_RTS_COULD_BE_READ 0
+
+typedef struct {
+    long scan; /* scan number */
+    double rt; /* retention time in seconds */
+    double *mz; /* measured m/z */
+    double *intensity; /* measured intensities */
+    char charge; /* deconvoluted charge (in MGF file) */
+    double *bin; /* binned spectra */
+    double precursorMz; /* precursor m/z */
+    int nPeaks; /* number of peaks in spectrum */
+    double basepeakIntensity; /* basepeak intensity */
+    double totalIonCurrent; /* total ion current for spectrum */
+} SpecType;
+
+typedef struct {
+    char id; /* dataset reference (A of B) */
+    char Filename[MAX_LEN];
+    char ScanNumbersCouldBeRead;
+    char RTsCouldBeRead;
+    long Size;
+    double *Intensities;
+    double Cutoff;
+} DatasetType;
+
+typedef struct {
+    double minBasepeakIntensity;
+	double minTotalIonCurrent;
+	double maxScanNumberDifference;
+	double maxRTDifference;
+	double maxPrecursorDifference;
+	long startScan;
+	long endScan;
+	double startRT;
+	double endRT;
+	double cutoff;
+	double scaling;
+	double noise;
+	char metric;
+	char spectrum_metric;
+	char qc;
+	double binSize;
+	long minPeaks;  // FIXME: Unused
+    long maxPeaks;  // FIXME: name is confusing with respect to minPeaks: this is the highest number of peaks in any spectrum 
+	double minMz;
+	double maxMz;
+	long nBins;
+	long topN;
+	char experimentalFeatures;
+} ParametersType;
 
 /* atol0 acts the same as atol, but handles a null pointer without crashing */
 static int atol0(const char *p) {
@@ -109,44 +158,213 @@ double quickSelect(double A[], long left, long right, long k) {
 	else
 		return quickSelect(A, pIndex + 1, right, k);
 }
+static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
+    FILE *fd;
+    long nPeaks;
+    char line[MAX_LEN];
+    char *p;
+
+	dataset->ScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
+	dataset->RTsCouldBeRead = DEFAULT_RTS_COULD_BE_READ;
+
+	/* check MGF dataset A for number of MS/MS spectra */
+	if ((fd = fopen(dataset->Filename, "r")) == NULL) {
+		printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
+		return -1;
+	}
+	printf("checking dataset A (\"%s\")...", dataset->Filename);
+	fflush(stdout);
+	dataset->Size = 0;
+	nPeaks = 0;
+	while (fgets(line, MAX_LEN, fd) != NULL) {
+		if (strcmp(line, "\n") == 0)
+			continue;
+		p = strtok(line, "=");
+		if (strcmp("TITLE", p) == 0) {
+			dataset->Size++;
+			if (nPeaks > par->maxPeaks)
+				par->maxPeaks = nPeaks;
+			nPeaks = 0;
+		}
+		if (isdigit(p[0]))
+			nPeaks++;
+	}
+	printf("done (contains %ld MS2 spectra)\n", dataset->Size);
+	fflush(stdout);
+	fclose(fd);
+
+	if ((par->topN > -1) && (par->topN < dataset->Size)) {
+		printf("filtering top-%ld spectra...", par->topN);
+		fflush(stdout);
+		dataset->Intensities = malloc(dataset->Size * sizeof(double));
+		if ((fd = fopen(dataset->Filename, "r")) == NULL) {
+			printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
+			return -1;
+		}
+		int i = -1;
+		while (fgets(line, MAX_LEN, fd) != NULL) {
+			if (strcmp(line, "\n") == 0)
+				continue;
+			p = strtok(line, " \t");
+			if (strcmp("BEGIN", p) == 0) {
+				i++;
+				dataset->Intensities[i] = 0.0;
+			}
+			if (isdigit(p[0])) {
+				p = strtok('\0', " \t");
+				dataset->Intensities[i] += atof0(p);
+			}
+		}
+
+		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
+		printf("done (ion intensity threshold %.3f)\n", dataset->Cutoff);
+		fflush(stdout);
+		fclose(fd);
+	}
+    return 0;
+}
+
+static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
+    FILE *fd;
+    char line[MAX_LEN];
+    char *p;
+
+    printf("reading %ld MS2 spectra from %s...", dataset->Size,
+			dataset->Filename);
+	fflush(stdout);
+	if ((fd = fopen(dataset->Filename, "r")) == NULL) {
+		printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
+		return -1;
+	}
+	int i = 0;
+	int j = 0;
+	while (fgets(line, MAX_LEN, fd) != NULL) {
+		if (strcmp(line, "\n") == 0)
+			continue;
+		p = strtok(line, " \t");
+		if (strspn("PEPMASS", p) > 6) {
+			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
+			spec[i].mz = (double*) malloc(par->maxPeaks * sizeof(double));
+			spec[i].intensity = (double*) malloc(par->maxPeaks * sizeof(double));
+			spec[i].bin = (double*) malloc(par->nBins * sizeof(double));
+		}
+		if (strspn("CHARGE", p) > 5)
+			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
+		if (isdigit(p[0])) {
+			spec[i].mz[j] = atof(p);
+			p = strtok('\0', " \t");
+			if (j < par->maxPeaks) {
+				spec[i].intensity[j] = atof(p);
+				j++;
+			}
+		}
+		spec[i].scan = par->startScan; /* default if no scan information is available */
+		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
+			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+			dataset->ScanNumbersCouldBeRead = 1;
+			continue;
+		}
+		if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
+			p = strtok('\0', " \t");
+			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+			// printf("A[%ld].scan = %ld\n", i, spec[i]->scan); fflush(stdout);
+			dataset->ScanNumbersCouldBeRead = 1;
+			continue;
+		}
+		if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
+			while (p != NULL) {
+				if (strstr(p, "scan=") != NULL) {
+					spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+					// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+					dataset->ScanNumbersCouldBeRead = 1;
+				}
+				p = strtok('\0', " \t");
+			}
+			continue;
+		}
+		spec[i].rt = par->startRT; /* default if no scan information is available */
+		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+			spec[i].rt = (double) atof0(strpbrk(p, "0123456789"));
+			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+			dataset->RTsCouldBeRead = 1;
+			continue;
+		}
+		if (strcmp("END", p) == 0) {
+			spec[i].nPeaks = j;
+			spec[i].basepeakIntensity = 0;
+			spec[i].totalIonCurrent = 0;
+			for (int k = 1; k <= j; k++) {
+				if (spec[i].basepeakIntensity < spec[i].intensity[k])
+					spec[i].basepeakIntensity = spec[i].intensity[k];
+				spec[i].totalIonCurrent = spec[i].totalIonCurrent + spec[i].intensity[k];
+			}
+			i++;
+			j = 0;
+		}
+	}
+
+	printf("done\n");
+	fflush(stdout);
+    return 0;
+}
+
+static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecType *spec) {
+    long j, k;
+    double squareSum, rootSquareSum;
+
+	printf("scaling, normalizing and binning %ld MS2 spectra from %s..",
+			dataset->Size, dataset->Filename);
+	fflush(stdout);
+	for (j = 0; j < dataset->Size; j++) {
+		for (k = 0; k < spec[j].nPeaks; k++)
+			spec[j].intensity[k] =
+					spec[j].intensity[k] > par->noise ?
+							pow(spec[j].intensity[k], par->scaling) : 0; /* nth root scaling and noise removal */
+		squareSum = 0;
+		for (k = 0; k < spec[j].nPeaks; k++)
+			squareSum += spec[j].intensity[k] * spec[j].intensity[k];
+		rootSquareSum = sqrt(squareSum); /* normalization against spectral vector magnitude */
+		for (k = 0; k < par->nBins; k++)
+			spec[j].bin[k] = 0; /* set all bins to zero */
+		for (k = 0; k < spec[j].nPeaks; k++) {
+			spec[j].intensity[k] = spec[j].intensity[k] / rootSquareSum;
+			if ((spec[j].mz[k] >= par->minMz) && (spec[j].mz[k] < par->maxMz))
+				spec[j].bin[(long) floor(
+						par->binSize * (spec[j].mz[k] - par->minMz) + par->binSize / 2)] +=
+						spec[j].intensity[k];
+		}
+		squareSum = 0;
+		for (k = 0; k < par->nBins; k++)
+			squareSum += spec[j].bin[k] * spec[j].bin[k];
+		rootSquareSum = sqrt(squareSum);
+		for (k = 0; k < par->nBins; k++)
+			spec[j].bin[k] = spec[j].bin[k] / rootSquareSum; /* normalize binned spectra to binned vector magnitude */
+	}
+}
 
 /* compareMS2 main function */
 
 int main(int argc, char *argv[]) {
-	FILE *datasetA, *datasetB, *output;
-	char datasetAFilename[MAX_LEN], datasetBFilename[MAX_LEN],
-			outputFilename[MAX_LEN], experimentalOutputFilename[MAX_LEN],
-			temp[MAX_LEN], line[MAX_LEN], *p, metric, spectrum_metric, qc,
-			experimentalFeatures, datasetAScanNumbersCouldBeRead,
-			datasetBScanNumbersCouldBeRead, datasetARTsCouldBeRead,
-			datasetBRTsCouldBeRead;
-	long i, j, k, datasetASize, datasetBSize, startScan, endScan, nComparisons,
-			minPeaks, maxPeaks, nBins, nPeaks, topN, dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
+	FILE *output;
+	char outputFilename[MAX_LEN], experimentalOutputFilename[MAX_LEN],
+			temp[MAX_LEN], *p;
+	long i, j, k, nComparisons,
+			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
 			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
 			greaterThanCutoff, sAB, sBA, datasetAActualCompared,
 			datasetBActualCompared;
-	double minBasepeakIntensity, minTotalIonCurrent, maxScanNumberDifference,
-			maxRTDifference, startRT, endRT, maxPrecursorDifference, cutoff,
-			scaling, noise, minMz, maxMz, binSize, *datasetAIntensities,
-			*datasetBIntensities, datasetACutoff, datasetBCutoff, dotProd,
-			maxDotProd, dotProdSum, squareSum, rootSquareSum;
+	double  dotProd, maxDotProd;;
 
-	typedef struct {
-		long scan; /* scan number */
-		double rt; /* retention time in seconds */
-		double *mz; /* measured m/z */
-		double *intensity; /* measured intensities */
-		char charge; /* deconvoluted charge (in MGF file) */
-		double *bin; /* binned spectra */
-		double precursorMz; /* precursor m/z */
-		int nPeaks; /* number of peaks in spectrum */
-		double basepeakIntensity; /* basepeak intensity */
-		double totalIonCurrent; /* total ion current for spectrum */
-	} DatasetType;
+	SpecType *A, *B;
 
-	DatasetType *A, *B;
-
+    DatasetType datasetA, datasetB;
 	/* parsing command line parameters */
+
+    ParametersType par;
+
+    datasetA.id = 'A';
+    datasetB.id = 'B';
 
 	if ((argc == 2)
 			&& ((strcmp(argv[1], "--help") == 0)
@@ -170,44 +388,40 @@ int main(int argc, char *argv[]) {
 	/* assign default values */
 
 	strcpy(outputFilename, "output.txt");
-	minBasepeakIntensity = DEFAULT_MIN_BASEPEAK_INTENSITY;
-	minTotalIonCurrent = DEFAULT_MIN_TOTAL_ION_CURRENT;
-	maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
-	maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
-	maxPrecursorDifference = DEFAULT_MAX_PRECURSOR_DIFFERENCE;
-	startScan = DEFAULT_START_SCAN;
-	endScan = DEFAULT_END_SCAN;
-	startRT = DEFAULT_START_RT;
-	endRT = DEFAULT_END_RT;
-	cutoff = DEFAULT_CUTOFF;
-	scaling = DEFAULT_SCALING;
-	noise = DEFAULT_NOISE;
-	metric = DEFAULT_METRIC;
-	spectrum_metric = DEFAULT_SPECTRUM_METRIC;
-	qc = DEFAULT_QC;
-	binSize = DEFAULT_BIN_SIZE;
-	minPeaks = DEFAULT_MIN_PEAKS;
-	maxPeaks = DEFAULT_MAX_PEAKS;
-	minMz = DEFAULT_MIN_MZ;
-	maxMz = DEFAULT_MAX_MZ;
-	nBins = DEFAULT_N_BINS;
-	topN = DEFAULT_TOP_N;
-	experimentalFeatures = DEFAULT_EXPERIMENTAL_FEATURES;
-	datasetAScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
-	datasetBScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
-	datasetARTsCouldBeRead = DEFAULT_RTS_COULD_BE_READ;
-	datasetBRTsCouldBeRead = DEFAULT_RTS_COULD_BE_READ;
+	par.minBasepeakIntensity = DEFAULT_MIN_BASEPEAK_INTENSITY;
+	par.minTotalIonCurrent = DEFAULT_MIN_TOTAL_ION_CURRENT;
+	par.maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
+	par.maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
+	par.maxPrecursorDifference = DEFAULT_MAX_PRECURSOR_DIFFERENCE;
+	par.startScan = DEFAULT_START_SCAN;
+	par.endScan = DEFAULT_END_SCAN;
+	par.startRT = DEFAULT_START_RT;
+	par.endRT = DEFAULT_END_RT;
+	par.cutoff = DEFAULT_CUTOFF;
+	par.scaling = DEFAULT_SCALING;
+	par.noise = DEFAULT_NOISE;
+	par.metric = DEFAULT_METRIC;
+	par.spectrum_metric = DEFAULT_SPECTRUM_METRIC;
+	par.qc = DEFAULT_QC;
+	par.binSize = DEFAULT_BIN_SIZE;
+	par.minPeaks = DEFAULT_MIN_PEAKS;
+	par.maxPeaks = DEFAULT_MAX_PEAKS;
+	par.minMz = DEFAULT_MIN_MZ;
+	par.maxMz = DEFAULT_MAX_MZ;
+	par.nBins = DEFAULT_N_BINS;
+	par.topN = DEFAULT_TOP_N;
+	par.experimentalFeatures = DEFAULT_EXPERIMENTAL_FEATURES;
 	strcpy(experimentalOutputFilename, "experimental_output.txt");
 
 	/* read and replace parameter values */
 
 	for (i = 1; i < argc; i++) {
 		if ((argv[i][0] == '-') && (argv[i][1] == 'A')) /* dataset A filename */
-			strcpy(datasetAFilename,
+			strcpy(datasetA.Filename,
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'B')) /* dataset B filename */
-			strcpy(datasetBFilename,
+			strcpy(datasetB.Filename,
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'W')) { /* range of spectra (in scans) */
@@ -215,25 +429,25 @@ int main(int argc, char *argv[]) {
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 			p = strtok(temp, ",");
-			startScan = atol0(p);
+			par.startScan = atol0(p);
 			p = strtok('\0', ",");
-			endScan = atol0(p);
+			par.endScan = atol0(p);
 		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'R')) { /* range of spectra (in RT) */
 			strcpy(temp,
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 			p = strtok(temp, ",");
-			startRT = atof0(p);
+			par.startRT = atof0(p);
 			p = strtok('\0', ",");
-			endRT = atof0(p);
+			par.endRT = atof0(p);
 		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'o')) /* output filename */
 			strcpy(outputFilename,
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'p')) /* maximum precursor m/z difference */
-			maxPrecursorDifference = atof(
+			par.maxPrecursorDifference = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'm')) { /* minimum basepeak and total intensity */
@@ -241,199 +455,99 @@ int main(int argc, char *argv[]) {
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 			p = strtok(temp, ",");
-			minBasepeakIntensity = atof(p);
+			par.minBasepeakIntensity = atof(p);
 			p = strtok('\0', ",");
-			minTotalIonCurrent = atof(p);
+			par.minTotalIonCurrent = atof(p);
 		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'w')) /* maximum scan number difference */
-			maxScanNumberDifference = atof0(
+			par.maxScanNumberDifference = atof0(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'r')) /* maximum RT difference */
-			maxRTDifference = atof0(
+			par.maxRTDifference = atof0(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'c')) /* cutoff for spectral similarity */
-			cutoff = atof(
+			par.cutoff = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 's')) /* intensity scaling for dot product */
-			scaling = atof(
+			par.scaling = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'n')) /* noise threshold for dot product */
-			noise = atof(
+			par.noise = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'd')) /* version of set distance metric */
-			metric = atoi(
+			par.metric = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'f')) /* version of spectrum comparison function */
-			spectrum_metric = atoi(
+			par.spectrum_metric = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'q')) /* version of QC metric */
-			qc = atoi(
+			par.qc = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'N')) /* compare only the N most intense spectra */
-			topN = atoi(
+			par.topN = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'b')) /* bin size (advanced parameter) */
-			binSize = atof(
+			par.binSize = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'I')) /* minimum number of peaks (advanced parameter) */
-			minPeaks = atoi(
+			par.minPeaks = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'L')) /* minimum m/z for dot product (advanced parameter) */
-			minMz = atof(
+			par.minMz = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'U')) /* maximum m/z for dot product (advanced parameter) */
-			maxMz = atof(
+			par.maxMz = atof(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 		if ((argv[i][0] == '-') && (argv[i][1] == 'x')) /* level of experimental features enabled */
-			experimentalFeatures = atoi(
+			par.experimentalFeatures = atoi(
 					&argv[strlen(argv[i]) > 2 ? i : i + 1][
 							strlen(argv[i]) > 2 ? 2 : 0]);
 	}
 
-	if (((maxMz - minMz) / binSize) == floor((maxMz - minMz) / binSize))
-		nBins = (int) ((maxMz - minMz) / binSize);
+	if (((par.maxMz - par.minMz) / par.binSize) == floor((par.maxMz - par.minMz) / par.binSize))
+		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize);
 	else
-		nBins = (int) ((maxMz - minMz) / binSize) + 1;
-	printf("spectrum bin size %1.3f Th -> %ld bins in [%.3f,%.3f]\n", binSize,
-			nBins, minMz, maxMz);
+		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize) + 1;
+	printf("spectrum bin size %1.3f Th -> %ld bins in [%.3f,%.3f]\n", par.binSize,
+			par.nBins, par.minMz, par.maxMz);
 	fflush(stdout);
 
 	printf(
 			"scan range=[%ld,%ld]\nmax scan difference=%.2f\nmax m/z difference=%.4f\nscaling=^%.2f\nnoise=%.1f\nmin basepeak intensity=%.2f\nmin total ion current=%.2f\n",
-			startScan, endScan, maxScanNumberDifference, maxPrecursorDifference,
-			scaling, noise, minBasepeakIntensity, minTotalIonCurrent);
+			par.startScan, par.endScan, par.maxScanNumberDifference, par.maxPrecursorDifference,
+			par.scaling, par.noise, par.minBasepeakIntensity, par.minTotalIonCurrent);
 	fflush(stdout);
 
-	/* check MGF dataset A for number of MS/MS spectra */
-	if ((datasetA = fopen(datasetAFilename, "r")) == NULL) {
-		printf("error opening dataset A %s for reading", datasetAFilename);
-		return -1;
-	}
-	printf("checking dataset A (\"%s\")...", datasetAFilename);
-	fflush(stdout);
-	datasetASize = 0;
-	nPeaks = 0;
-	maxPeaks = 0;
-	while (fgets(line, MAX_LEN, datasetA) != NULL) {
-		if (strcmp(line, "\n") == 0)
-			continue;
-		p = strtok(line, "=");
-		if (strcmp("TITLE", p) == 0) {
-			datasetASize++;
-			if (nPeaks > maxPeaks)
-				maxPeaks = nPeaks;
-			nPeaks = 0;
-		}
-		if (isdigit(p[0]))
-			nPeaks++;
-	}
-	printf("done (contains %ld MS2 spectra)\n", datasetASize);
-	fflush(stdout);
-	fclose(datasetA);
-
-	if ((topN > -1) && (topN < datasetASize)) {
-		printf("filtering top-%ld spectra...", topN);
-		fflush(stdout);
-		datasetAIntensities = malloc(datasetASize * sizeof(double));
-		if ((datasetA = fopen(datasetAFilename, "r")) == NULL) {
-			printf("error opening dataset A %s for reading", datasetAFilename);
-			return -1;
-		}
-		i = -1;
-		while (fgets(line, MAX_LEN, datasetA) != NULL) {
-			if (strcmp(line, "\n") == 0)
-				continue;
-			p = strtok(line, " \t");
-			if (strcmp("BEGIN", p) == 0) {
-				i++;
-				datasetAIntensities[i] = 0.0;
-			}
-			if (isdigit(p[0])) {
-				p = strtok('\0', " \t");
-				datasetAIntensities[i] += atof0(p);
-			}
-		}
-
-		datasetACutoff = quickSelect(datasetAIntensities, 0, i, topN); /* quickselect top-Nth intensity */
-		printf("done (ion intensity threshold %.3f)\n", datasetACutoff);
-		fflush(stdout);
-		fclose(datasetA);
-	}
-
-	if ((datasetB = fopen(datasetBFilename, "r")) == NULL) {
-		printf("error opening dataset B %s for reading", datasetBFilename);
-		return -1;
-	}
-	printf("checking dataset B (\"%s\")...", datasetBFilename);
-	fflush(stdout);
-	datasetBSize = 0;
-	nPeaks = 0;
-	while (fgets(line, MAX_LEN, datasetB) != NULL) {
-		if (strcmp(line, "\n") == 0)
-			continue;
-		p = strtok(line, "=");
-		if (strcmp("TITLE", p) == 0) {
-			datasetBSize++;
-			if (nPeaks > maxPeaks)
-				maxPeaks = nPeaks;
-			nPeaks = 0;
-		}
-		if (isdigit(p[0]))
-			nPeaks++;
-	}
-	printf("done (contains %ld MS2 spectra)\n", datasetBSize);
-	fflush(stdout);
-	fclose(datasetB);
-
-	if ((topN > -1) && (topN < datasetBSize)) {
-		printf("filtering top-%ld spectra...", topN);
-		fflush(stdout);
-		datasetBIntensities = malloc(datasetBSize * sizeof(double));
-		if ((datasetB = fopen(datasetBFilename, "r")) == NULL) {
-			printf("error opening dataset B %s for reading", datasetBFilename);
-			return -1;
-		}
-		i = -1;
-		while (fgets(line, MAX_LEN, datasetB) != NULL) {
-			if (strcmp(line, "\n") == 0)
-				continue;
-			p = strtok(line, " \t");
-			if (strcmp("BEGIN", p) == 0) {
-				i++;
-				datasetBIntensities[i] = 0.0;
-			}
-			if (isdigit(p[0])) {
-				p = strtok('\0', " \t");
-				datasetBIntensities[i] += atof0(p);
-			}
-		}
-
-		datasetBCutoff = quickSelect(datasetBIntensities, 0, i, topN); /* quickselect top-Nth intensity */
-		printf("done (ion intensity threshold %.3f)\n", datasetBCutoff);
-		fflush(stdout);
-		fclose(datasetB);
-	}
-
+    par.maxPeaks = 0; // maxPeaks is the highest number of peaks in any spectrum in a dataset
+    int rv = preCheckMGF(&par, &datasetA);
+    if (rv != 0) {
+        return rv;
+    }
+    
+    rv = preCheckMGF(&par, &datasetB);
+    if (rv != 0) {
+        return rv;
+    }
 	/* allocate memory */
 
 	printf("allocating memory...");
 	fflush(stdout);
-	A = (DatasetType*) malloc(datasetASize * sizeof(DatasetType));
-	B = (DatasetType*) malloc(datasetBSize * sizeof(DatasetType));
-	if (experimentalFeatures == 1) {
+	A = (SpecType*) malloc(datasetA.Size * sizeof(SpecType));
+	B = (SpecType*) malloc(datasetB.Size * sizeof(SpecType));
+	if (par.experimentalFeatures == 1) {
 		massDiffDotProductHistogram = (long**) malloc(
 		MASSDIFF_HISTOGRAM_BINS * sizeof(long*));
 		for (i = 0; i < MASSDIFF_HISTOGRAM_BINS; i++)
@@ -443,251 +557,55 @@ int main(int argc, char *argv[]) {
 
 	/* read in tandem mass spectra from MGF files */
 
-	printf("done\nreading %ld MS2 spectra from %s...", datasetASize,
-			datasetAFilename);
-	fflush(stdout);
-	if ((datasetA = fopen(datasetAFilename, "r")) == NULL) {
-		printf("error opening dataset A %s for reading", datasetAFilename);
-		return -1;
-	}
-	i = 0;
-	j = 0;
-	while (fgets(line, MAX_LEN, datasetA) != NULL) {
-		if (strcmp(line, "\n") == 0)
-			continue;
-		p = strtok(line, " \t");
-		if (strspn("PEPMASS", p) > 6) {
-			A[i].precursorMz = atof(strpbrk(p, "0123456789"));
-			A[i].mz = (double*) malloc(maxPeaks * sizeof(double));
-			A[i].intensity = (double*) malloc(maxPeaks * sizeof(double));
-			A[i].bin = (double*) malloc(nBins * sizeof(double));
-		}
-		if (strspn("CHARGE", p) > 5)
-			A[i].charge = (char) atoi(strpbrk(p, "0123456789"));
-		if (isdigit(p[0])) {
-			A[i].mz[j] = atof(p);
-			p = strtok('\0', " \t");
-			if (j < maxPeaks) {
-				A[i].intensity[j] = atof(p);
-				j++;
-			}
-		}
-		A[i].scan = startScan; /* default if no scan information is available */
-		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
-			A[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("A[%ld].scan = %ld\n", i, A[i].scan); fflush(stdout);
-			datasetAScanNumbersCouldBeRead = 1;
-			continue;
-		}
-		if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
-			p = strtok('\0', " \t");
-			A[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("A[%ld].scan = %ld\n", i, A[i].scan); fflush(stdout);
-			datasetAScanNumbersCouldBeRead = 1;
-			continue;
-		}
-		if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
-			while (p != NULL) {
-				if (strstr(p, "scan=") != NULL) {
-					A[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-					// printf("A[%ld].scan = %ld\n", i, A[i].scan); fflush(stdout);
-					datasetAScanNumbersCouldBeRead = 1;
-				}
-				p = strtok('\0', " \t");
-			}
-			continue;
-		}
-		A[i].rt = startRT; /* default if no scan information is available */
-		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-			A[i].rt = (double) atof0(strpbrk(p, "0123456789"));
-			// printf("A[%ld].rt = %ld\n", i, A[i].scan); fflush(stdout);
-			datasetARTsCouldBeRead = 1;
-			continue;
-		}
-		if (strcmp("END", p) == 0) {
-			A[i].nPeaks = j;
-			A[i].basepeakIntensity = 0;
-			A[i].totalIonCurrent = 0;
-			for (k = 1; k <= j; k++) {
-				if (A[i].basepeakIntensity < A[i].intensity[k])
-					A[i].basepeakIntensity = A[i].intensity[k];
-				A[i].totalIonCurrent = A[i].totalIonCurrent + A[i].intensity[k];
-			}
-			i++;
-			j = 0;
-		}
-	}
-
-	printf("done\nreading %ld MS2 spectra from %s...", datasetBSize,
-			datasetBFilename);
-	fflush(stdout);
-	if ((datasetB = fopen(datasetBFilename, "r")) == NULL) {
-		printf("error opening dataset B %s for reading", datasetBFilename);
-		return -1;
-	}
-	i = 0;
-	j = 0;
-	while (fgets(line, MAX_LEN, datasetB) != NULL) {
-		if (strcmp(line, "\n") == 0)
-			continue;
-		p = strtok(line, " \t");
-		if (strspn("PEPMASS", p) > 6) {
-			B[i].precursorMz = atof(strpbrk(p, "0123456789"));
-			B[i].mz = (double*) malloc(maxPeaks * sizeof(double));
-			B[i].intensity = (double*) malloc(maxPeaks * sizeof(double));
-			B[i].bin = (double*) malloc(nBins * sizeof(double));
-		}
-		if (strspn("CHARGE", p) > 5)
-			B[i].charge = (char) atoi(strpbrk(p, "0123456789"));
-		if (isdigit(p[0])) {
-			B[i].mz[j] = atof(p);
-			p = strtok('\0', " \t");
-			if (j < maxPeaks) {
-				B[i].intensity[j] = atof(p);
-				j++;
-			}
-		}
-		B[i].scan = startScan; /* default if no scan information is available */
-		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
-			B[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("B[%ld].scan = %ld\n", i, B[i].scan); fflush(stdout);
-			datasetBScanNumbersCouldBeRead = 1;
-			continue;
-		}
-		if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
-			p = strtok('\0', " \t");
-			B[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("B[%ld].scan = %ld\n", i, B[i].scan); fflush(stdout);
-			datasetBScanNumbersCouldBeRead = 1;
-			continue;
-		}
-		if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
-			while (p != NULL) {
-				if (strstr(p, "scan=") != NULL) {
-					B[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-					// printf("B[%ld].scan = %ld\n", i, B[i].scan); fflush(stdout);
-					datasetBScanNumbersCouldBeRead = 1;
-				}
-				p = strtok('\0', " \t");
-			}
-			continue;
-		}
-		B[i].rt = startRT; /* default if no scan information is available */
-		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-			B[i].rt = (double) atof0(strpbrk(p, "0123456789"));
-			// printf("B[%ld].rt = %ld\n", i, B[i].scan); fflush(stdout);
-			datasetBRTsCouldBeRead = 1;
-			continue;
-		}
-		if (strcmp("END", p) == 0) {
-			B[i].nPeaks = j;
-			B[i].basepeakIntensity = 0;
-			B[i].totalIonCurrent = 0;
-			for (k = 1; k <= j; k++) {
-				if (B[i].basepeakIntensity < B[i].intensity[k])
-					B[i].basepeakIntensity = B[i].intensity[k];
-				B[i].totalIonCurrent = B[i].totalIonCurrent + B[i].intensity[k];
-			}
-			i++;
-			j = 0;
-		}
-	}
 	printf("done\n");
+	fflush(stdout);
 
-	if (datasetAScanNumbersCouldBeRead == 0) {
+    rv = readMGF(&par, &datasetA, A);
+    if (rv != 0) {
+        return rv;
+    }
+    rv = readMGF(&par, &datasetB, B);
+    if (rv != 0) {
+        return rv;
+    }
+
+	if (datasetA.ScanNumbersCouldBeRead == 0) {
 		printf("warning: scan numbers could not be read from dataset A (%s)\n",
-				datasetAFilename);
+				datasetA.Filename);
 	}
-	if (datasetBScanNumbersCouldBeRead == 0) {
+	if (datasetB.ScanNumbersCouldBeRead == 0) {
 		printf("warning: scan numbers could not be read from dataset B (%s)\n",
-				datasetBFilename);
+				datasetB.Filename);
 	}
-	if ((datasetAScanNumbersCouldBeRead == 0)
-			|| (datasetBScanNumbersCouldBeRead == 0)) {
-		maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
+	if ((datasetA.ScanNumbersCouldBeRead == 0)
+			|| (datasetB.ScanNumbersCouldBeRead == 0)) {
+		par.maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
 		printf("scan filters will be ignored\n");
 	}
 	fflush(stdout);
 
-	if (datasetARTsCouldBeRead == 0) {
+	if (datasetA.RTsCouldBeRead == 0) {
 		printf(
 				"warning: retention times could not be read from dataset A (%s)\n",
-				datasetAFilename);
+				datasetA.Filename);
 	}
-	if (datasetBRTsCouldBeRead == 0) {
+	if (datasetB.RTsCouldBeRead == 0) {
 		printf(
 				"warning: retention times could not be read from dataset B (%s)\n",
-				datasetBFilename);
+				datasetB.Filename);
 	}
-	if ((datasetARTsCouldBeRead == 0) || (datasetBRTsCouldBeRead == 0)) {
-		maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
+	if ((datasetA.RTsCouldBeRead == 0) || (datasetB.RTsCouldBeRead == 0)) {
+		par.maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
 		printf("retention time filters will be ignored\n");
 	}
 	fflush(stdout);
 
-	printf("scaling, normalizing and binning %ld MS2 spectra from %s..",
-			datasetASize, datasetAFilename);
-	fflush(stdout);
-	for (j = 0; j < datasetASize; j++) {
-		for (k = 0; k < A[j].nPeaks; k++)
-			A[j].intensity[k] =
-					A[j].intensity[k] > noise ?
-							pow(A[j].intensity[k], scaling) : 0; /* nth root scaling and noise removal */
-		squareSum = 0;
-		for (k = 0; k < A[j].nPeaks; k++)
-			squareSum += A[j].intensity[k] * A[j].intensity[k];
-		rootSquareSum = sqrt(squareSum); /* normalization against spectral vector magnitude */
-		for (k = 0; k < nBins; k++)
-			A[j].bin[k] = 0; /* set all bins to zero */
-		for (k = 0; k < A[j].nPeaks; k++) {
-			A[j].intensity[k] = A[j].intensity[k] / rootSquareSum;
-			if ((A[j].mz[k] >= minMz) && (A[j].mz[k] < maxMz))
-				A[j].bin[(long) floor(
-						binSize * (A[j].mz[k] - minMz) + binSize / 2)] +=
-						A[j].intensity[k];
-		}
-		squareSum = 0;
-		for (k = 0; k < nBins; k++)
-			squareSum += A[j].bin[k] * A[j].bin[k];
-		rootSquareSum = sqrt(squareSum);
-		for (k = 0; k < nBins; k++)
-			A[j].bin[k] = A[j].bin[k] / rootSquareSum; /* normalize binned spectra to binned vector magnitude */
-	}
-
-	printf(".done\nscaling, normalizing and binning %ld MS2 spectra from %s..",
-			datasetBSize, datasetBFilename);
-	fflush(stdout);
-	for (j = 0; j < datasetBSize; j++) {
-		for (k = 0; k < B[j].nPeaks; k++)
-			B[j].intensity[k] =
-					B[j].intensity[k] > noise ?
-							pow(B[j].intensity[k], scaling) : 0; /* nth root scaling and noise removal */
-		squareSum = 0;
-		for (k = 0; k < B[j].nPeaks; k++)
-			squareSum += B[j].intensity[k] * B[j].intensity[k];
-		rootSquareSum = sqrt(squareSum); /* normalization against spectral vector magnitude */
-		for (k = 0; k < nBins; k++)
-			B[j].bin[k] = 0; /* set all bins to zero */
-		for (k = 0; k < B[j].nPeaks; k++) {
-			B[j].intensity[k] = B[j].intensity[k] / rootSquareSum;
-			if ((B[j].mz[k] >= minMz) && (B[j].mz[k] < maxMz))
-				B[j].bin[(long) floor(
-						binSize * (B[j].mz[k] - minMz) + binSize / 2)] +=
-						B[j].intensity[k];
-		} /* populate bins */
-		squareSum = 0;
-		for (k = 0; k < nBins; k++)
-			squareSum += B[j].bin[k] * B[j].bin[k];
-		rootSquareSum = sqrt(squareSum);
-		for (k = 0; k < nBins; k++)
-			B[j].bin[k] = B[j].bin[k] / rootSquareSum; /* normalize binned spectra to binned vector magnitude */
-	}
+    ScaleNormalizeBin(&par, &datasetA, A);
+    ScaleNormalizeBin(&par, &datasetB, B);
 
 	/* go through spectra (entries) in dataset A and compare with those in dataset B and vice versa */
-
 	printf(".done\nmatching spectra and computing set distance.");
 	fflush(stdout);
-	dotProdSum = 0.0;
 	nComparisons = 0;
 	greaterThanCutoff = 0;
 	sAB = 0;
@@ -698,56 +616,56 @@ int main(int argc, char *argv[]) {
 		dotprodHistogram[i] = 0;
 		massDiffHistogram[i] = 0;
 	}
-	if (experimentalFeatures == 1) {
+	if (par.experimentalFeatures == 1) {
 		for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++)
 			for (j = 0; j < MASSDIFF_HISTOGRAM_BINS; j++)
 				massDiffDotProductHistogram[j][i] = 0;
 	}
 
-	for (i = 0; i < datasetASize; i++) {
-		if (topN > -1)
-			if (topN < datasetASize)
-				if (datasetAIntensities[i] <= datasetACutoff)
+	for (i = 0; i < datasetA.Size; i++) {
+		if (par.topN > -1)
+			if (par.topN < datasetA.Size)
+				if (datasetA.Intensities[i] <= datasetA.Cutoff)
 					continue; /* compare only top-N spectra (including spectra of same intensity as Nth spectrum) */
-		/* if(A[i].scan<startScan) continue; */
-		/* if(A[i].scan>endScan) continue; */
-		if (A[i].basepeakIntensity < minBasepeakIntensity)
+		/* if(A[i].scan<par.startScan) continue; */   // FIXME: startscan and endscan are not used!!!
+		/* if(A[i].scan>par.endScan) continue; */
+		if (A[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
-		if (A[i].totalIonCurrent < minTotalIonCurrent)
+		if (A[i].totalIonCurrent < par.minTotalIonCurrent)
 			continue;
 
 		maxDotProd = 0.0;
 		datasetAActualCompared++;
 
-		for (j = 0; j < datasetBSize; j++) {
-			if (topN > -1)
-				if (topN < datasetBSize)
-					if (datasetBIntensities[j] <= datasetBCutoff)
+		for (j = 0; j < datasetB.Size; j++) {
+			if (par.topN > -1)
+				if (par.topN < datasetB.Size)
+					if (datasetB.Intensities[j] <= datasetB.Cutoff)
 						continue;
-			if (B[j].basepeakIntensity < minBasepeakIntensity)
+			if (B[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
-			if (B[j].totalIonCurrent < minTotalIonCurrent)
+			if (B[j].totalIonCurrent < par.minTotalIonCurrent)
 				continue;
-			if ((A[i].scan - B[j].scan) > maxScanNumberDifference)
+			if ((A[i].scan - B[j].scan) > par.maxScanNumberDifference)
 				continue;
-			if ((B[j].scan - A[i].scan) > maxScanNumberDifference)
+			if ((B[j].scan - A[i].scan) > par.maxScanNumberDifference)
 				break;
-			if ((A[i].rt - B[j].rt) > maxRTDifference)
+			if ((A[i].rt - B[j].rt) > par.maxRTDifference)
 				continue;
-			if ((B[j].rt - A[i].rt) > maxRTDifference)
+			if ((B[j].rt - A[i].rt) > par.maxRTDifference)
 				break;
 			if (fabs(B[j].precursorMz - A[i].precursorMz)
-					< maxPrecursorDifference) {
+					< par.maxPrecursorDifference) {
 				dotProd = 0;
-				for (k = 0; k < nBins; k++)
+				for (k = 0; k < par.nBins; k++)
 					dotProd += A[i].bin[k] * B[j].bin[k];
 				if (fabs(dotProd) <= 1.00) {
-    				if(spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+    				if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
                     /* Round up pi to ensure the abs result is <= 1.0 */
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-					if (experimentalFeatures == 1)
+					if (par.experimentalFeatures == 1)
 						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
 								/ 2)
 								+ (int) floor(
@@ -763,55 +681,55 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-		if (maxDotProd > cutoff)
+		if (maxDotProd > par.cutoff)
 			greaterThanCutoff++;
-		if (maxDotProd > cutoff)
+		if (maxDotProd > par.cutoff)
 			sAB++;
 	}
 
 	printf(".");
 	fflush(stdout);
 
-	for (i = 0; i < datasetBSize; i++) {
-		if (topN > -1)
-			if (topN < datasetBSize)
-				if (datasetBIntensities[i] <= datasetBCutoff)
+	for (i = 0; i < datasetB.Size; i++) {
+		if (par.topN > -1)
+			if (par.topN < datasetB.Size)
+				if (datasetB.Intensities[i] <= datasetB.Cutoff)
 					continue;
-		/* if(B[i].scan<startScan) continue; */
-		/* if(B[i].scan>endScan) continue; */
-		if (B[i].basepeakIntensity < minBasepeakIntensity)
+		/* if(B[i].scan<par.startScan) continue; */  // FIXME: startscan and endscan are not used!!!
+		/* if(B[i].scan>par.endScan) continue; */
+		if (B[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
-		if (B[i].totalIonCurrent < minTotalIonCurrent)
+		if (B[i].totalIonCurrent < par.minTotalIonCurrent)
 			continue;
 
 		maxDotProd = 0.0;
 		datasetBActualCompared++;
 
-		for (j = 0; j < datasetASize; j++) {
-			if (topN > -1)
-				if (topN < datasetASize)
-					if (datasetAIntensities[j] <= datasetACutoff)
+		for (j = 0; j < datasetA.Size; j++) {
+			if (par.topN > -1)
+				if (par.topN < datasetA.Size)
+					if (datasetA.Intensities[j] <= datasetA.Cutoff)
 						continue;
-			if (A[j].basepeakIntensity < minBasepeakIntensity)
+			if (A[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
-			if (A[j].totalIonCurrent < minTotalIonCurrent)
+			if (A[j].totalIonCurrent < par.minTotalIonCurrent)
 				continue;
-			if ((B[i].scan - A[j].scan) > maxScanNumberDifference)
+			if ((B[i].scan - A[j].scan) > par.maxScanNumberDifference)
 				continue;
-			if ((A[j].scan - B[i].scan) > maxScanNumberDifference)
+			if ((A[j].scan - B[i].scan) > par.maxScanNumberDifference)
 				break;
-			if ((B[i].rt - A[j].rt) > maxRTDifference)
+			if ((B[i].rt - A[j].rt) > par.maxRTDifference)
 				continue;
-			if ((A[j].rt - B[i].rt) > maxRTDifference)
+			if ((A[j].rt - B[i].rt) > par.maxRTDifference)
 				break;
 			if (fabs(A[j].precursorMz - B[i].precursorMz)
-					< maxPrecursorDifference) {
+					< par.maxPrecursorDifference) {
 				//printf("2: A[%i] vs B[%i]\n", j, i);
 				dotProd = 0;
-				for (k = 0; k < nBins; k++)
+				for (k = 0; k < par.nBins; k++)
 					dotProd += B[i].bin[k] * A[j].bin[k];
 				if (fabs(dotProd) <= 1.00)
-    				if(spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+    				if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
                     /* Round up pi to ensure the abs result is <= 1.0 */
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
@@ -823,9 +741,9 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-		if (maxDotProd > cutoff)
+		if (maxDotProd > par.cutoff)
 			greaterThanCutoff++; /* counting shared spectra from both datasets */
-		if (maxDotProd > cutoff)
+		if (maxDotProd > par.cutoff)
 			sBA++;
 	}
 
@@ -839,9 +757,9 @@ int main(int argc, char *argv[]) {
 		printf("error opening output file %s for writing", outputFilename);
 		return -1;
 	}
-	fprintf(output, "dataset_A\t%s\n", datasetAFilename);
-	fprintf(output, "dataset_B\t%s\n", datasetBFilename);
-	if (metric == 0) /* original metric */
+	fprintf(output, "dataset_A\t%s\n", datasetA.Filename);
+	fprintf(output, "dataset_B\t%s\n", datasetB.Filename);
+	if (par.metric == 0) /* original metric */
 	{
 		if (greaterThanCutoff > 0)
 			fprintf(output, "set_distance\t%1.10f\n",
@@ -849,43 +767,43 @@ int main(int argc, char *argv[]) {
 		if (greaterThanCutoff == 0)
 			fprintf(output, "set_distance\tINF\n");
 	}
-	if (metric == 1) /* symmetric metric */
+	if (par.metric == 1) /* symmetric metric */
 	{
 		if (greaterThanCutoff > 0)
 			fprintf(output, "set_distance\t%1.10f\n",
-					(double) (datasetASize + datasetBSize) / greaterThanCutoff);
+					(double) (datasetA.Size + datasetB.Size) / greaterThanCutoff);
 		if (greaterThanCutoff == 0)
 			fprintf(output, "set_distance\tINF\n");
 	}
-	if (metric == 2) { /* compareMS2 2.0 symmetric metric */
+	if (par.metric == 2) { /* compareMS2 2.0 symmetric metric */
 		if ((sAB + sBA) > 0) {
 			fprintf(output, "set_distance\t%1.10f\n",
 					1.0
-							/ ((double) sAB / (2 * datasetASize)
-									+ (double) sBA / (2 * datasetBSize)) - 1.0);
+							/ ((double) sAB / (2 * datasetA.Size)
+									+ (double) sBA / (2 * datasetB.Size)) - 1.0);
 		}
 		if ((sAB + sBA) == 0) { /* distance between sets with no similar spectra */
 			fprintf(output, "set_distance\t%1.10f\n",
-					(4.0 * (double) datasetASize * datasetBSize)
-							/ (datasetASize + datasetBSize) - 1.0);
+					(4.0 * (double) datasetA.Size * datasetB.Size)
+							/ (datasetA.Size + datasetB.Size) - 1.0);
 		}
 	}
-	fprintf(output, "set_metric\t%i\n", metric);
+	fprintf(output, "set_metric\t%i\n", par.metric);
 	fprintf(output,
 			"scan_range\t%ld\t%ld\nmax_scan_diff\t%.5f\nmax_m/z_diff\t%.5f\nscaling_power\t%.5f\nnoise_threshold\t%.5f\nmin_basepeak_intensity\t%.2f\nmin_total_ion_current\t%.2f\n",
-			startScan, endScan, maxScanNumberDifference, maxPrecursorDifference,
-			scaling, noise, minBasepeakIntensity, minTotalIonCurrent);
-	if (qc == 0)
-		fprintf(output, "dataset_A_QC\t%.4f\n", (float) datasetASize);
-	if (qc == 0)
-		fprintf(output, "dataset_B_QC\t%.4f\n", (float) datasetBSize);
+			par.startScan, par.endScan, par.maxScanNumberDifference, par.maxPrecursorDifference,
+			par.scaling, par.noise, par.minBasepeakIntensity, par.minTotalIonCurrent);
+	if (par.qc == 0)
+		fprintf(output, "dataset_A_QC\t%.4f\n", (float) datasetA.Size);
+	if (par.qc == 0)
+		fprintf(output, "dataset_B_QC\t%.4f\n", (float) datasetB.Size);
 	fprintf(output, "n_gt_cutoff\t%ld\n", greaterThanCutoff);
 	fprintf(output, "n_comparisons\t%ld\n", nComparisons);
-	fprintf(output, "min_peaks\t%ld\n", minPeaks);
-	fprintf(output, "max_peaks\t%ld\n", maxPeaks);
-	fprintf(output, "m/z_range\t%.4f\t%.4f\n", minMz, maxMz);
-	fprintf(output, "m/z_bin_size\t%.4f\n", binSize);
-	fprintf(output, "n_m/z_bins\t%ld\n", nBins);
+	fprintf(output, "min_peaks\t%ld\n", par.minPeaks);
+	fprintf(output, "max_peaks\t%ld\n", par.maxPeaks);
+	fprintf(output, "m/z_range\t%.4f\t%.4f\n", par.minMz, par.maxMz);
+	fprintf(output, "m/z_bin_size\t%.4f\n", par.binSize);
+	fprintf(output, "n_m/z_bins\t%ld\n", par.nBins);
 	/* fprintf(output,"histogram (interval, midpoint, comparisons)\n"); */
 	for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++)
 		fprintf(output, "histogram\t%1.3f\t%1.3f\t%1.3f\t%ld\t%ld\n",
@@ -895,7 +813,7 @@ int main(int argc, char *argv[]) {
 	fflush(output);
 	fclose(output);
 
-	if (experimentalFeatures == 1) {
+	if (par.experimentalFeatures == 1) {
 		if ((output = fopen(experimentalOutputFilename, "w")) == NULL) {
 			printf("error opening experimental output file %s for writing",
 					experimentalOutputFilename);
