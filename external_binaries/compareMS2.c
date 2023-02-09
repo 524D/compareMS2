@@ -329,12 +329,10 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 			nPeaks++;
 	}
 	printf("done (contains %ld MS2 spectra)\n", dataset->Size);
-	fflush(stdout);
 	fclose(fd);
 
 	if ((par->topN > -1) && (par->topN < dataset->Size)) {
 		printf("filtering top-%ld spectra...", par->topN);
-		fflush(stdout);
 		dataset->Intensities = malloc(dataset->Size * sizeof(double));
 		if ((fd = fopen(dataset->Filename, "r")) == NULL) {
 			printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
@@ -357,7 +355,6 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 
 		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
 		printf("done (ion intensity threshold %.3f)\n", dataset->Cutoff);
-		fflush(stdout);
 		fclose(fd);
 	}
     return 0;
@@ -370,7 +367,6 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 
     printf("reading %ld MS2 spectra from %s...", dataset->Size,
 			dataset->Filename);
-	fflush(stdout);
 	if ((fd = fopen(dataset->Filename, "r")) == NULL) {
 		printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
 		return -1;
@@ -400,14 +396,14 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		spec[i].scan = par->startScan; /* default if no scan information is available */
 		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
 			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan)
 			dataset->ScanNumbersCouldBeRead = 1;
 			continue;
 		}
 		if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
 			p = strtok('\0', " \t");
 			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-			// printf("A[%ld].scan = %ld\n", i, spec[i]->scan); fflush(stdout);
+			// printf("A[%ld].scan = %ld\n", i, spec[i]->scan)
 			dataset->ScanNumbersCouldBeRead = 1;
 			continue;
 		}
@@ -415,7 +411,7 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			while (p != NULL) {
 				if (strstr(p, "scan=") != NULL) {
 					spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
-					// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+					// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan);
 					dataset->ScanNumbersCouldBeRead = 1;
 				}
 				p = strtok('\0', " \t");
@@ -425,7 +421,7 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		spec[i].rt = par->startRT; /* default if no scan information is available */
 		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
 			spec[i].rt = (double) atof0(strpbrk(p, "0123456789"));
-			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan); fflush(stdout);
+			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan);
 			dataset->RTsCouldBeRead = 1;
 			continue;
 		}
@@ -444,7 +440,6 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 	}
 
 	printf("done\n");
-	fflush(stdout);
     return 0;
 }
 
@@ -454,7 +449,6 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 
 	printf("scaling, normalizing and binning %ld MS2 spectra from %s..",
 			dataset->Size, dataset->Filename);
-	fflush(stdout);
 	for (j = 0; j < dataset->Size; j++) {
 		for (k = 0; k < spec[j].nPeaks; k++)
 			spec[j].intensity[k] =
@@ -503,6 +497,9 @@ int main(int argc, char *argv[]) {
     datasetA.id = 'A';
     datasetB.id = 'B';
 
+    /* Don't buffer standard output */
+    setvbuf(stdout, NULL, _IONBF, 0);
+
 	if ((argc == 2)
 			&& ((strcmp(argv[1], "--help") == 0)
 					|| (strcmp(argv[1], "-help") == 0)
@@ -533,13 +530,11 @@ int main(int argc, char *argv[]) {
 		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize) + 1;
 	printf("spectrum bin size %1.3f Th -> %ld bins in [%.3f,%.3f]\n", par.binSize,
 			par.nBins, par.minMz, par.maxMz);
-	fflush(stdout);
 
 	printf(
 			"scan range=[%ld,%ld]\nmax scan difference=%.2f\nmax m/z difference=%.4f\nscaling=^%.2f\nnoise=%.1f\nmin basepeak intensity=%.2f\nmin total ion current=%.2f\n",
 			par.startScan, par.endScan, par.maxScanNumberDifference, par.maxPrecursorDifference,
 			par.scaling, par.noise, par.minBasepeakIntensity, par.minTotalIonCurrent);
-	fflush(stdout);
 
     par.maxPeaks = 0; // maxPeaks is the highest number of peaks in any spectrum in a dataset
     int rv = preCheckMGF(&par, &datasetA);
@@ -554,7 +549,6 @@ int main(int argc, char *argv[]) {
 	/* allocate memory */
 
 	printf("allocating memory...");
-	fflush(stdout);
 	A = (SpecType*) malloc(datasetA.Size * sizeof(SpecType));
 	B = (SpecType*) malloc(datasetB.Size * sizeof(SpecType));
 	if (par.experimentalFeatures == 1) {
@@ -567,7 +561,6 @@ int main(int argc, char *argv[]) {
 
 	/* read in tandem mass spectra from MGF files */
 	printf("done\n");
-	fflush(stdout);
 
     rv = readMGF(&par, &datasetA, A);
     if (rv != 0) {
@@ -591,7 +584,6 @@ int main(int argc, char *argv[]) {
 		par.maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
 		printf("scan filters will be ignored\n");
 	}
-	fflush(stdout);
 
 	if (datasetA.RTsCouldBeRead == 0) {
 		printf(
@@ -607,14 +599,12 @@ int main(int argc, char *argv[]) {
 		par.maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
 		printf("retention time filters will be ignored\n");
 	}
-	fflush(stdout);
 
     ScaleNormalizeBin(&par, &datasetA, A);
     ScaleNormalizeBin(&par, &datasetB, B);
 
 	/* go through spectra (entries) in dataset A and compare with those in dataset B and vice versa */
 	printf(".done\nmatching spectra and computing set distance.");
-	fflush(stdout);
 	nComparisons = 0;
 	greaterThanCutoff = 0;
 	sAB = 0;
@@ -697,7 +687,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf(".");
-	fflush(stdout);
 
 	for (i = 0; i < datasetB.Size; i++) {
 		if (par.topN > -1)
@@ -819,7 +808,6 @@ int main(int argc, char *argv[]) {
 				(double) (i - 100) / 100, (double) (i + 1 - 100) / 100,
 				(double) (i + 0.5 - 100) / 100, dotprodHistogram[i],
 				massDiffHistogram[i]);
-	fflush(output);
 	fclose(output);
 
 	if (par.experimentalFeatures == 1) {
@@ -834,17 +822,14 @@ int main(int argc, char *argv[]) {
 			fprintf(output, "%ld\n",
 					massDiffDotProductHistogram[MASSDIFF_HISTOGRAM_BINS - 1][i]);
 		}
-		fflush(output);
 		fclose(output);
 	}
 
 	/* free memory */
 	printf("done\nfreeing memory...");
-	fflush(stdout);
 	free(A);
 	free(B);
 	printf("done\n");
-	fflush(stdout);
 
 	/* return from main */
 
