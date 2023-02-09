@@ -89,6 +89,8 @@ typedef struct {
 } DatasetType;
 
 typedef struct {
+    char outputFilename[MAX_LEN];
+    char experimentalOutputFilename[MAX_LEN];
     double minBasepeakIntensity;
 	double minTotalIonCurrent;
 	double maxScanNumberDifference;
@@ -158,6 +160,143 @@ double quickSelect(double A[], long left, long right, long k) {
 	else
 		return quickSelect(A, pIndex + 1, right, k);
 }
+
+static void initPar(ParametersType *par) {
+	strcpy(par->outputFilename, "output.txt");
+	par->minBasepeakIntensity = DEFAULT_MIN_BASEPEAK_INTENSITY;
+	par->minTotalIonCurrent = DEFAULT_MIN_TOTAL_ION_CURRENT;
+	par->maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
+	par->maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
+	par->maxPrecursorDifference = DEFAULT_MAX_PRECURSOR_DIFFERENCE;
+	par->startScan = DEFAULT_START_SCAN;
+	par->endScan = DEFAULT_END_SCAN;
+	par->startRT = DEFAULT_START_RT;
+	par->endRT = DEFAULT_END_RT;
+	par->cutoff = DEFAULT_CUTOFF;
+	par->scaling = DEFAULT_SCALING;
+	par->noise = DEFAULT_NOISE;
+	par->metric = DEFAULT_METRIC;
+	par->spectrum_metric = DEFAULT_SPECTRUM_METRIC;
+	par->qc = DEFAULT_QC;
+	par->binSize = DEFAULT_BIN_SIZE;
+	par->minPeaks = DEFAULT_MIN_PEAKS;
+	par->maxPeaks = DEFAULT_MAX_PEAKS;
+	par->minMz = DEFAULT_MIN_MZ;
+	par->maxMz = DEFAULT_MAX_MZ;
+	par->nBins = DEFAULT_N_BINS;
+	par->topN = DEFAULT_TOP_N;
+	par->experimentalFeatures = DEFAULT_EXPERIMENTAL_FEATURES;
+	strcpy(par->experimentalOutputFilename, "experimental_output.txt");
+}
+
+static void parseArgs(int argc, char *argv[], ParametersType *par,
+        DatasetType *datasetA, DatasetType *datasetB) {
+    char temp[MAX_LEN], *p;
+    int i;
+
+	for (i = 1; i < argc; i++) {
+		if ((argv[i][0] == '-') && (argv[i][1] == 'A')) /* dataset A filename */
+			strcpy(datasetA->Filename,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'B')) /* dataset B filename */
+			strcpy(datasetB->Filename,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'W')) { /* range of spectra (in scans) */
+			strcpy(temp,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+			p = strtok(temp, ",");
+			par->startScan = atol0(p);
+			p = strtok('\0', ",");
+			par->endScan = atol0(p);
+		}
+		if ((argv[i][0] == '-') && (argv[i][1] == 'R')) { /* range of spectra (in RT) */
+			strcpy(temp,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+			p = strtok(temp, ",");
+			par->startRT = atof0(p);
+			p = strtok('\0', ",");
+			par->endRT = atof0(p);
+		}
+		if ((argv[i][0] == '-') && (argv[i][1] == 'o')) /* output filename */
+			strcpy(par->outputFilename,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'p')) /* maximum precursor m/z difference */
+			par->maxPrecursorDifference = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'm')) { /* minimum basepeak and total intensity */
+			strcpy(temp,
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+			p = strtok(temp, ",");
+			par->minBasepeakIntensity = atof(p);
+			p = strtok('\0', ",");
+			par->minTotalIonCurrent = atof(p);
+		}
+		if ((argv[i][0] == '-') && (argv[i][1] == 'w')) /* maximum scan number difference */
+			par->maxScanNumberDifference = atof0(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'r')) /* maximum RT difference */
+			par->maxRTDifference = atof0(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'c')) /* cutoff for spectral similarity */
+			par->cutoff = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 's')) /* intensity scaling for dot product */
+			par->scaling = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'n')) /* noise threshold for dot product */
+			par->noise = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'd')) /* version of set distance metric */
+			par->metric = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'f')) /* version of spectrum comparison function */
+			par->spectrum_metric = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'q')) /* version of QC metric */
+			par->qc = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'N')) /* compare only the N most intense spectra */
+			par->topN = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'b')) /* bin size (advanced parameter) */
+			par->binSize = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'I')) /* minimum number of peaks (advanced parameter) */
+			par->minPeaks = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'L')) /* minimum m/z for dot product (advanced parameter) */
+			par->minMz = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'U')) /* maximum m/z for dot product (advanced parameter) */
+			par->maxMz = atof(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+		if ((argv[i][0] == '-') && (argv[i][1] == 'x')) /* level of experimental features enabled */
+			par->experimentalFeatures = atoi(
+					&argv[strlen(argv[i]) > 2 ? i : i + 1][
+							strlen(argv[i]) > 2 ? 2 : 0]);
+	}
+}
+
 static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
     FILE *fd;
     long nPeaks;
@@ -347,8 +486,6 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 
 int main(int argc, char *argv[]) {
 	FILE *output;
-	char outputFilename[MAX_LEN], experimentalOutputFilename[MAX_LEN],
-			temp[MAX_LEN], *p;
 	long i, j, k, nComparisons,
 			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
 			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
@@ -359,8 +496,8 @@ int main(int argc, char *argv[]) {
 	SpecType *A, *B;
 
     DatasetType datasetA, datasetB;
-	/* parsing command line parameters */
 
+	/* Command line and other parameters */
     ParametersType par;
 
     datasetA.id = 'A';
@@ -378,7 +515,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* test for correct number of parameters */
-
 	if (argc < 3) {
 		printf("%s (type compareMS2 --help for more information)\n",
 				USAGE_STRING);
@@ -386,136 +522,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* assign default values */
-
-	strcpy(outputFilename, "output.txt");
-	par.minBasepeakIntensity = DEFAULT_MIN_BASEPEAK_INTENSITY;
-	par.minTotalIonCurrent = DEFAULT_MIN_TOTAL_ION_CURRENT;
-	par.maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
-	par.maxRTDifference = DEFAULT_MAX_RT_DIFFERENCE;
-	par.maxPrecursorDifference = DEFAULT_MAX_PRECURSOR_DIFFERENCE;
-	par.startScan = DEFAULT_START_SCAN;
-	par.endScan = DEFAULT_END_SCAN;
-	par.startRT = DEFAULT_START_RT;
-	par.endRT = DEFAULT_END_RT;
-	par.cutoff = DEFAULT_CUTOFF;
-	par.scaling = DEFAULT_SCALING;
-	par.noise = DEFAULT_NOISE;
-	par.metric = DEFAULT_METRIC;
-	par.spectrum_metric = DEFAULT_SPECTRUM_METRIC;
-	par.qc = DEFAULT_QC;
-	par.binSize = DEFAULT_BIN_SIZE;
-	par.minPeaks = DEFAULT_MIN_PEAKS;
-	par.maxPeaks = DEFAULT_MAX_PEAKS;
-	par.minMz = DEFAULT_MIN_MZ;
-	par.maxMz = DEFAULT_MAX_MZ;
-	par.nBins = DEFAULT_N_BINS;
-	par.topN = DEFAULT_TOP_N;
-	par.experimentalFeatures = DEFAULT_EXPERIMENTAL_FEATURES;
-	strcpy(experimentalOutputFilename, "experimental_output.txt");
+    initPar(&par);
 
 	/* read and replace parameter values */
-
-	for (i = 1; i < argc; i++) {
-		if ((argv[i][0] == '-') && (argv[i][1] == 'A')) /* dataset A filename */
-			strcpy(datasetA.Filename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'B')) /* dataset B filename */
-			strcpy(datasetB.Filename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'W')) { /* range of spectra (in scans) */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par.startScan = atol0(p);
-			p = strtok('\0', ",");
-			par.endScan = atol0(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'R')) { /* range of spectra (in RT) */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par.startRT = atof0(p);
-			p = strtok('\0', ",");
-			par.endRT = atof0(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'o')) /* output filename */
-			strcpy(outputFilename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'p')) /* maximum precursor m/z difference */
-			par.maxPrecursorDifference = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'm')) { /* minimum basepeak and total intensity */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par.minBasepeakIntensity = atof(p);
-			p = strtok('\0', ",");
-			par.minTotalIonCurrent = atof(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'w')) /* maximum scan number difference */
-			par.maxScanNumberDifference = atof0(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'r')) /* maximum RT difference */
-			par.maxRTDifference = atof0(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'c')) /* cutoff for spectral similarity */
-			par.cutoff = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 's')) /* intensity scaling for dot product */
-			par.scaling = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'n')) /* noise threshold for dot product */
-			par.noise = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'd')) /* version of set distance metric */
-			par.metric = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'f')) /* version of spectrum comparison function */
-			par.spectrum_metric = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'q')) /* version of QC metric */
-			par.qc = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'N')) /* compare only the N most intense spectra */
-			par.topN = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'b')) /* bin size (advanced parameter) */
-			par.binSize = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'I')) /* minimum number of peaks (advanced parameter) */
-			par.minPeaks = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'L')) /* minimum m/z for dot product (advanced parameter) */
-			par.minMz = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'U')) /* maximum m/z for dot product (advanced parameter) */
-			par.maxMz = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'x')) /* level of experimental features enabled */
-			par.experimentalFeatures = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-	}
+    parseArgs(argc, argv, &par, &datasetA, &datasetB);
 
 	if (((par.maxMz - par.minMz) / par.binSize) == floor((par.maxMz - par.minMz) / par.binSize))
 		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize);
@@ -556,7 +566,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* read in tandem mass spectra from MGF files */
-
 	printf("done\n");
 	fflush(stdout);
 
@@ -753,8 +762,8 @@ int main(int argc, char *argv[]) {
 
 	/* print output to file */
 
-	if ((output = fopen(outputFilename, "w")) == NULL) {
-		printf("error opening output file %s for writing", outputFilename);
+	if ((output = fopen(par.outputFilename, "w")) == NULL) {
+		printf("error opening output file %s for writing", par.outputFilename);
 		return -1;
 	}
 	fprintf(output, "dataset_A\t%s\n", datasetA.Filename);
@@ -814,9 +823,9 @@ int main(int argc, char *argv[]) {
 	fclose(output);
 
 	if (par.experimentalFeatures == 1) {
-		if ((output = fopen(experimentalOutputFilename, "w")) == NULL) {
+		if ((output = fopen(par.experimentalOutputFilename, "w")) == NULL) {
 			printf("error opening experimental output file %s for writing",
-					experimentalOutputFilename);
+					par.experimentalOutputFilename);
 			return -1;
 		}
 		for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++) {
