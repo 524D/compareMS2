@@ -189,6 +189,21 @@ static void initPar(ParametersType *par) {
 	strcpy(par->experimentalOutputFilename, "experimental_output.txt");
 }
 
+static const char *realArg(int argc, char *argv[], int *i) {
+    if (strlen(argv[*i]) > 2) return &argv[*i][2];
+    (*i)++;
+    if (*i >= argc) return NULL;
+    return argv[*i];
+}
+
+static double parseDouble(int argc, char *argv[], int *i) {
+    return atof0(realArg(argc, argv, i));
+}
+
+static int parseInt(int argc, char *argv[], int *i) {
+    return atoi(realArg(argc, argv, i));
+}
+
 /*
  * parseArgs parses command line arguments.
  * Returns 0 if successful, 1 if not. If 1 is returned, err is set to the error code to be returned by the program.
@@ -219,105 +234,62 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 	}
 
 	for (i = 1; i < argc; i++) {
-		if ((argv[i][0] == '-') && (argv[i][1] == 'A')) /* dataset A filename */
-			strcpy(datasetA->Filename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'B')) /* dataset B filename */
-			strcpy(datasetB->Filename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'W')) { /* range of spectra (in scans) */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par->startScan = atol0(p);
-			p = strtok('\0', ",");
-			par->endScan = atol0(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'R')) { /* range of spectra (in RT) */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par->startRT = atof0(p);
-			p = strtok('\0', ",");
-			par->endRT = atof0(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'o')) /* output filename */
-			strcpy(par->outputFilename,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'p')) /* maximum precursor m/z difference */
-			par->maxPrecursorDifference = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'm')) { /* minimum basepeak and total intensity */
-			strcpy(temp,
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-			p = strtok(temp, ",");
-			par->minBasepeakIntensity = atof(p);
-			p = strtok('\0', ",");
-			par->minTotalIonCurrent = atof(p);
-		}
-		if ((argv[i][0] == '-') && (argv[i][1] == 'w')) /* maximum scan number difference */
-			par->maxScanNumberDifference = atof0(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'r')) /* maximum RT difference */
-			par->maxRTDifference = atof0(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'c')) /* cutoff for spectral similarity */
-			par->cutoff = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 's')) /* intensity scaling for dot product */
-			par->scaling = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'n')) /* noise threshold for dot product */
-			par->noise = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'd')) /* version of set distance metric */
-			par->metric = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'f')) /* version of spectrum comparison function */
-			par->spectrum_metric = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'q')) /* version of QC metric */
-			par->qc = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'N')) /* compare only the N most intense spectra */
-			par->topN = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'b')) /* bin size (advanced parameter) */
-			par->binSize = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'I')) /* minimum number of peaks (advanced parameter) */
-			par->minPeaks = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'L')) /* minimum m/z for dot product (advanced parameter) */
-			par->minMz = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'U')) /* maximum m/z for dot product (advanced parameter) */
-			par->maxMz = atof(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
-		if ((argv[i][0] == '-') && (argv[i][1] == 'x')) /* level of experimental features enabled */
-			par->experimentalFeatures = atoi(
-					&argv[strlen(argv[i]) > 2 ? i : i + 1][
-							strlen(argv[i]) > 2 ? 2 : 0]);
+        if (argv[i][0] == '-') {
+            switch (argv[i][1]) {
+                case 'A': strcpy(datasetA->Filename, realArg(argc, argv, &i)); break;
+                case 'B': strcpy(datasetB->Filename, realArg(argc, argv, &i)); break;
+                case 'W': strcpy(temp, realArg(argc, argv, &i));
+                          p = strtok(temp, ",");
+                          par->startScan = atol0(p);
+                          p = strtok('\0', ",");
+                          par->endScan = atol0(p);
+                          break;
+                case 'R': strcpy(temp, realArg(argc, argv, &i));
+                            p = strtok(temp, ",");
+                            par->startRT = atof0(p);
+                            p = strtok('\0', ",");
+                            par->endRT = atof0(p);
+                            break;
+                case 'o': strcpy(par->outputFilename, realArg(argc, argv, &i)); break;
+                case 'p': par->maxPrecursorDifference = parseDouble(argc, argv, &i); break;
+                case 'm': /* minimum basepeak and total intensity */
+                 strcpy(temp, realArg(argc, argv, &i));
+                            p = strtok(temp, ",");
+                            par->minBasepeakIntensity = atof0(p);
+                            p = strtok('\0', ",");
+                            par->minTotalIonCurrent = atof0(p);
+                            break;
+
+                case 'w': par->maxScanNumberDifference = parseDouble(argc, argv, &i); break;
+                case 'r': par->maxRTDifference = parseDouble(argc, argv, &i); break;
+                case 'c': par->cutoff = parseDouble(argc, argv, &i); break;
+                case 's': par->scaling = parseDouble(argc, argv, &i); break;
+                case 'n': par->noise = parseDouble(argc, argv, &i); break;
+                case 'd': par->metric = parseInt(argc, argv, &i); break;
+                case 'f': par->spectrum_metric = parseInt(argc, argv, &i); break;
+                case 'q': par->qc = parseInt(argc, argv, &i); break;
+                case 'N': par->topN = parseInt(argc, argv, &i); break;
+                case 'b': par->binSize = parseDouble(argc, argv, &i); break;
+                case 'I': par->minPeaks = parseInt(argc, argv, &i); break;
+                case 'L': par->minMz = parseDouble(argc, argv, &i); break;
+                case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
+                case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
+                default:
+                    printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
+                    *err = -1;
+                    return 1;
+            }
+            if (i >= argc) {
+                printf("Missing argument for option: %c\n%s", argv[i-1][1], USAGE_STRING);
+                *err = -1;
+                return 1;
+            }
+        }
+        else {
+            printf("Unknown option: %s\n%s", argv[i], USAGE_STRING);
+            *err = -1;
+            return 1;
+        }
 	}
     return 0;
 }
