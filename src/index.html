@@ -89,10 +89,6 @@
             <input class="input-value" type="number" id="minTotalIonCurrent"
                 title="Total ion current below which spectra are excluded">
         </div>
-        <div><label class="input-label">Maximum retention time difference</label>
-            <input class="input-value" type="number" id="maxRTDifference" min="0" max="100000" step="1"
-                title="Only spectra for which the the retention time differs less than this are used for comparison">&nbsp;(s)
-        </div>
         <div><label class="input-label">Start retention time</label>
             <input class="input-value" type="number" id="startRT" min="0" max="1000000" step="1"
                 title="Retention time below which spectra are excluded">&nbsp;(s)
@@ -101,9 +97,9 @@
             <input class="input-value" type="number" id="endRT" min="0" max="1000000" step="1"
                 title="Retention time beyond which spectra are excluded">&nbsp;(s)
         </div>
-        <div><label class="input-label">Maximum scan number difference</label>
-            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000"
-                title="Only spectra for which the scan number differs less than this number are used for comparison">&nbsp;(scans)
+        <div><label class="input-label">Maximum retention time difference</label>
+            <input class="input-value" type="number" id="maxRTDifference" min="0" max="100000" step="1"
+                title="Only spectra for which the the retention time differs less than this are used for comparison">&nbsp;(s)
         </div>
         <div><label class="input-label">Start scan</label>
             <input class="input-value" type="number" id="startScan" min="1" max="1000000" step="1"
@@ -112,6 +108,10 @@
         <div><label class="input-label">End scan</label>
             <input class="input-value" type="number" id="endScan" min="1" max="1000000" step="1"
                 title="Scan number beyond which spectra are excluded">
+        </div>
+        <div><label class="input-label">Maximum scan number difference</label>
+            <input class="input-value" type="number" id="maxscannumberdifference" min="0" max="100000"
+                title="Only spectra for which the scan number differs less than this number are used for comparison">&nbsp;(scans)
         </div>
         <div><label class="input-label">Scaling</label>
             <input class="input-value" type="number" id="scaling" min="0" max="1" step=".001"
