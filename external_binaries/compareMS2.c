@@ -60,7 +60,7 @@
 #define	DEFAULT_QC 0
 #define	DEFAULT_BIN_SIZE 0.2
 #define	DEFAULT_MIN_PEAKS 20
-#define	DEFAULT_MAX_PEAKS 5000  // FIXME: this gives the impression that its a filter on the max peak count. It isn't
+#define	DEFAULT_PEAKS_COUNT 0
 #define	DEFAULT_MIN_MZ 109
 #define	DEFAULT_MAX_MZ 2000
 #define	DEFAULT_N_BINS 9455
@@ -112,7 +112,7 @@ typedef struct {
 	char qc;
 	double binSize;
 	long minPeaks;
-	long maxPeaks;  // FIXME: name is confusing with respect to minPeaks: this is the highest number of peaks in any spectrum 
+	long peakCount;
 	double minMz;
 	double maxMz;
 	long nBins;
@@ -184,7 +184,7 @@ static void initPar(ParametersType *par) {
 	par->qc = DEFAULT_QC;
 	par->binSize = DEFAULT_BIN_SIZE;
 	par->minPeaks = DEFAULT_MIN_PEAKS;
-	par->maxPeaks = DEFAULT_MAX_PEAKS;
+	par->peakCount = DEFAULT_PEAKS_COUNT;
 	par->minMz = DEFAULT_MIN_MZ;
 	par->maxMz = DEFAULT_MAX_MZ;
 	par->nBins = DEFAULT_N_BINS;
@@ -331,15 +331,15 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 		p = strtok(line, "=");
 		if (strcmp("TITLE", p) == 0) {
 			dataset->Size++;
-			if (nPeaks > par->maxPeaks)
-				par->maxPeaks = nPeaks;
+			if (nPeaks > par->peakCount)
+				par->peakCount = nPeaks;
 			nPeaks = 0;
 		}
 		if (isdigit(p[0]))
 			nPeaks++;
 	}
-	if (nPeaks > par->maxPeaks) { // In case the last spectrum contained the highest peak count
-		par->maxPeaks = nPeaks;
+	if (nPeaks > par->peakCount) { // In case the last spectrum contained the highest peak count
+		par->peakCount = nPeaks;
 	}
 	printf("done (contains %ld MS2 spectra)\n", dataset->Size);
 	fclose(fd);
@@ -459,14 +459,14 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		p = strtok(line, " \t");
 		if (strspn("PEPMASS", p) > 6) {
 			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
-			spec[i].mz = (double*) malloc(par->maxPeaks * sizeof(double));
-			spec[i].intensity = (double*) malloc(par->maxPeaks * sizeof(double));
+			spec[i].mz = (double*) malloc(par->peakCount * sizeof(double));
+			spec[i].intensity = (double*) malloc(par->peakCount * sizeof(double));
 			spec[i].bin = (double*) malloc(par->nBins * sizeof(double));
 		}
 		if (strspn("CHARGE", p) > 5)
 			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
 		if (isdigit(p[0])) {
-			if (j < par->maxPeaks) {
+			if (j < par->peakCount) {
 				double mz = atof(p);
 				spec[i].mz[j] = mz;
 				p = strtok('\0', " \t");
@@ -590,7 +590,7 @@ int main(int argc, char *argv[]) {
 	int err;
 	long i, j, k, nComparisons,
 			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
-			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
+			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram=0,
 			greaterThanCutoff, sAB, sBA, datasetAActualCompared,
 			datasetBActualCompared;
 	double  dotProd, maxDotProd;
@@ -628,7 +628,7 @@ int main(int argc, char *argv[]) {
 			par.startScan, par.endScan, par.maxScanNumberDifference, par.maxPrecursorDifference,
 			par.scaling, par.noise, par.minBasepeakIntensity, par.minTotalIonCurrent);
 
-	par.maxPeaks = 0; // maxPeaks is the highest number of peaks in any spectrum in a dataset
+	par.peakCount = 0; // peakCount is the highest number of peaks in any spectrum in a dataset
 	int rv = preCheckMGF(&par, &datasetA);
 	if (rv != 0) {
 		return rv;
@@ -924,7 +924,7 @@ int main(int argc, char *argv[]) {
 	fprintf(output, "n_gt_cutoff\t%ld\n", greaterThanCutoff);
 	fprintf(output, "n_comparisons\t%ld\n", nComparisons);
 	fprintf(output, "min_peaks\t%ld\n", par.minPeaks);
-	fprintf(output, "max_peaks\t%ld\n", par.maxPeaks);
+	fprintf(output, "max_peaks\t%ld\n", par.peakCount);
 	fprintf(output, "m/z_range\t%.4f\t%.4f\n", par.minMz, par.maxMz);
 	fprintf(output, "m/z_bin_size\t%.4f\n", par.binSize);
 	fprintf(output, "n_m/z_bins\t%ld\n", par.nBins);
