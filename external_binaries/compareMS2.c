@@ -34,10 +34,6 @@
 #include <string.h>
 #include <math.h>
 
-// To allow comparison of original and modified versions of compareMS2,
-// uncomment the following line for BUGFIX version
-#define BUGFIX
-
 #define MAX_LEN 8192
 #define DOTPROD_HISTOGRAM_BINS 200
 #define MASSDIFF_HISTOGRAM_BINS 320
@@ -298,20 +294,16 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 	return 0;
 }
 
-#ifdef BUGFIX
-	enum { NOT_IN_RANGE, IN_RANGE, IN_RANGE_AND_FIRST_PEAK };
-#endif 
+enum { NOT_IN_RANGE, IN_RANGE, IN_RANGE_AND_FIRST_PEAK };
 
 static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 	FILE *fd;
 	long nPeaks;
 	char line[MAX_LEN];
 	char *p;
-#ifdef BUGFIX
 	double rt;
 	long scan;
 	int specStatus = IN_RANGE_AND_FIRST_PEAK;
-#endif
 
 	dataset->ScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
 	dataset->RTsCouldBeRead = DEFAULT_RTS_COULD_BE_READ;
@@ -356,7 +348,6 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 			if (strcmp(line, "\n") == 0)
 				continue;
 			p = strtok(line, " \t");
-#ifdef BUGFIX
 			if (strcmp("BEGIN", p) == 0) {
 				/*
 				 * Default: unless spectrum is out of RT range or scan range,
@@ -417,16 +408,6 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				double intensity = atof0(p);
 				dataset->Intensities[i] += intensity;
 			}
-#else
-			if (strcmp("BEGIN", p) == 0) {
-				i++;
-				dataset->Intensities[i] = 0.0;
-			}
-			if (isdigit(p[0])) {
-				p = strtok('\0', " \t");
-				dataset->Intensities[i] += atof0(p);
-			}
-#endif
 		}
 
 		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
@@ -449,10 +430,8 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 	}
 	int i = 0;
 	int j = 0;
-#ifdef BUGFIX
 	spec[i].rt = par->startRT; /* default if no scan information is available */
 	spec[i].scan = par->startScan; /* default if no scan information is available */
-#endif
 	while (fgets(line, MAX_LEN, fd) != NULL) {
 		if (strcmp(line, "\n") == 0)
 			continue;
@@ -475,13 +454,8 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 				j++;
 			}
 		}
-#ifndef BUGFIX
-		spec[i].scan = par->startScan; /* default if no scan information is available */
-#endif        
 		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
-#ifdef BUGFIX
 			p = strtok('\0', " \t");
-#endif
 			long scan = atol0(strpbrk(p, "0123456789"));
 			spec[i].scan = scan;
 			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan)
@@ -508,9 +482,6 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			}
 			continue;
 		}
-#ifndef BUGFIX
-		spec[i].rt = par->startRT; /* default if no scan information is available */
-#endif
 		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
 			double rt = atof0(strpbrk(p, "0123456789"));
 			spec[i].rt = rt;
@@ -528,13 +499,11 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 				spec[i].totalIonCurrent = spec[i].totalIonCurrent + spec[i].intensity[k];
 			}
 			i++;
-#ifdef BUGFIX
 			if (i>=dataset->Size) {
 				break; // Exit while loop if we have read all spectra
 			}
 	   		spec[i].rt = par->startRT; /* default if no scan information is available */
 	   		spec[i].scan = par->startScan; /* default if no scan information is available */
-#endif
 			j = 0;
 		}
 	}
@@ -563,15 +532,10 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 		for (k = 0; k < spec[j].nPeaks; k++) {
 			spec[j].intensity[k] = spec[j].intensity[k] / rootSquareSum;
 			if ((spec[j].mz[k] >= par->minMz) && (spec[j].mz[k] < par->maxMz)) {
-#ifdef BUGFIX
 				int binIdx = (long) round((spec[j].mz[k] - par->minMz)/par->binSize);
 				if ( (binIdx>=0) && (binIdx<par->nBins) ) {
 					spec[j].bin[binIdx] += spec[j].intensity[k];
 				}
-#else                
-				int binIdx = (long) floor(par->binSize * (spec[j].mz[k] - par->minMz) + par->binSize / 2); // FIXME: binIdx computation seems wrong
-				spec[j].bin[binIdx] += spec[j].intensity[k];
-#endif
 			}
 		}
 		squareSum = 0;
@@ -718,11 +682,9 @@ int main(int argc, char *argv[]) {
 			if (par.topN < datasetA.Size)
 				if (datasetA.Intensities[i] <= datasetA.Cutoff)
 					continue; /* compare only top-N spectra (including spectra of same intensity as Nth spectrum) */
-#ifdef BUGFIX
 		if(A[i].scan<par.startScan) continue;
 		if(A[i].scan>par.endScan) break;
 		if(A[i].nPeaks<par.minPeaks) continue;
-#endif
 		if (A[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
 		if (A[i].totalIonCurrent < par.minTotalIonCurrent)
@@ -736,11 +698,9 @@ int main(int argc, char *argv[]) {
 				if (par.topN < datasetB.Size)
 					if (datasetB.Intensities[j] <= datasetB.Cutoff)
 						continue;
-#ifdef BUGFIX
 			if(B[j].scan<par.startScan) continue;
 			if(B[j].scan>par.endScan) break;
 			if(B[j].nPeaks<par.minPeaks) continue;
-#endif
 			if (B[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
 			if (B[j].totalIonCurrent < par.minTotalIonCurrent)
@@ -793,11 +753,9 @@ int main(int argc, char *argv[]) {
 			if (par.topN < datasetB.Size)
 				if (datasetB.Intensities[i] <= datasetB.Cutoff)
 					continue;
-#ifdef BUGFIX
 		if(B[i].scan<par.startScan) continue;
 		if(B[i].scan>par.endScan) break;
 		if(B[i].nPeaks<par.minPeaks) continue;
-#endif
 		if (B[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
 		if (B[i].totalIonCurrent < par.minTotalIonCurrent)
@@ -811,11 +769,9 @@ int main(int argc, char *argv[]) {
 				if (par.topN < datasetA.Size)
 					if (datasetA.Intensities[j] <= datasetA.Cutoff)
 						continue;
-#ifdef BUGFIX
 			if(A[j].scan<par.startScan) continue;
 			if(A[j].scan>par.endScan) break;
 			if(A[j].nPeaks<par.minPeaks) continue;
-#endif
 			if (A[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
 			if (A[j].totalIonCurrent < par.minTotalIonCurrent)
@@ -834,7 +790,6 @@ int main(int argc, char *argv[]) {
 				dotProd = 0;
 				for (k = 0; k < par.nBins; k++)
 					dotProd += B[i].bin[k] * A[j].bin[k];
-#ifdef BUGFIX
 				if (fabs(dotProd) <= 1.00) {
 					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
 					/* Round up pi to ensure the abs result is <= 1.0 */
@@ -850,15 +805,7 @@ int main(int argc, char *argv[]) {
 								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
 						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
 				}
-#else
-				if (fabs(dotProd) <= 1.00)
-					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
-					/* Round up pi to ensure the abs result is <= 1.0 */
-
-					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
-							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-#endif
-				nComparisons++;
+			nComparisons++;
 
 				if (dotProd > maxDotProd) {
 					maxDotProd = dotProd;
