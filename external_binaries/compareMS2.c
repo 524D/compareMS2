@@ -834,12 +834,30 @@ int main(int argc, char *argv[]) {
 				dotProd = 0;
 				for (k = 0; k < par.nBins; k++)
 					dotProd += B[i].bin[k] * A[j].bin[k];
+#ifdef BUGFIX
+				if (fabs(dotProd) <= 1.00) {
+					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+					/* Round up pi to ensure the abs result is <= 1.0 */
+
+					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
+							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+					if (par.experimentalFeatures == 1)
+						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
+								/ 2)
+								+ (int) fabs(floor(
+										(A[j].precursorMz - B[i].precursorMz)
+												* 999.999999999999))][(int) (DOTPROD_HISTOGRAM_BINS
+								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
+						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+				}
+#else
 				if (fabs(dotProd) <= 1.00)
 					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
 					/* Round up pi to ensure the abs result is <= 1.0 */
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+#endif
 				nComparisons++;
 
 				if (dotProd > maxDotProd) {
