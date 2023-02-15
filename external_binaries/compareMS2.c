@@ -318,6 +318,12 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 	dataset->Size = 0;
 	nPeaks = 0;
 	while (fgets(line, MAX_LEN, fd) != NULL) {
+		// For efficiency, we first check if the line contains peak info
+		// This is the most common case, and we can skip the rest of the checks
+		if (isdigit(line[0])) {
+			nPeaks++;
+			continue;
+		}
 		if (strcmp(line, "\n") == 0)
 			continue;
 		p = strtok(line, "=");
@@ -327,8 +333,6 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				par->peakCount = nPeaks;
 			nPeaks = 0;
 		}
-		if (isdigit(p[0]))
-			nPeaks++;
 	}
 	if (nPeaks > par->peakCount) { // In case the last spectrum contained the highest peak count
 		par->peakCount = nPeaks;
@@ -348,7 +352,29 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 			if (strcmp(line, "\n") == 0)
 				continue;
 			p = strtok(line, " \t");
-			if (strcmp("BEGIN", p) == 0) {
+			// For efficiency, we first check if the line contains peak info
+			// This is the most common case, and we can skip the rest of the checks
+			if (isdigit(p[0])) {
+				if (specStatus == NOT_IN_RANGE) {
+					continue;
+				}
+				/*
+				 * At the first peak of a spectrum that is in selected rt range and scan range,
+				 * init new total intensity
+				 */
+				if (specStatus == IN_RANGE_AND_FIRST_PEAK) {
+					specStatus = IN_RANGE;
+	   				i++;
+					dataset->Intensities[i] = 0.0;
+				}
+				double mz = atof(p);
+				if (mz < par->minMz || mz > par->maxMz) {
+					continue;
+				}
+				p = strtok('\0', " \t");
+				double intensity = atof0(p);
+				dataset->Intensities[i] += intensity;
+			} else if (strcmp("BEGIN", p) == 0) {
 				/*
 				 * Default: unless spectrum is out of RT range or scan range,
 				 * the next peak is in range and is the first peak
@@ -387,27 +413,6 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 					specStatus = NOT_IN_RANGE;
 				}
 			}
-			else if (isdigit(p[0])) {
-				if (specStatus == NOT_IN_RANGE) {
-					continue;
-				}
-				/*
-				 * At the first peak of a spectrum that is in selected rt range and scan range,
-				 * init new total intensity
-				 */
-				if (specStatus == IN_RANGE_AND_FIRST_PEAK) {
-					specStatus = IN_RANGE;
-	   				i++;
-					dataset->Intensities[i] = 0.0;
-				}
-				double mz = atof(p);
-				if (mz < par->minMz || mz > par->maxMz) {
-					continue;
-				}
-				p = strtok('\0', " \t");
-				double intensity = atof0(p);
-				dataset->Intensities[i] += intensity;
-			}
 		}
 
 		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
@@ -436,14 +441,8 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		if (strcmp(line, "\n") == 0)
 			continue;
 		p = strtok(line, " \t");
-		if (strspn("PEPMASS", p) > 6) {
-			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
-			spec[i].mz = (double*) malloc(par->peakCount * sizeof(double));
-			spec[i].intensity = (double*) malloc(par->peakCount * sizeof(double));
-			spec[i].bin = (double*) malloc(par->nBins * sizeof(double));
-		}
-		if (strspn("CHARGE", p) > 5)
-			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
+		// For efficiency, we first check if the line contains peak info
+		// This is the most common case, and we can skip the rest of the checks
 		if (isdigit(p[0])) {
 			if (j < par->peakCount) {
 				double mz = atof(p);
@@ -453,6 +452,18 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 				spec[i].intensity[j] = intensity;
 				j++;
 			}
+			continue;
+		}
+		if (strspn("PEPMASS", p) > 6) {
+			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
+			spec[i].mz = (double*) malloc(par->peakCount * sizeof(double));
+			spec[i].intensity = (double*) malloc(par->peakCount * sizeof(double));
+			spec[i].bin = (double*) malloc(par->nBins * sizeof(double));
+			continue;
+		}
+		if (strspn("CHARGE", p) > 5) {
+			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
+			continue;
 		}
 		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
 			p = strtok('\0', " \t");
