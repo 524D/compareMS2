@@ -111,7 +111,7 @@ typedef struct {
 	char spectrum_metric;
 	char qc;
 	double binSize;
-	long minPeaks;  // FIXME: Unused
+	long minPeaks;
 	long maxPeaks;  // FIXME: name is confusing with respect to minPeaks: this is the highest number of peaks in any spectrum 
 	double minMz;
 	double maxMz;
@@ -562,10 +562,17 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 			spec[j].bin[k] = 0; /* set all bins to zero */
 		for (k = 0; k < spec[j].nPeaks; k++) {
 			spec[j].intensity[k] = spec[j].intensity[k] / rootSquareSum;
-			if ((spec[j].mz[k] >= par->minMz) && (spec[j].mz[k] < par->maxMz))
-				spec[j].bin[(long) floor(
-						par->binSize * (spec[j].mz[k] - par->minMz) + par->binSize / 2)] +=
-						spec[j].intensity[k];
+			if ((spec[j].mz[k] >= par->minMz) && (spec[j].mz[k] < par->maxMz)) {
+#ifdef BUGFIX
+				int binIdx = (long) round((spec[j].mz[k] - par->minMz)/par->binSize);
+				if ( (binIdx>=0) && (binIdx<par->nBins) ) {
+					spec[j].bin[binIdx] += spec[j].intensity[k];
+				}
+#else                
+				int binIdx = (long) floor(par->binSize * (spec[j].mz[k] - par->minMz) + par->binSize / 2); // FIXME: binIdx computation seems wrong
+				spec[j].bin[binIdx] += spec[j].intensity[k];
+#endif
+			}
 		}
 		squareSum = 0;
 		for (k = 0; k < par->nBins; k++)
