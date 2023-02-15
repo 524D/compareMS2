@@ -414,8 +414,16 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				}
 			}
 		}
-
-		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
+		if (i<0) {
+			dataset->Cutoff = 1e30; /* no spectra in range */
+		} else {
+			if (i<par->topN) {
+				dataset->Cutoff = 0.0; /* all spectra in range */
+			}
+			else {
+				dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
+			}
+		}
 		printf("done (ion intensity threshold %.3f)\n", dataset->Cutoff);
 		fclose(fd);
 	}
