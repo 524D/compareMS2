@@ -70,32 +70,32 @@
 #define DEFAULT_RTS_COULD_BE_READ 0
 
 typedef struct {
-    long scan; /* scan number */
-    double rt; /* retention time in seconds */
-    double *mz; /* measured m/z */
-    double *intensity; /* measured intensities */
-    char charge; /* deconvoluted charge (in MGF file) */
-    double *bin; /* binned spectra */
-    double precursorMz; /* precursor m/z */
-    int nPeaks; /* number of peaks in spectrum */
-    double basepeakIntensity; /* basepeak intensity */
-    double totalIonCurrent; /* total ion current for spectrum */
+	long scan; /* scan number */
+	double rt; /* retention time in seconds */
+	double *mz; /* measured m/z */
+	double *intensity; /* measured intensities */
+	char charge; /* deconvoluted charge (in MGF file) */
+	double *bin; /* binned spectra */
+	double precursorMz; /* precursor m/z */
+	int nPeaks; /* number of peaks in spectrum */
+	double basepeakIntensity; /* basepeak intensity */
+	double totalIonCurrent; /* total ion current for spectrum */
 } SpecType;
 
 typedef struct {
-    char id; /* dataset reference (A of B) */
-    char Filename[MAX_LEN];
-    char ScanNumbersCouldBeRead;
-    char RTsCouldBeRead;
-    long Size;
-    double *Intensities;
-    double Cutoff;
+	char id; /* dataset reference (A of B) */
+	char Filename[MAX_LEN];
+	char ScanNumbersCouldBeRead;
+	char RTsCouldBeRead;
+	long Size;
+	double *Intensities;
+	double Cutoff;
 } DatasetType;
 
 typedef struct {
-    char outputFilename[MAX_LEN];
-    char experimentalOutputFilename[MAX_LEN];
-    double minBasepeakIntensity;
+	char outputFilename[MAX_LEN];
+	char experimentalOutputFilename[MAX_LEN];
+	double minBasepeakIntensity;
 	double minTotalIonCurrent;
 	double maxScanNumberDifference;
 	double maxRTDifference;
@@ -112,7 +112,7 @@ typedef struct {
 	char qc;
 	double binSize;
 	long minPeaks;  // FIXME: Unused
-    long maxPeaks;  // FIXME: name is confusing with respect to minPeaks: this is the highest number of peaks in any spectrum 
+	long maxPeaks;  // FIXME: name is confusing with respect to minPeaks: this is the highest number of peaks in any spectrum 
 	double minMz;
 	double maxMz;
 	long nBins;
@@ -194,18 +194,18 @@ static void initPar(ParametersType *par) {
 }
 
 static const char *realArg(int argc, char *argv[], int *i) {
-    if (strlen(argv[*i]) > 2) return &argv[*i][2];
-    (*i)++;
-    if (*i >= argc) return NULL;
-    return argv[*i];
+	if (strlen(argv[*i]) > 2) return &argv[*i][2];
+	(*i)++;
+	if (*i >= argc) return NULL;
+	return argv[*i];
 }
 
 static double parseDouble(int argc, char *argv[], int *i) {
-    return atof0(realArg(argc, argv, i));
+	return atof0(realArg(argc, argv, i));
 }
 
 static int parseInt(int argc, char *argv[], int *i) {
-    return atoi(realArg(argc, argv, i));
+	return atoi(realArg(argc, argv, i));
 }
 
 /*
@@ -213,104 +213,104 @@ static int parseInt(int argc, char *argv[], int *i) {
  * Returns 0 if successful, 1 if not. If 1 is returned, err is set to the error code to be returned by the program.
 */
 static int parseArgs(int argc, char *argv[], ParametersType *par,
-        DatasetType *datasetA, DatasetType *datasetB, int *err) {
-    char temp[MAX_LEN], *p;
-    int i;
+		DatasetType *datasetA, DatasetType *datasetB, int *err) {
+	char temp[MAX_LEN], *p;
+	int i;
 
-    if ((argc == 2)
-            && ((strcmp(argv[1], "--help") == 0)
-                    || (strcmp(argv[1], "-help") == 0)
-                    || (strcmp(argv[1], "-h") == 0))) /* want help? */
-            {
-        printf(
-                "compareMS2 - (c) Magnus Palmblad 2010-2021\n\ncompareMS2 is a tool for direct comparison of tandem mass spectrometry datasets, typically from liquid chromatography-tandem mass spectrometry (LC-MS/MS), defining similarity as a function of shared (similar) spectra and distance as the inverse of this similarity. Data with identical spectral content thus have similarity 1 and distance 0. The similarity of datasets with no similar spectra tend to 0 (distance positive infinity) as the size of the sets go to infinity.\n\n");
-        printf("%s\n", USAGE_STRING);
-        *err=0;
-        return 1;
+	if ((argc == 2)
+			&& ((strcmp(argv[1], "--help") == 0)
+					|| (strcmp(argv[1], "-help") == 0)
+					|| (strcmp(argv[1], "-h") == 0))) /* want help? */
+			{
+		printf(
+				"compareMS2 - (c) Magnus Palmblad 2010-2021\n\ncompareMS2 is a tool for direct comparison of tandem mass spectrometry datasets, typically from liquid chromatography-tandem mass spectrometry (LC-MS/MS), defining similarity as a function of shared (similar) spectra and distance as the inverse of this similarity. Data with identical spectral content thus have similarity 1 and distance 0. The similarity of datasets with no similar spectra tend to 0 (distance positive infinity) as the size of the sets go to infinity.\n\n");
+		printf("%s\n", USAGE_STRING);
+		*err=0;
+		return 1;
 	}
 
 	/* test for correct number of parameters */
 	if (argc < 3) {
 		printf("%s (type compareMS2 --help for more information)\n",
 				USAGE_STRING);
-        *err = -1;
-        return 1;
+		*err = -1;
+		return 1;
 	}
 
 	for (i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            switch (argv[i][1]) {
-                case 'A': strcpy(datasetA->Filename, realArg(argc, argv, &i)); break;
-                case 'B': strcpy(datasetB->Filename, realArg(argc, argv, &i)); break;
-                case 'W': strcpy(temp, realArg(argc, argv, &i));
-                          p = strtok(temp, ",");
-                          par->startScan = atol0(p);
-                          p = strtok('\0', ",");
-                          par->endScan = atol0(p);
-                          break;
-                case 'R': strcpy(temp, realArg(argc, argv, &i));
-                            p = strtok(temp, ",");
-                            par->startRT = atof0(p);
-                            p = strtok('\0', ",");
-                            par->endRT = atof0(p);
-                            break;
-                case 'o': strcpy(par->outputFilename, realArg(argc, argv, &i)); break;
-                case 'p': par->maxPrecursorDifference = parseDouble(argc, argv, &i); break;
-                case 'm': /* minimum basepeak and total intensity */
-                 strcpy(temp, realArg(argc, argv, &i));
-                            p = strtok(temp, ",");
-                            par->minBasepeakIntensity = atof0(p);
-                            p = strtok('\0', ",");
-                            par->minTotalIonCurrent = atof0(p);
-                            break;
+		if (argv[i][0] == '-') {
+			switch (argv[i][1]) {
+				case 'A': strcpy(datasetA->Filename, realArg(argc, argv, &i)); break;
+				case 'B': strcpy(datasetB->Filename, realArg(argc, argv, &i)); break;
+				case 'W': strcpy(temp, realArg(argc, argv, &i));
+						  p = strtok(temp, ",");
+						  par->startScan = atol0(p);
+						  p = strtok('\0', ",");
+						  par->endScan = atol0(p);
+						  break;
+				case 'R': strcpy(temp, realArg(argc, argv, &i));
+							p = strtok(temp, ",");
+							par->startRT = atof0(p);
+							p = strtok('\0', ",");
+							par->endRT = atof0(p);
+							break;
+				case 'o': strcpy(par->outputFilename, realArg(argc, argv, &i)); break;
+				case 'p': par->maxPrecursorDifference = parseDouble(argc, argv, &i); break;
+				case 'm': /* minimum basepeak and total intensity */
+				 strcpy(temp, realArg(argc, argv, &i));
+							p = strtok(temp, ",");
+							par->minBasepeakIntensity = atof0(p);
+							p = strtok('\0', ",");
+							par->minTotalIonCurrent = atof0(p);
+							break;
 
-                case 'w': par->maxScanNumberDifference = parseDouble(argc, argv, &i); break;
-                case 'r': par->maxRTDifference = parseDouble(argc, argv, &i); break;
-                case 'c': par->cutoff = parseDouble(argc, argv, &i); break;
-                case 's': par->scaling = parseDouble(argc, argv, &i); break;
-                case 'n': par->noise = parseDouble(argc, argv, &i); break;
-                case 'd': par->metric = parseInt(argc, argv, &i); break;
-                case 'f': par->spectrum_metric = parseInt(argc, argv, &i); break;
-                case 'q': par->qc = parseInt(argc, argv, &i); break;
-                case 'N': par->topN = parseInt(argc, argv, &i); break;
-                case 'b': par->binSize = parseDouble(argc, argv, &i); break;
-                case 'I': par->minPeaks = parseInt(argc, argv, &i); break;
-                case 'L': par->minMz = parseDouble(argc, argv, &i); break;
-                case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
-                case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
-                default:
-                    printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
-                    *err = -1;
-                    return 1;
-            }
-            if (i >= argc) {
-                printf("Missing argument for option: %c\n%s", argv[i-1][1], USAGE_STRING);
-                *err = -1;
-                return 1;
-            }
-        }
-        else {
-            printf("Unknown option: %s\n%s", argv[i], USAGE_STRING);
-            *err = -1;
-            return 1;
-        }
+				case 'w': par->maxScanNumberDifference = parseDouble(argc, argv, &i); break;
+				case 'r': par->maxRTDifference = parseDouble(argc, argv, &i); break;
+				case 'c': par->cutoff = parseDouble(argc, argv, &i); break;
+				case 's': par->scaling = parseDouble(argc, argv, &i); break;
+				case 'n': par->noise = parseDouble(argc, argv, &i); break;
+				case 'd': par->metric = parseInt(argc, argv, &i); break;
+				case 'f': par->spectrum_metric = parseInt(argc, argv, &i); break;
+				case 'q': par->qc = parseInt(argc, argv, &i); break;
+				case 'N': par->topN = parseInt(argc, argv, &i); break;
+				case 'b': par->binSize = parseDouble(argc, argv, &i); break;
+				case 'I': par->minPeaks = parseInt(argc, argv, &i); break;
+				case 'L': par->minMz = parseDouble(argc, argv, &i); break;
+				case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
+				case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
+				default:
+					printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
+					*err = -1;
+					return 1;
+			}
+			if (i >= argc) {
+				printf("Missing argument for option: %c\n%s", argv[i-1][1], USAGE_STRING);
+				*err = -1;
+				return 1;
+			}
+		}
+		else {
+			printf("Unknown option: %s\n%s", argv[i], USAGE_STRING);
+			*err = -1;
+			return 1;
+		}
 	}
-    return 0;
+	return 0;
 }
 
 #ifdef BUGFIX
-    enum { NOT_IN_RANGE, IN_RANGE, IN_RANGE_FIRST_PEAK };
+	enum { NOT_IN_RANGE, IN_RANGE, IN_RANGE_AND_FIRST_PEAK };
 #endif 
 
 static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
-    FILE *fd;
-    long nPeaks;
-    char line[MAX_LEN];
-    char *p;
+	FILE *fd;
+	long nPeaks;
+	char line[MAX_LEN];
+	char *p;
 #ifdef BUGFIX
-    double rt;
-    long scan;
-    int specStatus = IN_RANGE_FIRST_PEAK; /* 0: not in range, 1: in range, 2: in range and first peak */
+	double rt;
+	long scan;
+	int specStatus = IN_RANGE_AND_FIRST_PEAK;
 #endif
 
 	dataset->ScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
@@ -338,6 +338,9 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 		if (isdigit(p[0]))
 			nPeaks++;
 	}
+	if (nPeaks > par->maxPeaks) { // In case the last spectrum contained the highest peak count
+		par->maxPeaks = nPeaks;
+	}
 	printf("done (contains %ld MS2 spectra)\n", dataset->Size);
 	fclose(fd);
 
@@ -355,64 +358,65 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 			p = strtok(line, " \t");
 #ifdef BUGFIX
 			if (strcmp("BEGIN", p) == 0) {
-                /*
-                 * Default: unless spectrum is out of RT range or scan range,
-                 * the next peak is in range and is the first peak
-                 */
-                specStatus = IN_RANGE_FIRST_PEAK;
-    		}
-            // Check if scan number and RT are in range
-            else if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
-                scan = (long) atol0(strpbrk(p, "0123456789"));
-                if (scan < par->startScan || scan > par->endScan) {
-                    specStatus = NOT_IN_RANGE;
-                }
-            }
-            else if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
-                p = strtok('\0', " \t");
-                scan = (long) atol0(strpbrk(p, "0123456789"));
-                if (scan < par->startScan || scan > par->endScan) {
-                    specStatus = NOT_IN_RANGE;
-                }
-            }
-            else if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
-                while (p != NULL) {
-                    if (strstr(p, "scan=") != NULL) {
-                        scan = (long) atol0(strpbrk(p, "0123456789"));
-                        if (scan < par->startScan || scan > par->endScan) {
-                            specStatus = NOT_IN_RANGE;
-                        }
-                    }
-                    p = strtok('\0', " \t");
-                }
-            }
-            else if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-                rt = (double) atof0(strpbrk(p, "0123456789"));
-                if (rt < par->startRT || rt > par->endRT) {
-                    specStatus = NOT_IN_RANGE;
-                }
-            }
-			else if (isdigit(p[0])) {
-                if (specStatus == NOT_IN_RANGE) {
-                    continue;
-                }
-                /*
-                 * At the first peak of a spectrum that is in selected rt range and scan range,
-                 * init new total intensity
-                 */
-                if (specStatus == IN_RANGE_FIRST_PEAK) {
-                    specStatus = IN_RANGE;
-       				i++;
-    				dataset->Intensities[i] = 0.0;
-                }
-                double mz = atof(p);
-                if (mz < par->minMz || mz > par->maxMz) {
-                    continue;
-                }
+				/*
+				 * Default: unless spectrum is out of RT range or scan range,
+				 * the next peak is in range and is the first peak
+				 */
+				specStatus = IN_RANGE_AND_FIRST_PEAK;
+			}
+			// Check if scan number and RT are in range
+			else if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
 				p = strtok('\0', " \t");
-                double intensity = atof0(p);
+				scan = (long) atol0(strpbrk(p, "0123456789"));
+				if (scan < par->startScan || scan > par->endScan) {
+					specStatus = NOT_IN_RANGE;
+				}
+			}
+			else if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
+				p = strtok('\0', " \t");
+				scan = (long) atol0(strpbrk(p, "0123456789"));
+				if (scan < par->startScan || scan > par->endScan) {
+					specStatus = NOT_IN_RANGE;
+				}
+			}
+			else if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
+				while (p != NULL) {
+					if (strstr(p, "scan=") != NULL) {
+						scan = (long) atol0(strpbrk(p, "0123456789"));
+						if (scan < par->startScan || scan > par->endScan) {
+							specStatus = NOT_IN_RANGE;
+						}
+					}
+					p = strtok('\0', " \t");
+				}
+			}
+			else if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+				rt = (double) atof0(strpbrk(p, "0123456789"));
+				if (rt < par->startRT || rt > par->endRT) {
+					specStatus = NOT_IN_RANGE;
+				}
+			}
+			else if (isdigit(p[0])) {
+				if (specStatus == NOT_IN_RANGE) {
+					continue;
+				}
+				/*
+				 * At the first peak of a spectrum that is in selected rt range and scan range,
+				 * init new total intensity
+				 */
+				if (specStatus == IN_RANGE_AND_FIRST_PEAK) {
+					specStatus = IN_RANGE;
+	   				i++;
+					dataset->Intensities[i] = 0.0;
+				}
+				double mz = atof(p);
+				if (mz < par->minMz || mz > par->maxMz) {
+					continue;
+				}
+				p = strtok('\0', " \t");
+				double intensity = atof0(p);
 				dataset->Intensities[i] += intensity;
-            }
+			}
 #else
 			if (strcmp("BEGIN", p) == 0) {
 				i++;
@@ -429,15 +433,15 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 		printf("done (ion intensity threshold %.3f)\n", dataset->Cutoff);
 		fclose(fd);
 	}
-    return 0;
+	return 0;
 }
 
 static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
-    FILE *fd;
-    char line[MAX_LEN];
-    char *p;
+	FILE *fd;
+	char line[MAX_LEN];
+	char *p;
 
-    printf("reading %ld MS2 spectra from %s...", dataset->Size,
+	printf("reading %ld MS2 spectra from %s...", dataset->Size,
 			dataset->Filename);
 	if ((fd = fopen(dataset->Filename, "r")) == NULL) {
 		printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
@@ -445,6 +449,10 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 	}
 	int i = 0;
 	int j = 0;
+#ifdef BUGFIX
+	spec[i].rt = par->startRT; /* default if no scan information is available */
+	spec[i].scan = par->startScan; /* default if no scan information is available */
+#endif
 	while (fgets(line, MAX_LEN, fd) != NULL) {
 		if (strcmp(line, "\n") == 0)
 			continue;
@@ -459,14 +467,19 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
 		if (isdigit(p[0])) {
 			spec[i].mz[j] = atof(p);
-			p = strtok('\0', " \t");
+				p = strtok('\0', " \t");
 			if (j < par->maxPeaks) {
 				spec[i].intensity[j] = atof(p);
 				j++;
 			}
 		}
+#ifndef BUGFIX
 		spec[i].scan = par->startScan; /* default if no scan information is available */
+#endif        
 		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
+#ifdef BUGFIX
+			p = strtok('\0', " \t");
+#endif
 			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
 			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan)
 			dataset->ScanNumbersCouldBeRead = 1;
@@ -490,7 +503,9 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			}
 			continue;
 		}
+#ifndef BUGFIX
 		spec[i].rt = par->startRT; /* default if no scan information is available */
+#endif
 		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
 			spec[i].rt = (double) atof0(strpbrk(p, "0123456789"));
 			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan);
@@ -507,17 +522,24 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 				spec[i].totalIonCurrent = spec[i].totalIonCurrent + spec[i].intensity[k];
 			}
 			i++;
+#ifdef BUGFIX
+			if (i>=dataset->Size) {
+				break; // Exit while loop if we have read all spectra
+			}
+	   		spec[i].rt = par->startRT; /* default if no scan information is available */
+	   		spec[i].scan = par->startScan; /* default if no scan information is available */
+#endif
 			j = 0;
 		}
 	}
 
 	printf("done\n");
-    return 0;
+	return 0;
 }
 
 static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecType *spec) {
-    long j, k;
-    double squareSum, rootSquareSum;
+	long j, k;
+	double squareSum, rootSquareSum;
 
 	printf("scaling, normalizing and binning %ld MS2 spectra from %s..",
 			dataset->Size, dataset->Filename);
@@ -552,7 +574,7 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 
 int main(int argc, char *argv[]) {
 	FILE *output;
-    int err;
+	int err;
 	long i, j, k, nComparisons,
 			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
 			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram,
@@ -562,24 +584,24 @@ int main(int argc, char *argv[]) {
 
 	SpecType *A, *B;
 
-    DatasetType datasetA, datasetB;
+	DatasetType datasetA, datasetB;
 
 	/* Command line and other parameters */
-    ParametersType par;
+	ParametersType par;
 
-    datasetA.id = 'A';
-    datasetB.id = 'B';
+	datasetA.id = 'A';
+	datasetB.id = 'B';
 
-    /* Don't buffer standard output */
-    setvbuf(stdout, NULL, _IONBF, 0);
+	/* Don't buffer standard output */
+	setvbuf(stdout, NULL, _IONBF, 0);
 
 	/* assign default values */
-    initPar(&par);
+	initPar(&par);
 
 	/* read and replace parameter values */
-    if (parseArgs(argc, argv, &par, &datasetA, &datasetB, &err) != 0) {
-        return err;
-    }
+	if (parseArgs(argc, argv, &par, &datasetA, &datasetB, &err) != 0) {
+		return err;
+	}
 
 	if (((par.maxMz - par.minMz) / par.binSize) == floor((par.maxMz - par.minMz) / par.binSize))
 		par.nBins = (int) ((par.maxMz - par.minMz) / par.binSize);
@@ -593,16 +615,16 @@ int main(int argc, char *argv[]) {
 			par.startScan, par.endScan, par.maxScanNumberDifference, par.maxPrecursorDifference,
 			par.scaling, par.noise, par.minBasepeakIntensity, par.minTotalIonCurrent);
 
-    par.maxPeaks = 0; // maxPeaks is the highest number of peaks in any spectrum in a dataset
-    int rv = preCheckMGF(&par, &datasetA);
-    if (rv != 0) {
-        return rv;
-    }
-    
-    rv = preCheckMGF(&par, &datasetB);
-    if (rv != 0) {
-        return rv;
-    }
+	par.maxPeaks = 0; // maxPeaks is the highest number of peaks in any spectrum in a dataset
+	int rv = preCheckMGF(&par, &datasetA);
+	if (rv != 0) {
+		return rv;
+	}
+	
+	rv = preCheckMGF(&par, &datasetB);
+	if (rv != 0) {
+		return rv;
+	}
 	/* allocate memory */
 
 	printf("allocating memory...");
@@ -619,14 +641,14 @@ int main(int argc, char *argv[]) {
 	/* read in tandem mass spectra from MGF files */
 	printf("done\n");
 
-    rv = readMGF(&par, &datasetA, A);
-    if (rv != 0) {
-        return rv;
-    }
-    rv = readMGF(&par, &datasetB, B);
-    if (rv != 0) {
-        return rv;
-    }
+	rv = readMGF(&par, &datasetA, A);
+	if (rv != 0) {
+		return rv;
+	}
+	rv = readMGF(&par, &datasetB, B);
+	if (rv != 0) {
+		return rv;
+	}
 
 	if (datasetA.ScanNumbersCouldBeRead == 0) {
 		printf("warning: scan numbers could not be read from dataset A (%s)\n",
@@ -657,8 +679,8 @@ int main(int argc, char *argv[]) {
 		printf("retention time filters will be ignored\n");
 	}
 
-    ScaleNormalizeBin(&par, &datasetA, A);
-    ScaleNormalizeBin(&par, &datasetB, B);
+	ScaleNormalizeBin(&par, &datasetA, A);
+	ScaleNormalizeBin(&par, &datasetB, B);
 
 	/* go through spectra (entries) in dataset A and compare with those in dataset B and vice versa */
 	printf(".done\nmatching spectra and computing set distance.");
@@ -716,8 +738,8 @@ int main(int argc, char *argv[]) {
 				for (k = 0; k < par.nBins; k++)
 					dotProd += A[i].bin[k] * B[j].bin[k];
 				if (fabs(dotProd) <= 1.00) {
-    				if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
-                    /* Round up pi to ensure the abs result is <= 1.0 */
+					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+					/* Round up pi to ensure the abs result is <= 1.0 */
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
@@ -784,8 +806,8 @@ int main(int argc, char *argv[]) {
 				for (k = 0; k < par.nBins; k++)
 					dotProd += B[i].bin[k] * A[j].bin[k];
 				if (fabs(dotProd) <= 1.00)
-    				if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
-                    /* Round up pi to ensure the abs result is <= 1.0 */
+					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+					/* Round up pi to ensure the abs result is <= 1.0 */
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
