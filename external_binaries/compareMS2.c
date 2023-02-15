@@ -711,8 +711,11 @@ int main(int argc, char *argv[]) {
 			if (par.topN < datasetA.Size)
 				if (datasetA.Intensities[i] <= datasetA.Cutoff)
 					continue; /* compare only top-N spectra (including spectra of same intensity as Nth spectrum) */
-		/* if(A[i].scan<par.startScan) continue; */   // FIXME: startscan and endscan are not used!!!
-		/* if(A[i].scan>par.endScan) continue; */
+#ifdef BUGFIX
+		if(A[i].scan<par.startScan) continue;
+		if(A[i].scan>par.endScan) break;
+		if(A[i].nPeaks<par.minPeaks) continue;
+#endif
 		if (A[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
 		if (A[i].totalIonCurrent < par.minTotalIonCurrent)
@@ -726,6 +729,11 @@ int main(int argc, char *argv[]) {
 				if (par.topN < datasetB.Size)
 					if (datasetB.Intensities[j] <= datasetB.Cutoff)
 						continue;
+#ifdef BUGFIX
+			if(B[j].scan<par.startScan) continue;
+			if(B[j].scan>par.endScan) break;
+			if(B[j].nPeaks<par.minPeaks) continue;
+#endif
 			if (B[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
 			if (B[j].totalIonCurrent < par.minTotalIonCurrent)
@@ -778,8 +786,11 @@ int main(int argc, char *argv[]) {
 			if (par.topN < datasetB.Size)
 				if (datasetB.Intensities[i] <= datasetB.Cutoff)
 					continue;
-		/* if(B[i].scan<par.startScan) continue; */  // FIXME: startscan and endscan are not used!!!
-		/* if(B[i].scan>par.endScan) continue; */
+#ifdef BUGFIX
+		if(B[i].scan<par.startScan) continue;
+		if(B[i].scan>par.endScan) break;
+		if(B[i].nPeaks<par.minPeaks) continue;
+#endif
 		if (B[i].basepeakIntensity < par.minBasepeakIntensity)
 			continue;
 		if (B[i].totalIonCurrent < par.minTotalIonCurrent)
@@ -793,6 +804,11 @@ int main(int argc, char *argv[]) {
 				if (par.topN < datasetA.Size)
 					if (datasetA.Intensities[j] <= datasetA.Cutoff)
 						continue;
+#ifdef BUGFIX
+			if(A[j].scan<par.startScan) continue;
+			if(A[j].scan>par.endScan) break;
+			if(A[j].nPeaks<par.minPeaks) continue;
+#endif
 			if (A[j].basepeakIntensity < par.minBasepeakIntensity)
 				continue;
 			if (A[j].totalIonCurrent < par.minTotalIonCurrent)
