@@ -121,7 +121,7 @@ typedef struct {
 } ParametersType;
 
 /* atol0 acts the same as atol, but handles a null pointer without crashing */
-static int atol0(const char *p) {
+static long atol0(const char *p) {
 	if (p == 0) {
 		return 0;
 	}
@@ -391,7 +391,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				}
 			}
 			else if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-				rt = (double) atof0(strpbrk(p, "0123456789"));
+				rt = atof0(strpbrk(p, "0123456789"));
 				if (rt < par->startRT || rt > par->endRT) {
 					specStatus = NOT_IN_RANGE;
 				}
@@ -466,10 +466,12 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		if (strspn("CHARGE", p) > 5)
 			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
 		if (isdigit(p[0])) {
-			spec[i].mz[j] = atof(p);
-				p = strtok('\0', " \t");
 			if (j < par->maxPeaks) {
-				spec[i].intensity[j] = atof(p);
+				double mz = atof(p);
+				spec[i].mz[j] = mz;
+				p = strtok('\0', " \t");
+				double intensity = atof0(p);
+				spec[i].intensity[j] = intensity;
 				j++;
 			}
 		}
@@ -480,14 +482,16 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 #ifdef BUGFIX
 			p = strtok('\0', " \t");
 #endif
-			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+			long scan = atol0(strpbrk(p, "0123456789"));
+			spec[i].scan = scan;
 			// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan)
 			dataset->ScanNumbersCouldBeRead = 1;
 			continue;
 		}
 		if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
 			p = strtok('\0', " \t");
-			spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+			long scan = atol0(strpbrk(p, "0123456789"));
+			spec[i].scan = scan;
 			// printf("A[%ld].scan = %ld\n", i, spec[i]->scan)
 			dataset->ScanNumbersCouldBeRead = 1;
 			continue;
@@ -495,7 +499,8 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
 			while (p != NULL) {
 				if (strstr(p, "scan=") != NULL) {
-					spec[i].scan = (long) atol0(strpbrk(p, "0123456789"));
+					long scan = atol0(strpbrk(p, "0123456789"));
+					spec[i].scan = scan;
 					// printf("%c[%ld].scan = %ld\n", dataset->id, i, spec[i]->scan);
 					dataset->ScanNumbersCouldBeRead = 1;
 				}
@@ -507,7 +512,8 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		spec[i].rt = par->startRT; /* default if no scan information is available */
 #endif
 		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
-			spec[i].rt = (double) atof0(strpbrk(p, "0123456789"));
+			double rt = atof0(strpbrk(p, "0123456789"));
+			spec[i].rt = rt;
 			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan);
 			dataset->RTsCouldBeRead = 1;
 			continue;
