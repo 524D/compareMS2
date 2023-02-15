@@ -34,6 +34,10 @@
 #include <string.h>
 #include <math.h>
 
+// To allow comparison of original and modified versions of compareMS2,
+// uncomment the following line for BUGFIX version
+#define BUGFIX
+
 #define MAX_LEN 8192
 #define DOTPROD_HISTOGRAM_BINS 200
 #define MASSDIFF_HISTOGRAM_BINS 320
@@ -294,11 +298,20 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
     return 0;
 }
 
+#ifdef BUGFIX
+    enum { NOT_IN_RANGE, IN_RANGE, IN_RANGE_FIRST_PEAK };
+#endif 
+
 static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
     FILE *fd;
     long nPeaks;
     char line[MAX_LEN];
     char *p;
+#ifdef BUGFIX
+    double rt;
+    long scan;
+    int specStatus = IN_RANGE_FIRST_PEAK; /* 0: not in range, 1: in range, 2: in range and first peak */
+#endif
 
 	dataset->ScanNumbersCouldBeRead = DEFAULT_SCAN_NUMBERS_COULD_BE_READ;
 	dataset->RTsCouldBeRead = DEFAULT_RTS_COULD_BE_READ;
@@ -340,6 +353,67 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 			if (strcmp(line, "\n") == 0)
 				continue;
 			p = strtok(line, " \t");
+#ifdef BUGFIX
+			if (strcmp("BEGIN", p) == 0) {
+                /*
+                 * Default: unless spectrum is out of RT range or scan range,
+                 * the next peak is in range and is the first peak
+                 */
+                specStatus = IN_RANGE_FIRST_PEAK;
+    		}
+            // Check if scan number and RT are in range
+            else if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
+                scan = (long) atol0(strpbrk(p, "0123456789"));
+                if (scan < par->startScan || scan > par->endScan) {
+                    specStatus = NOT_IN_RANGE;
+                }
+            }
+            else if (strncmp("###MSMS:", p, 8) == 0) { /* Bruker-style MGFs */
+                p = strtok('\0', " \t");
+                scan = (long) atol0(strpbrk(p, "0123456789"));
+                if (scan < par->startScan || scan > par->endScan) {
+                    specStatus = NOT_IN_RANGE;
+                }
+            }
+            else if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
+                while (p != NULL) {
+                    if (strstr(p, "scan=") != NULL) {
+                        scan = (long) atol0(strpbrk(p, "0123456789"));
+                        if (scan < par->startScan || scan > par->endScan) {
+                            specStatus = NOT_IN_RANGE;
+                        }
+                    }
+                    p = strtok('\0', " \t");
+                }
+            }
+            else if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+                rt = (double) atof0(strpbrk(p, "0123456789"));
+                if (rt < par->startRT || rt > par->endRT) {
+                    specStatus = NOT_IN_RANGE;
+                }
+            }
+			else if (isdigit(p[0])) {
+                if (specStatus == NOT_IN_RANGE) {
+                    continue;
+                }
+                /*
+                 * At the first peak of a spectrum that is in selected rt range and scan range,
+                 * init new total intensity
+                 */
+                if (specStatus == IN_RANGE_FIRST_PEAK) {
+                    specStatus = IN_RANGE;
+       				i++;
+    				dataset->Intensities[i] = 0.0;
+                }
+                double mz = atof(p);
+                if (mz < par->minMz || mz > par->maxMz) {
+                    continue;
+                }
+				p = strtok('\0', " \t");
+                double intensity = atof0(p);
+				dataset->Intensities[i] += intensity;
+            }
+#else
 			if (strcmp("BEGIN", p) == 0) {
 				i++;
 				dataset->Intensities[i] = 0.0;
@@ -348,6 +422,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				p = strtok('\0', " \t");
 				dataset->Intensities[i] += atof0(p);
 			}
+#endif
 		}
 
 		dataset->Cutoff = quickSelect(dataset->Intensities, 0, i, par->topN); /* quickselect top-Nth intensity */
