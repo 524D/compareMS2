@@ -547,17 +547,93 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 	}
 }
 
+static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, DatasetType *datasetB,
+	 SpecType *A, SpecType *B, long *dotprodHistogram, long **massDiffDotProductHistogram,
+	 long *nComparisons, long *greaterThanCutoff, long *sAB, long *actualCompared) {
+	long i, j, k;
+	double maxDotProd;
+	double dotProd;
+
+	for (i = 0; i < datasetA->Size; i++) {
+		if (par->topN > -1)
+			if (par->topN < datasetA->Size)
+				if (datasetA->Intensities[i] <= datasetA->Cutoff)
+					continue; /* compare only top-N spectra (including spectra of same intensity as Nth spectrum) */
+		if(A[i].scan<par->startScan) continue;
+		if(A[i].scan>par->endScan) break;
+		if(A[i].nPeaks<par->minPeaks) continue;
+		if (A[i].basepeakIntensity < par->minBasepeakIntensity)
+			continue;
+		if (A[i].totalIonCurrent < par->minTotalIonCurrent)
+			continue;
+
+		maxDotProd = 0.0;
+		(*actualCompared)++;
+
+		for (j = 0; j < datasetB->Size; j++) {
+			if (par->topN > -1)
+				if (par->topN < datasetB->Size)
+					if (datasetB->Intensities[j] <= datasetB->Cutoff)
+						continue;
+			if(B[j].scan<par->startScan) continue;
+			if(B[j].scan>par->endScan) break;
+			if(B[j].nPeaks<par->minPeaks) continue;
+			if (B[j].basepeakIntensity < par->minBasepeakIntensity)
+				continue;
+			if (B[j].totalIonCurrent < par->minTotalIonCurrent)
+				continue;
+			if ((A[i].scan - B[j].scan) > par->maxScanNumberDifference)
+				continue;
+			if ((B[j].scan - A[i].scan) > par->maxScanNumberDifference)
+				break;
+			if ((A[i].rt - B[j].rt) > par->maxRTDifference)
+				continue;
+			if ((B[j].rt - A[i].rt) > par->maxRTDifference)
+				break;
+			if (fabs(B[j].precursorMz - A[i].precursorMz)
+					< par->maxPrecursorDifference) {
+				dotProd = 0;
+				for (k = 0; k < par->nBins; k++)
+					dotProd += A[i].bin[k] * B[j].bin[k];
+				if (fabs(dotProd) <= 1.00) {
+					if(par->spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
+					/* Round up pi to ensure the abs result is <= 1.0 */
+
+					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
+							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+					if (par->experimentalFeatures == 1)
+						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
+								/ 2)
+								+ (int) floor(
+										(B[j].precursorMz - A[i].precursorMz)
+												* 999.999999999999)][(int) (DOTPROD_HISTOGRAM_BINS
+								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
+						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+				}
+				(*nComparisons)++;
+
+				if (dotProd > maxDotProd) {
+					maxDotProd = dotProd;
+				}
+			}
+		}
+		if (maxDotProd > par->cutoff)
+			(*greaterThanCutoff)++; /* counting shared spectra from both datasets */
+		if (maxDotProd > par->cutoff)
+			(*sAB)++;
+	}
+}
+
 /* compareMS2 main function */
 
 int main(int argc, char *argv[]) {
 	FILE *output;
 	int err;
-	long i, j, k, nComparisons,
+	long i, j, nComparisons,
 			dotprodHistogram[DOTPROD_HISTOGRAM_BINS],
 			massDiffHistogram[DOTPROD_HISTOGRAM_BINS], **massDiffDotProductHistogram=0,
 			greaterThanCutoff, sAB, sBA, datasetAActualCompared,
 			datasetBActualCompared;
-	double  dotProd, maxDotProd;
 
 	SpecType *A, *B;
 
@@ -677,146 +753,15 @@ int main(int argc, char *argv[]) {
 				massDiffDotProductHistogram[j][i] = 0;
 	}
 
-	for (i = 0; i < datasetA.Size; i++) {
-		if (par.topN > -1)
-			if (par.topN < datasetA.Size)
-				if (datasetA.Intensities[i] <= datasetA.Cutoff)
-					continue; /* compare only top-N spectra (including spectra of same intensity as Nth spectrum) */
-		if(A[i].scan<par.startScan) continue;
-		if(A[i].scan>par.endScan) break;
-		if(A[i].nPeaks<par.minPeaks) continue;
-		if (A[i].basepeakIntensity < par.minBasepeakIntensity)
-			continue;
-		if (A[i].totalIonCurrent < par.minTotalIonCurrent)
-			continue;
-
-		maxDotProd = 0.0;
-		datasetAActualCompared++;
-
-		for (j = 0; j < datasetB.Size; j++) {
-			if (par.topN > -1)
-				if (par.topN < datasetB.Size)
-					if (datasetB.Intensities[j] <= datasetB.Cutoff)
-						continue;
-			if(B[j].scan<par.startScan) continue;
-			if(B[j].scan>par.endScan) break;
-			if(B[j].nPeaks<par.minPeaks) continue;
-			if (B[j].basepeakIntensity < par.minBasepeakIntensity)
-				continue;
-			if (B[j].totalIonCurrent < par.minTotalIonCurrent)
-				continue;
-			if ((A[i].scan - B[j].scan) > par.maxScanNumberDifference)
-				continue;
-			if ((B[j].scan - A[i].scan) > par.maxScanNumberDifference)
-				break;
-			if ((A[i].rt - B[j].rt) > par.maxRTDifference)
-				continue;
-			if ((B[j].rt - A[i].rt) > par.maxRTDifference)
-				break;
-			if (fabs(B[j].precursorMz - A[i].precursorMz)
-					< par.maxPrecursorDifference) {
-				dotProd = 0;
-				for (k = 0; k < par.nBins; k++)
-					dotProd += A[i].bin[k] * B[j].bin[k];
-				if (fabs(dotProd) <= 1.00) {
-					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
-					/* Round up pi to ensure the abs result is <= 1.0 */
-
-					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
-							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-					if (par.experimentalFeatures == 1)
-						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
-								/ 2)
-								+ (int) floor(
-										(B[j].precursorMz - A[i].precursorMz)
-												* 999.999999999999)][(int) (DOTPROD_HISTOGRAM_BINS
-								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
-						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-				}
-				nComparisons++;
-
-				if (dotProd > maxDotProd) {
-					maxDotProd = dotProd;
-				}
-			}
-		}
-		if (maxDotProd > par.cutoff)
-			greaterThanCutoff++;
-		if (maxDotProd > par.cutoff)
-			sAB++;
-	}
-
+	computeDotProdHistogram(&par, &datasetA, &datasetB, A, B,
+							&dotprodHistogram[0], massDiffDotProductHistogram,
+	 						&nComparisons, &greaterThanCutoff, &sAB, &datasetAActualCompared);
 	printf(".");
 
-	for (i = 0; i < datasetB.Size; i++) {
-		if (par.topN > -1)
-			if (par.topN < datasetB.Size)
-				if (datasetB.Intensities[i] <= datasetB.Cutoff)
-					continue;
-		if(B[i].scan<par.startScan) continue;
-		if(B[i].scan>par.endScan) break;
-		if(B[i].nPeaks<par.minPeaks) continue;
-		if (B[i].basepeakIntensity < par.minBasepeakIntensity)
-			continue;
-		if (B[i].totalIonCurrent < par.minTotalIonCurrent)
-			continue;
-
-		maxDotProd = 0.0;
-		datasetBActualCompared++;
-
-		for (j = 0; j < datasetA.Size; j++) {
-			if (par.topN > -1)
-				if (par.topN < datasetA.Size)
-					if (datasetA.Intensities[j] <= datasetA.Cutoff)
-						continue;
-			if(A[j].scan<par.startScan) continue;
-			if(A[j].scan>par.endScan) break;
-			if(A[j].nPeaks<par.minPeaks) continue;
-			if (A[j].basepeakIntensity < par.minBasepeakIntensity)
-				continue;
-			if (A[j].totalIonCurrent < par.minTotalIonCurrent)
-				continue;
-			if ((B[i].scan - A[j].scan) > par.maxScanNumberDifference)
-				continue;
-			if ((A[j].scan - B[i].scan) > par.maxScanNumberDifference)
-				break;
-			if ((B[i].rt - A[j].rt) > par.maxRTDifference)
-				continue;
-			if ((A[j].rt - B[i].rt) > par.maxRTDifference)
-				break;
-			if (fabs(A[j].precursorMz - B[i].precursorMz)
-					< par.maxPrecursorDifference) {
-				//printf("2: A[%i] vs B[%i]\n", j, i);
-				dotProd = 0;
-				for (k = 0; k < par.nBins; k++)
-					dotProd += B[i].bin[k] * A[j].bin[k];
-				if (fabs(dotProd) <= 1.00) {
-					if(par.spectrum_metric == 1) dotProd = 1-2*(acos(dotProd)/3.141593); /* use spectral angle (SA) instead */
-					/* Round up pi to ensure the abs result is <= 1.0 */
-
-					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
-							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-					if (par.experimentalFeatures == 1)
-						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
-								/ 2)
-								+ (int) fabs(floor(
-										(A[j].precursorMz - B[i].precursorMz)
-												* 999.999999999999))][(int) (DOTPROD_HISTOGRAM_BINS
-								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
-						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-				}
-			nComparisons++;
-
-				if (dotProd > maxDotProd) {
-					maxDotProd = dotProd;
-				}
-			}
-		}
-		if (maxDotProd > par.cutoff)
-			greaterThanCutoff++; /* counting shared spectra from both datasets */
-		if (maxDotProd > par.cutoff)
-			sBA++;
-	}
+	/* Same as above, with A and B swapped */
+	computeDotProdHistogram(&par, &datasetB, &datasetA, B, A,
+							&dotprodHistogram[0], massDiffDotProductHistogram,
+	 						&nComparisons, &greaterThanCutoff, &sBA, &datasetBActualCompared);
 
 	printf(
 			".done (compared %ld (|S_AB|=%ld) spectra from dataset A with %ld (|S_BA|=%ld) spectra from dataset B)\nwriting results to file...",
