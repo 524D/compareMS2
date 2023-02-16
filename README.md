@@ -75,12 +75,11 @@ First install nodejs:
 
 * On Windows, macOS and other Linux flavors, download from: <https://nodejs.org/en/download/>
 * On Debian/Ubuntu Linux, run `apt install nodejs`, and update yarn to the latest version with:
-        ```bash
+
         curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
         echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
         sudo apt update
         sudo apt install yarn
-        ```
 
 Then run the following on the command line:
 
