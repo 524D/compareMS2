@@ -65,7 +65,7 @@ However, not only the amino acid sequences of the peptides affect the distance m
 
 ## 2. Installing compareMS2
 
-CompareMS2 can be run under Windows (64 bit AMD/Intel), Linux (64 bit AMD/Intel) and MacOS (ARM and Intel).
+The compareMS2 software can be run under Windows (64 bit AMD/Intel), Linux (64 bit AMD/Intel) and MacOS (ARM and Intel).
 
 On Windows and Ubuntu, the easiest way to install compareMS2 is through the [installer](https://github.com/524D/compareMS2/releases/latest/) (under "assets").
 
