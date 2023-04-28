@@ -1,0 +1,77 @@
+name: build-binaries
+on:
+  workflow_dispatch:
+    inputs:
+      buildfor:
+        description: 'Build binaries for:'
+        required: true
+        default: 'linux'
+        type: choice
+        options:
+            - 'linux'
+            - 'windows'
+            - 'macos' 
+jobs:
+  linux:
+    if:  inputs.buildfor == 'linux'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build
+        run: gcc -Wall -Wextra -O2 compareMS2.c -lm -o compareMS2 && gcc -Wall -Wextra -O2 compareMS2_to_distance_matrices.c -lm -o compareMS2_to_distance_matrices
+      - name: Commit files
+        # Continue in case there is nothing to commit
+        continue-on-error: true
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add compareMS2 compareMS2_to_distance_matrices
+          git commit -m "Update Linux amd64 binaries"
+      - name: Push changes
+        run: |
+          git push
+  windows:
+    if:  inputs.buildfor == 'windows'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build
+        run: gcc -Wall -Wextra -O2 compareMS2.c -lm -o compareMS2.exe && strip compareMS2.exe && gcc -Wall -Wextra -O2 compareMS2_to_distance_matrices.c -lm -o compareMS2_to_distance_matrices.exe && strip compareMS2_to_distance_matrices.exe
+      - name: Commit files
+        # Continue in case there is nothing to commit
+        continue-on-error: true
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add compareMS2.exe compareMS2_to_distance_matrices.exe
+          git commit -m "Update Windows binaries"
+      - name: Push changes
+        run: |
+          git push
+  macos:
+    if:  inputs.buildfor == 'macos'
+    runs-on: "macos-latest"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Build
+          # Git doesn't preserve file times, so make doesn't work as intended
+          # Force rebuild by removing existing executables
+        run: rm -f *_darwin && make -f Makefile-darwin && rm -f *_x86_64_darwin && rm -f *_arm_darwin
+      - name: Commit files
+        # Continue in case there is nothing to commit
+        continue-on-error: true
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add compareMS2_darwin compareMS2_to_distance_matrices_darwin
+          git commit -m "Update Mac OS binaries"
+      - name: Push changes
+        # Continue in case there is nothing to push
+        continue-on-error: true
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
