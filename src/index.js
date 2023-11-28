@@ -7,6 +7,8 @@ const { ipcRenderer } = nodeRequire('electron')
 var appVersion = app.getVersion();
 
 const selectDirBtn = document.getElementById('select-directory')
+const selectFile1Btn = document.getElementById('select-file1')
+const selectFile2Btn = document.getElementById('select-file2')
 const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
 
 var s2sFileManualSet = false;
@@ -132,6 +134,33 @@ function updateMgfInfo(path) {
     document.getElementById("submit").disabled = (nMgf < 2);
 }
 
+// Enable submit button if both files are selected
+function updateSubmitButton() {    
+    if ( (document.getElementById("file2").value != "") && (document.getElementById("file1").value != "") ) {
+        document.getElementById("submit").disabled = false;
+    }
+    else {
+        document.getElementById("submit").disabled = true;
+    }
+}
+
+function getCmpMode() {
+    const mode = $('input[name="cmpmode"]:checked').val();
+    return mode;
+}
+
+// Enable/disable elements depending on compare mode
+function updateCmpModeElems() {
+    const mode = getCmpMode();
+    // Enable/disable elements depending on compare mode
+    // Elements that must be set have class "enable_in_mode"
+    // plus the mode name, e.g. "enable_in_mode compare"
+    // This is done by adding/removing the class "disabled-area",
+    // which makes the elements partly transparent and disables them.
+    $(".enable_in_mode." + mode).removeClass("disabled-area");
+    $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
+}
+
 function openTab(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
@@ -158,6 +187,9 @@ function openTab(evt, tabName) {
 // Set defaults for input fields
 setOptions(defaultOptions);
 
+// Grey out the elements that are not needed for the selected compare mode
+updateCmpModeElems()
+
 // Update MGF info on manual input
 const inputHandler = function (e) {
     updateMgfInfo(e.target.value);
@@ -169,10 +201,22 @@ selectDirBtn.addEventListener('click', (event) => {
     ipcRenderer.send('open-dir-dialog')
 })
 
+selectFile1Btn.addEventListener('click', (event) => {
+    ipcRenderer.send('open-file1-dialog')
+})
+
+selectFile2Btn.addEventListener('click', (event) => {
+    ipcRenderer.send('open-file2-dialog')
+})
+
 selectSpeciesfileBtn.addEventListener('click', (event) => {
     ipcRenderer.send('open-speciesfile-dialog')
 })
 
+// Handle compare mode selection
+$('.cmpmode').change(function() {
+    updateCmpModeElems();
+});
 
 // Handle the "Compare only N most intense spectra" input
 // Init 
@@ -228,6 +272,18 @@ ipcRenderer.on('selected-directory', (event, p) => {
     }
 })
 
+ipcRenderer.on('selected-file1', (event, p) => {
+    var fn = `${p}`;
+    document.getElementById("file1").value = fn;
+    updateSubmitButton();    
+})
+
+ipcRenderer.on('selected-file2', (event, p) => {
+    var fn = `${p}`;
+    document.getElementById("file2").value = fn;
+    updateSubmitButton();    
+})
+
 ipcRenderer.on('selected-speciesfile', (event, p) => {
     var fn = `${p}`;
     document.getElementById("s2sfile").value = fn;
@@ -242,7 +298,13 @@ ipcRenderer.on('show-about', (event) => {
 const submitBtn = document.getElementById('submit');
 submitBtn.addEventListener('click', (event) => {
     var params = getOptions();
-    ipcRenderer.send('maketree', params)
+    // Check if we should show phylogenetic tree or show spectral comparison
+    if ( (document.getElementById("file2").value != "") && (document.getElementById("file1").value != "") ) {
+        ipcRenderer.send('compareSpecs', params)
+    }
+    else {
+        ipcRenderer.send('maketree', params)
+    }
 })
 
 // Show version

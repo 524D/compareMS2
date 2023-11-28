@@ -17,6 +17,8 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 // Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let specWindows = [];
+let specInstanceCount = 0;
 let treeWindows = [];
 let treeInstanceCount = 0;
 
@@ -197,6 +199,31 @@ ipcMain.on('open-dir-dialog', (event) => {
     }
 })
 
+ipcMain.on('open-file1-dialog', (event) => {
+    const files = dialog.showOpenDialogSync(mainWindow, {
+        title: 'First sample file',
+        properties: ['openFile']
+    });
+    if (files) {
+        mainWindow.send('selected-file1', files)
+    }
+})
+
+ipcMain.on('open-file2-dialog', (event) => {
+    const files = dialog.showOpenDialogSync(mainWindow, {
+        title: 'Second sample file',
+        properties: ['openFile']
+    });
+    if (files) {
+        mainWindow.send('selected-file2', files)
+    }
+})
+
+
+
+
+
+
 ipcMain.on('open-speciesfile-dialog', (event) => {
     const files = dialog.showOpenDialogSync(mainWindow, {
         title: 'Open sample-to-species file',
@@ -211,7 +238,43 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
     }
 })
 
-// Display tree windows and send params
+// Display spectral comparison window and send params
+ipcMain.on('compareSpecs', (event, params) => {
+    let specWindow = new BrowserWindow({
+        width: 1000,
+        height: 780,
+        parent: mainWindow,
+        modal: false,
+        webPreferences: {
+            nodeIntegration: true,
+            enableRemoteModule: true,
+            contextIsolation: false,  // without this, we can't open new windows
+            preload: path.join(__dirname, 'preload.js')
+        },
+        icon: path.join(iconPath, 'tree.png'),
+    });
+    specInstanceCount++;
+    specWindows[specInstanceCount] = specWindow;
+    specWindow.on('close', () => { specWindow = null })
+    specWindow.removeMenu();
+    specWindow.loadFile(path.join(__dirname, '/spec-compare.html'),
+        {
+            query: {
+                "userparams": JSON.stringify(params),
+                "instanceId": specInstanceCount
+            }
+        });
+    require("@electron/remote/main").enable(specWindow.webContents);
+    if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
+        // Open the DevTools.
+        specWindow.webContents.openDevTools();
+    }
+
+    specWindow.show();
+})
+
+
+// Display tree window and send params
 ipcMain.on('maketree', (event, params) => {
     const treePath = path.join('file://', __dirname, '/tree.html')
     let treeWindow = new BrowserWindow({

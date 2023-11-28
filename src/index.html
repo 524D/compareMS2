@@ -49,23 +49,46 @@
     </div>
 
     <div class="tab">
-        <button class="tablinks active" onclick="openTab(event, 'BasicSettings')">Basic settings</button>
-        <button class="tablinks" onclick="openTab(event, 'AdvSettings')">Advanced settings</button>
+        <button class="tablinks active" onclick="openTab(event, 'CompareMode')">Compare Mode</button>
+        <button class="tablinks" onclick="openTab(event, 'CompareSettings')">Settings</button>
     </div>
 
     <!-- Tab content -->
-    <div id="BasicSettings" class="tabcontent tabdefault">
-        <div><label class="input-label2">Directory of MGF files:</label>
+    <div id="CompareMode" class="tabcontent tabdefault">
+        <div><label class="input-label">Compare mode:</label>
+            <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
+                title="Compare many files and generate a phylogenetic tree">
+            <label for="phyltree">Tree</label>
+            <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
+                title="Compare two files and mass difference heatmap">
+            <label for="heatmap">Heatmap</label>
+        </div>
+        <div class="enable_in_mode phyltree">
+        <div class="enable_in_mode phyltree"><label class="input-label2">Directory of MGF files:</label>
             <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
             <button type="button" id="select-directory">
                 <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
         </div>
-        <div><label class="input-label3 small"></label>
+        <div class="enable_in_mode phyltree"><label class="input-label3 small"></label>
             <span id=mgfinfo class="small"></span>
         </div>
+        </div>
+        <div class="enable_in_mode heatmap">
+        <div><label class="input-label2">File 1:</label>
+            <input class="input-value" type="text" id="file1" spellcheck="false">&nbsp;
+            <button type="button" id="select-file1">
+                <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 1</button>
+        </div>
+        <div><label class="input-label2">File 2:</label>
+            <input class="input-value" type="text" id="file2" spellcheck="false">&nbsp;
+            <button type="button" id="select-file2">
+                <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2</button>
+        </div>
+    </div>
     </div>
 
-    <div id="AdvSettings" class="tabcontent">
+    <!-- Tab content -->
+    <div id="CompareSettings" class="tabcontent">
         <div><label class="input-label">Maximum precursor mass difference</label>
             <input class="input-value" type="number" id="precmassdif" min="0" max="10" step=".001"
                 title="Maximum difference between precursor masses for which MS2 spectra are compared">
@@ -121,13 +144,6 @@
             <input class="input-value" type="number" id="noise" min="0" max="10000" step="1"
                 title="Peaks with intensity below noise level are removed">
         </div>
-        <div><label class="input-label">Version of set distance metric</label>
-            <select id="metric" name="metric">
-                <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
-                <option value="0">Original compareMS2 metric</option>
-                <option value="1">Symmetric metric</option>
-            </select>
-        </div>
         <div hidden><label class="input-label">Version of QC metric</label>
             <input class="input-value" type="number" id="qc" min="0" max="0" step="1" title="0: QC=number of spectra">
         </div>
@@ -136,6 +152,14 @@
             <span id="topInp2"> <input class="input-value" type="number" id="topN" min="-1" max="1000000" step="1"
                     title="For this filter, the spectrum intensity is equal to the sum of all peaks in a spectrum.">
             </span>
+        </div>
+        <div class="enable_in_mode phyltree">
+        <div><label class="input-label">Version of set distance metric</label>
+            <select id="metric" name="metric">
+                <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
+                <option value="0">Original compareMS2 metric</option>
+                <option value="1">Symmetric metric</option>
+            </select>
         </div>
         <div><label class="input-label">Sample to species file</label>
             <input class="input-value" type="text" id="s2sfile"
@@ -173,7 +197,9 @@
             <input type="checkbox" id="impmiss" name="impute-missing">
             <label> Impute missing values</label>
         </div>
+        </div>
     </div>
+
     <div class="text-center bottom-button">
         <button class="btn-lg" id="submit"><i class="mi mi-Play mi-lg icon-valign"></i>Start</button>
     </div>

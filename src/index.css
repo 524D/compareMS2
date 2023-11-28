@@ -116,3 +116,8 @@ div.bottom-button {
 details p {
     font-size: small;
 }
+
+.disabled-area {
+    opacity: 0.4;
+    pointer-events: none;
+}
