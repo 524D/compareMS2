@@ -56,35 +56,35 @@
     <!-- Tab content -->
     <div id="CompareMode" class="tabcontent tabdefault">
         <div><label class="input-label">Compare mode:</label>
-            <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
-                title="Compare many files and generate a phylogenetic tree">
-            <label for="phyltree">Tree</label>
-            <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
+            <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
+                 title="Compare many files and generate a phylogenetic tree">
+            <label for="phyltree">Tree</label>
+            <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
                 title="Compare two files and mass difference heatmap">
-            <label for="heatmap">Heatmap</label>
+            <label for="heatmap">Heatmap</label>
         </div>
         <div class="enable_in_mode phyltree">
-        <div class="enable_in_mode phyltree"><label class="input-label2">Directory of MGF files:</label>
-            <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
-            <button type="button" id="select-directory">
-                <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
-        </div>
-        <div class="enable_in_mode phyltree"><label class="input-label3 small"></label>
-            <span id=mgfinfo class="small"></span>
-        </div>
+            <div><label class="input-label2">Directory of MGF files:</label>
+                <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
+                <button type="button" id="select-directory">
+                    <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
+            </div>
+            <div><label class="input-label3 small"></label>
+                <span id=mgfinfo class="small"></span>
+            </div>
         </div>
         <div class="enable_in_mode heatmap">
-        <div><label class="input-label2">File 1:</label>
-            <input class="input-value" type="text" id="file1" spellcheck="false">&nbsp;
-            <button type="button" id="select-file1">
-                <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 1</button>
+            <div><label class="input-label2">File 1:</label>
+                <input class="input-value" type="text" id="file1" spellcheck="false">&nbsp;
+                <button type="button" id="select-file1">
+                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 1</button>
+            </div>
+            <div><label class="input-label2">File 2:</label>
+                <input class="input-value" type="text" id="file2" spellcheck="false">&nbsp;
+                <button type="button" id="select-file2">
+                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2</button>
+            </div>
         </div>
-        <div><label class="input-label2">File 2:</label>
-            <input class="input-value" type="text" id="file2" spellcheck="false">&nbsp;
-            <button type="button" id="select-file2">
-                <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2</button>
-        </div>
-    </div>
     </div>
 
     <!-- Tab content -->
@@ -154,49 +154,49 @@
             </span>
         </div>
         <div class="enable_in_mode phyltree">
-        <div><label class="input-label">Version of set distance metric</label>
-            <select id="metric" name="metric">
-                <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
-                <option value="0">Original compareMS2 metric</option>
-                <option value="1">Symmetric metric</option>
-            </select>
-        </div>
-        <div><label class="input-label">Sample to species file</label>
-            <input class="input-value" type="text" id="s2sfile"
-                title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
-            &nbsp;
-            <button type="button" id="select-speciesfile" title="">
-                <i class="mi mi-OpenFile mi-lg icon-valign"></i>
-                &nbsp;Select file
-            </button>
-        </div>
-        <div><label class="input-label">Output filename root</label>
-            <input class="input-value" type="text" id="outbasename" title="Root filename for output file">
-        </div>
-        <div><label class="input-label">Output format</label>
-            <input disabled type="checkbox" id="outmega" name="output-mega">
-            <label> MEGA</label>
-            <input type="checkbox" id="outnexus" name="output-nexus">
-            <label> NEXUS</label>&nbsp;
-            <input type="checkbox" id="outnewick" name="output-newick">
-            <label> Newick</label>&nbsp;
-        </div>
-        <div><label class="input-label">Compare order</label>
-            <select name="order" id="compare-order">
-                <option value="smallest-largest">Smallest-largest first</option>
-                <option value="smallest">Smallest-smallest first</option>
-                <option value="largest">Largest-largest first</option>
-                <option value="random">Random</option>
-            </select>
-        </div>
-        <div hidden><label class="input-label"></label>
-            <input type="checkbox" id="avgspecie" name="average">
-            <label> Average all output per specie</label>&nbsp;
-        </div>
-        <div hidden><label class="input-label"></label>
-            <input type="checkbox" id="impmiss" name="impute-missing">
-            <label> Impute missing values</label>
-        </div>
+            <div><label class="input-label">Version of set distance metric</label>
+                <select id="metric" name="metric">
+                    <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
+                    <option value="0">Original compareMS2 metric</option>
+                    <option value="1">Symmetric metric</option>
+                </select>
+            </div>
+            <div><label class="input-label">Sample to species file</label>
+                <input class="input-value" type="text" id="s2sfile"
+                    title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
+                &nbsp;
+                <button type="button" id="select-speciesfile" title="">
+                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>
+                    &nbsp;Select file
+                </button>
+            </div>
+            <div><label class="input-label">Output filename root</label>
+                <input class="input-value" type="text" id="outbasename" title="Root filename for output file">
+            </div>
+            <div><label class="input-label">Output format</label>
+                <input disabled type="checkbox" id="outmega" name="output-mega">
+                <label> MEGA</label>
+                <input type="checkbox" id="outnexus" name="output-nexus">
+                <label> NEXUS</label>&nbsp;
+                <input type="checkbox" id="outnewick" name="output-newick">
+                <label> Newick</label>&nbsp;
+            </div>
+            <div><label class="input-label">Compare order</label>
+                <select name="order" id="compare-order">
+                    <option value="smallest-largest">Smallest-largest first</option>
+                    <option value="smallest">Smallest-smallest first</option>
+                    <option value="largest">Largest-largest first</option>
+                    <option value="random">Random</option>
+                </select>
+            </div>
+            <div hidden><label class="input-label"></label>
+                <input type="checkbox" id="avgspecie" name="average">
+                <label> Average all output per specie</label>&nbsp;
+            </div>
+            <div hidden><label class="input-label"></label>
+                <input type="checkbox" id="impmiss" name="impute-missing">
+                <label> Impute missing values</label>
+            </div>
         </div>
     </div>
 
