@@ -131,22 +131,36 @@ function updateMgfInfo(path) {
     var nMgf = mgfFiles.length;
     mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf - 1)) / 2 + " comparisons.";
     // Disable submit button if < 2 MGF files
-    document.getElementById("submit").disabled = (nMgf < 2);
-}
-
-// Enable submit button if both files are selected
-function updateSubmitButton() {    
-    if ( (document.getElementById("file2").value != "") && (document.getElementById("file1").value != "") ) {
-        document.getElementById("submit").disabled = false;
-    }
-    else {
-        document.getElementById("submit").disabled = true;
-    }
+    updateSubmitButton();
 }
 
 function getCmpMode() {
     const mode = $('input[name="cmpmode"]:checked').val();
     return mode;
+}
+
+// Enable or disable submit button
+// The submit button is enabled if:
+// - the compare mode is "compare" and both files are selected
+// - the compare mode is "tree" and a folder is selected, and the
+//     folder contains at least 2 MGF files
+function updateSubmitButton() {
+    const mode = getCmpMode()
+    let enabled = false;
+    if (mode == "heatmap") {
+        if ( $('#file1').val() && $('#file2').val() ) {
+            enabled = true;
+        }
+    }
+    else { // mode == "tree" 
+        if ( $('#mgfdir').val() ) {
+            const mgfFiles = getMgfFiles($('#mgfdir').val());
+            if (mgfFiles.length >= 2) {
+                enabled = true;
+            }
+        }
+    }
+    $('#submit').prop('disabled', !enabled);
 }
 
 // Enable/disable elements depending on compare mode
@@ -216,6 +230,7 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
 // Handle compare mode selection
 $('.cmpmode').change(function() {
     updateCmpModeElems();
+    updateSubmitButton();
 });
 
 // Handle the "Compare only N most intense spectra" input
@@ -299,7 +314,8 @@ const submitBtn = document.getElementById('submit');
 submitBtn.addEventListener('click', (event) => {
     var params = getOptions();
     // Check if we should show phylogenetic tree or show spectral comparison
-    if ( (document.getElementById("file2").value != "") && (document.getElementById("file1").value != "") ) {
+    const mode = getCmpMode();
+    if (mode == "heatmap"){
         ipcRenderer.send('compareSpecs', params)
     }
     else {
