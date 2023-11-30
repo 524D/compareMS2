@@ -119,7 +119,7 @@ const xMax = +1.6;
 const yMin = 0.0;
 const yMax = +100.0;
 
-const [data, xData, yData, realYMin] = convertData(tabData)
+const [data, xData, yData, realYMin, maxVal] = convertData(tabData)
 
 option = {
 
@@ -197,6 +197,11 @@ yAxis: [
 visualMap: {
     calculable: true,
     realtime: false,
+    min: 0,
+    max: maxVal,
+    right: 0,
+    top: 'center',
+    formatter: function (value){ return Math.round(Math.E**value) },
     inRange: {
         color: [
             '#313695',
@@ -260,7 +265,7 @@ function getColorScale(cScale) {
             break;
         case "rgb":
             colorScale=[
-                    '#5050FF',
+                    '#0000FF',
                     '#00FF00',
                     '#FF0000'];
             break;
@@ -345,7 +350,8 @@ function convertData(tabData) {
     }
 
     // Extract the actual data
-    y = 0;
+    let maxVal = 0;
+    let y = 0;
     for (; i < il; i++) {
         let line = lines[i];
         let items = line.split('\t');
@@ -356,6 +362,8 @@ function convertData(tabData) {
 
         for (let j = 0; j < jl; j++) {
             let item = items[j];
+            item = Math.log(item);
+            maxVal = Math.max(maxVal, parseFloat(item));
             const x=j; // x here is just the index, not the actual value
             // const x=(xRange*j)/jl + xMin
             data.push({ value: [x, y, parseFloat(item)]});
@@ -363,7 +371,7 @@ function convertData(tabData) {
         y++;
         
     }
-    return [data, xData, yData, realYmin ];
+    return [data, xData, yData, realYmin, maxVal ];
 }
 
 // Set color scale when selection changes
