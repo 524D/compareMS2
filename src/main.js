@@ -7,6 +7,18 @@ const fs = require('fs');
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
 require('@electron/remote/main').initialize();
 
+function selectMGFfile(title) {
+    const files = dialog.showOpenDialogSync(mainWindow, {
+        title: title,
+        properties: ['openFile'],
+        filters: [
+            { name: 'MGF files', extensions: ['mgf'] },
+            { name: 'All Files', extensions: ['*'] }
+        ],
+    });
+    return files;
+}
+
 // FIXME: Remove. Not needed anymore, now default:
 app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -200,29 +212,18 @@ ipcMain.on('open-dir-dialog', (event) => {
 })
 
 ipcMain.on('open-file1-dialog', (event) => {
-    const files = dialog.showOpenDialogSync(mainWindow, {
-        title: 'First sample file',
-        properties: ['openFile']
-    });
+    const files = selectMGFfile('First sample file');
     if (files) {
         mainWindow.send('selected-file1', files)
     }
 })
 
 ipcMain.on('open-file2-dialog', (event) => {
-    const files = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Second sample file',
-        properties: ['openFile']
-    });
+    const files = selectMGFfile('Second sample file');
     if (files) {
         mainWindow.send('selected-file2', files)
     }
 })
-
-
-
-
-
 
 ipcMain.on('open-speciesfile-dialog', (event) => {
     const files = dialog.showOpenDialogSync(mainWindow, {
