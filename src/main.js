@@ -257,7 +257,7 @@ ipcMain.on('compareSpecs', (event, params) => {
     specWindows[specInstanceCount] = specWindow;
     specWindow.on('close', () => { specWindow = null })
     specWindow.removeMenu();
-    specWindow.loadFile(path.join(__dirname, '/spec-compare.html'),
+    specWindow.loadFile(path.join(__dirname, '/heatmap.html'),
         {
             query: {
                 "userparams": JSON.stringify(params),
