@@ -1,3 +1,9 @@
+const path = nodeRequire('path');
+const querystring = nodeRequire('querystring');
+const { app } = nodeRequire('@electron/remote')
+const log = nodeRequire('electron-log');
+const { spawn } = nodeRequire('child_process');
+
 const tabData =`
 0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
 0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
@@ -109,136 +115,21 @@ const tabData =`
 `
 
 
-var app = {};
-
 var chartDom = document.getElementById('main');
+// var myChart = echarts.init(chartDom, null, { renderer: 'svg' }); // SVG is quite a bit slower than canvas
 var myChart = echarts.init(chartDom);
 var option;
 const xMin = -1.6;
 const xMax = +1.6;
 const yMin = 0.0;
 const yMax = +100.0;
+const myPath = app.getAppPath();
 
-const [data, xData, yData, realYMin, maxVal] = convertData(tabData)
+let compareMS2exe;
+let query = querystring.parse(global.location.search);
+let userparams = JSON.parse(query['?userparams']);
+let instanceId = query['instanceId'];
 
-option = {
-
-title: [
-    {
-    text: 'two−dataset comparison',
-    left: 'center',
-    top: 10,
-    textStyle: {
-            fontWeight: 'normal',
-            fontSize: 20
-        }
-    }
-],
-
-
-// NOTE: This plot uses a hack to work around what seems a bug in ECharts
-// The problem is that the heatmap series doesn't work properly with a 'value' axis
-// If used, the boxes in the heatmap have a size of 1 unit, which is not scaled
-// by the axis. This makes them unusable.
-// So we use a hidden 'category' axis to plot the heatmap and a 'value' axis
-// just to show the axis
-tooltip: {},
-xAxis: [
-    {
-        type: 'value',
-        name: 'Percursor m/z difference',
-        // TODO: Use rich text for label: https://echarts.apache.org/en/tutorial.html#Rich%20Text
-        nameLocation: 'middle',
-        nameGap: 30,
-        nameTextStyle: {
-            fontSize: 18
-        },
-        min: xMin,
-        max: xMax,
-        position: 'bottom',
-        offset: 5,
-        axisLabel: {
-            formatter: '{value}'
-        },
-        
-    },
-    {
-        show: false,
-        type: 'category',
-        data: xData
-    },
-],
-yAxis: [
-    {
-        type: 'value',
-        name: 'MS2 similarity (dot product)',
-        nameLocation: 'middle',
-        nameGap: 30,
-        nameTextStyle: {
-            fontSize: 18
-        },
-        min: 0.0,
-        max: 1.0,
-        position: 'left',
-        offset: 3,
-        axisLabel: {
-            formatter: '{value}'
-        },
-        axisLine: {
-            onZero: false
-        }
-    },
-    {
-        show: false,
-        type: 'category',
-        data: yData
-    },
-],
-visualMap: {
-    calculable: true,
-    realtime: false,
-    min: 0,
-    max: maxVal,
-    right: 0,
-    top: 'center',
-    formatter: function (value){ return Math.round(Math.E**value) },
-    inRange: {
-        color: [
-            '#313695',
-            '#4575b4',
-            '#74add1',
-            '#abd9e9',
-            '#e0f3f8',
-            '#ffffbf',
-            '#fee090',
-            '#fdae61',
-            '#f46d43',
-            '#d73027',
-            '#a50026'
-        ]
-    }
-},
-series: [
-    {
-        tooltip: {
-            show: false
-        },
-        // Make chart silent so that it doesn't respond to mouse events and pointer remains an arrow
-        silent: true,
-
-        name: 'Two dataset comparison',
-        type: 'heatmap',
-        coordinateSystem: 'cartesian2d',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: data,
-
-        // Number of items to draw in one "frame" (about 16 ms)
-        progressive: 2000,
-        animation: false
-    }
-]
-};
 
 function getSelectedScale() {
     return $("#qscale").children("option:selected").val();
@@ -374,10 +265,279 @@ function convertData(tabData) {
     return [data, xData, yData, realYmin, maxVal ];
 }
 
+function runCompare(userparams, onFinishedFunc) {
+    let mzFile1 = userparams.mzFile1;
+    let mzFile2 = userparams.mzFile2;
+    compareDir = path.dirname(userparams.mzFile1);
+
+    const outFn = "experimental_output.txt"; // The fixed filename that compareMS2 uses for output of the comparison
+    // The order of input files is not important for the result.
+    // We always order alphabetical, so that the check if we
+    // already have the result works correctly.
+    if (mzFile1 > mzFile2) {
+        [mzFile1, mzFile2] = [mzFile2, mzFile1];
+    }
+
+    let cmdArgs =
+        ['-A', mzFile1,
+            '-B', mzFile2,
+            '-p', userparams.maxPrecursorDifference,
+            '-m', userparams.minBasepeakIntensity + ',' + userparams.minTotalIonCurrent,
+            '-w', userparams.maxScanNumberDifference,
+            '-W', userparams.startScan + ',' + userparams.endScan,
+            '-r', userparams.maxRTDifference,
+            '-R', userparams.startRT + ',' + userparams.endRT,
+            '-c', userparams.cutoff,
+            '-f', userparams.specMetric,
+            '-s', userparams.scaling,
+            '-n', userparams.noise,
+            '-q', userparams.qc,
+            '-d', userparams.metric,
+            '-N', userparams.topN,
+        ]
+    // Create a unique filename based on parameters
+    const hashName = shortHashObj({ cmdArgs });
+    let cmpFile = path.join(compareDir, hashName + "_exp.txt");
+
+    // Temporary output filename of compare ms2
+    // used to avoid stale incomplete output after interrupt
+    const comparems2tmp = path.join(compareDir, hashName + "-" + instanceId + ".tmp");
+
+    // Append output filename, should now be part of hash
+    cmdArgs.push('-o', comparems2tmp);
+
+    let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
+    llog('Executing: ' + cmdStr + '\n');
+
+    const cmp_ms2 = spawn(compareMS2exe, cmdArgs);
+
+    cmp_ms2.stdout.on('data', (data) => {
+        // data = escapeHtml(data.toString());
+        // data = data.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        // data = data.replace(/(?: )/g, '&nbsp;');
+        // document.getElementById('stdout').innerHTML += data;
+    });
+
+    cmp_ms2.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+        elog(data.toString());
+    });
+
+    cmp_ms2.on('error', (data) => {
+        console.error('Error running compareMS2');
+        // act.innerHTML = 'Error running compareMS2';
+    });
+
+    cmp_ms2.stderr.on('exit', (code, signal) => {
+        console.error('Error running compareMS2');
+        // act.innerHTML = 'Error running compareMS2';
+    });
+
+    cmp_ms2.on('close', (code, signal) => {
+        if (code == null) {
+            elog("Error: comparems2 command line executable crashed.\n")
+        }
+        else {
+            // Compare finished, rename temporary output file
+            // to final filename
+            fs.rename(outFn, cmpFile, function (err) {
+                if (err) throw err
+                onFinishedFunc(cmpFile);
+            });
+        }
+    });
+}
+
+function convertResultToHeatmap(cmpFile) {
+    // Read cmpFile into tabData
+    let tabData = fs.readFileSync(cmpFile, 'utf8');
+    [data, xData, yData, realYMin, maxVal] = convertData(tabData)
+    // myChart.setOption({
+    //     yAxis: {
+    //         min: realYMin,
+    //         max: realYMin + yData.length * (yMax - yMin) / yData.length
+    //     },
+    //     series: [{
+    //         data: data,
+    //         visualMap: {
+    //             max: maxVal
+    //         }
+    //     }]
+    // });
+
+}
+
+// Output logging
+function llog(msg) {
+    log.info(msg);
+}
+
+function elog(msg) {
+    log.error(msg);
+}
+
+function run() {
+    runCompare(userparams, convertResultToHeatmap)
+}
+
+// ******************************* start of initialization ******************************************** //
+
+if (navigator.platform == 'Linux x86_64') {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
+} else if ((navigator.platform == 'Win64') || (navigator.platform == 'Win32')) {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
+}
+else if (process.platform == 'darwin') {
+    compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
+    compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
+}
+else {
+    document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
+}
+
+// Toggle full screen on F11
+document.addEventListener("keydown", event => {
+    var key = event.key;
+    if (key == "F11") {
+        // Ask main process to toggle fullscreen
+        ipcRenderer.send('toggle-fullscreen', instanceId);
+    }
+});
+
 // Set color scale when selection changes
 $("#qscale").change(function() {
     updateQScale();
 });
+
+//var data, xData, yData, realYMin, maxVal;
+// Start the comparison
+//run();
+
+const [data, xData, yData, realYMin, maxVal] = convertData(tabData)
+
+option = {
+    title: [
+        {
+        text: 'two−dataset comparison',
+        left: 'center',
+        top: 10,
+        textStyle: {
+                fontWeight: 'normal',
+                fontSize: 20
+            }
+        }
+    ],
+    // NOTE: This plot uses a hack to work around what seems a bug in ECharts
+    // The problem is that the heatmap series doesn't work properly with a 'value' axis
+    // If used, the boxes in the heatmap have a size of 1 unit, which is not scaled
+    // by the axis. This makes them unusable.
+    // So we use a hidden 'category' axis to plot the heatmap and a 'value' axis
+    // just to show the axis
+    tooltip: {},
+    xAxis: [
+        {
+            type: 'value',
+            name: 'Precursor {a|m}/{a|z} difference',
+            nameLocation: 'middle',
+            nameGap: 30,
+            nameTextStyle: {
+                fontSize: 18,
+                rich: {
+                    // Italic font for m and z (style "a" in name string)
+                    a: {
+                        fontSize: 18,
+                        fontStyle: 'italic',
+                    },
+                }
+            },
+            min: xMin,
+            max: xMax,
+            position: 'bottom',
+            offset: 5,
+            axisLabel: {
+                formatter: '{value}'
+            },
+            
+        },
+        {
+            show: false,
+            type: 'category',
+            data: xData
+        },
+    ],
+    yAxis: [
+        {
+            type: 'value',
+            name: 'MS2 similarity (dot product)',
+            nameLocation: 'middle',
+            nameGap: 30,
+            nameTextStyle: {
+                fontSize: 18
+            },
+            min: 0.0,
+            max: 1.0,
+            position: 'left',
+            offset: 3,
+            axisLabel: {
+                formatter: '{value}'
+            },
+            axisLine: {
+                onZero: false
+            }
+        },
+        {
+            show: false,
+            type: 'category',
+            data: yData
+        },
+    ],
+    visualMap: {
+        calculable: true,
+        realtime: false,
+        min: 0,
+        max: maxVal,
+        right: 0,
+        top: 'center',
+        formatter: function (value){ return Math.round(Math.E**value) },
+        inRange: {
+            color: [
+                '#313695',
+                '#4575b4',
+                '#74add1',
+                '#abd9e9',
+                '#e0f3f8',
+                '#ffffbf',
+                '#fee090',
+                '#fdae61',
+                '#f46d43',
+                '#d73027',
+                '#a50026'
+            ]
+        }
+    },
+    series: [
+        {
+            tooltip: {
+                show: false
+            },
+            // Make chart silent so that it doesn't respond to mouse events and pointer remains an arrow
+            silent: true,
+
+            name: 'Two dataset comparison',
+            type: 'heatmap',
+            coordinateSystem: 'cartesian2d',
+            xAxisIndex: 1,
+            yAxisIndex: 1,
+            data: data,
+
+            // Number of items to draw in one "frame" (about 16 ms)
+            progressive: 2000,
+            animation: false
+        }
+    ]
+};
 
 option && myChart.setOption(option);
 

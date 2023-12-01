@@ -17,6 +17,8 @@ const homedir = nodeRequire('os').homedir();
 
 const defaultOptions = {
     mgfDir: homedir,
+    mzFile1: "",
+    mzFile2: "",
     maxPrecursorDifference: 2.05,
     minBasepeakIntensity: 10000,
     minTotalIonCurrent: 0,
@@ -46,6 +48,8 @@ const defaultOptions = {
 // Set all user interface elements according to options
 function setOptions(options) {
     document.getElementById("mgfdir").value = options.mgfDir;
+    document.getElementById("file1").value = options.mzFile1;
+    document.getElementById("file2").value = options.mzFile2;
     document.getElementById("precmassdif").value = options.maxPrecursorDifference;
     document.getElementById("minBasepeakIntensity").value = options.minBasepeakIntensity;
     document.getElementById("minTotalIonCurrent").value = options.minTotalIonCurrent;
@@ -77,6 +81,8 @@ function setOptions(options) {
 function getOptions() {
     var options = {
         mgfDir: document.getElementById("mgfdir").value,
+        mzFile1: document.getElementById("file1").value,
+        mzFile2: document.getElementById("file2").value,
         maxPrecursorDifference: parseFloat(document.getElementById("precmassdif").value),
         minBasepeakIntensity: parseFloat(document.getElementById("minBasepeakIntensity").value),
         minTotalIonCurrent: parseFloat(document.getElementById("minTotalIonCurrent").value),
