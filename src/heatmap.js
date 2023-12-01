@@ -382,10 +382,10 @@ function run() {
 
 // ******************************* start of initialization ******************************************** //
 
-if (navigator.platform == 'Linux x86_64') {
+if (process.platform === 'linux' && process.arch === 'x64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
-} else if ((navigator.platform == 'Win64') || (navigator.platform == 'Win32')) {
+} else if (process.platform === 'win32' && process.arch === 'x64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
 }

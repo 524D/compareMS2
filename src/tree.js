@@ -397,7 +397,7 @@ function makeTree() {
             // Create new tree when file has finished loading
             if (last) {
                 // Update quality color scale
-                setColorScale();
+                getColorScale();
                 // Convert matrix and names into Newick format
                 act.innerHTML = 'Showing tree';
                 newick = UPGMA(distanceParse.matrix, distanceParse.labels);
@@ -422,12 +422,12 @@ function makeTree() {
     });
 }
 
-function getQScale() {
+function getSelectedScale() {
     return $("#qscale").children("option:selected").val();
 }
 
-function setColorScale() {
-    let qscale = getQScale();
+function getColorScale() {
+    let qscale = getSelectedScale();
     switch (qscale) {
         case "black":
             color_scale = d3.scaleLinear().domain([0, qualMax]).range(["#000000", "#000000"]);
@@ -488,7 +488,7 @@ function addLegend() {
         // Delete old legend if needed
         let svg = d3.select("svg");
         svg.selectAll(".legend-container").remove();
-        if (getQScale() != "black") {
+        if (getSelectedScale() != "black") {
             // Make room for legend in svg
             let h = parseInt(svg.attr("height"));
             d3.select("svg").attr("height", h + 70);
@@ -577,10 +577,10 @@ function runCompare(params) {
 
 // ******************************* start of initialization ******************************************** //
 
-if (navigator.platform == 'Linux x86_64') {
+if (process.platform === 'linux' && process.arch === 'x64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
-} else if ((navigator.platform == 'Win64') || (navigator.platform == 'Win32')) {
+} else if (process.platform === 'win32' && process.arch === 'x64') {
     compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
 }
@@ -589,7 +589,7 @@ else if (process.platform == 'darwin') {
     compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
 }
 else {
-    document.body.innerHTML = "<H1>This app runs only on 64 bit Windows or 64 bit Linux Intel/AMD</H1>";
+    document.body.innerHTML = "<H1>This app runs only on 64 bit Windows, 64 bit Linux Intel/AMD or Darwin</H1>";
 }
 
 /////////////////////////
@@ -636,7 +636,7 @@ $("#pause").on("click", function (e) {
 });
 
 $("#qscale").change(function (e) {
-    setColorScale();
+    getColorScale();
     rendered_tree.update(true);
     addLegend();
 });
