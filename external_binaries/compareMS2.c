@@ -274,6 +274,7 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 				case 'L': par->minMz = parseDouble(argc, argv, &i); break;
 				case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
 				case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
+   				case 'X': strcpy(par->experimentalOutputFilename, realArg(argc, argv, &i)); break;
 				default:
 					printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
 					*err = -1;
@@ -620,14 +621,17 @@ static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, 
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-					if (par->experimentalFeatures == 1)
-						massDiffDotProductHistogram[(int) (MASSDIFF_HISTOGRAM_BINS
-								/ 2)
-								+ (int) floor(
-										(B[j].precursorMz - A[i].precursorMz)
-												* 999.999999999999)][(int) (DOTPROD_HISTOGRAM_BINS
-								/ 2) /* constant scaling 1 bin = 0.01 m/z units */
-						+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
+					if (par->experimentalFeatures == 1) {
+						int massDiffBin = (int) (MASSDIFF_HISTOGRAM_BINS / 2) +
+							 (int) floor((B[j].precursorMz - A[i].precursorMz) * 999.999999999999);
+						if ((massDiffBin>=0) && (massDiffBin<MASSDIFF_HISTOGRAM_BINS)) {
+							int dotProdBin = (int) (DOTPROD_HISTOGRAM_BINS / 2) +
+							 (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9));
+							if ((dotProdBin>=0) && (dotProdBin<DOTPROD_HISTOGRAM_BINS)) {
+								massDiffDotProductHistogram[massDiffBin][dotProdBin]++;
+							}
+						}
+					}
 				}
 				(*nComparisons)++;
 
