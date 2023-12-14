@@ -159,7 +159,14 @@ function convertData(tabData) {
 
 function runCompare(userparams, onFinishedFunc) {
     let mzFile1 = userparams.mzFile1;
-    let mzFile2 = userparams.mzFile2;
+    let mzFile2;
+
+    // If mzFile2 is not specified, use mzFile1 for both (self-comparison)
+    if (userparams.mzFile2) {
+        mzFile2 = userparams.mzFile2;
+    } else {
+        mzFile2 = userparams.mzFile1;
+    }
 
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(path.dirname(userparams.mzFile1));

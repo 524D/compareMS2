@@ -154,7 +154,7 @@ function updateSubmitButton() {
     const mode = getCmpMode()
     let enabled = false;
     if (mode == "heatmap") {
-        if ( $('#file1').val() && $('#file2').val() ) {
+        if ($('#file1').val()) {
             enabled = true;
         }
     }
