@@ -225,7 +225,7 @@ function compareNext() {
         // used to avoid stale incomplete output after interrupt
         const comparems2tmp = path.join(compareDir, hashName + "-" + instanceId + ".tmp");
 
-        // Append output filename, should now be part of hash
+        // Append output filename, should not be part of hash
         cmdArgs.push('-o', comparems2tmp);
 
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
