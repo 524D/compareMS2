@@ -344,6 +344,36 @@ option = {
             type: 'category',
             data: xData
         },
+        {
+            type: 'category',
+            data: function() {
+                let data = [];
+                const xRange = xMax-xMin;
+                const dataLen = 320; // FIXME: Hardcoded
+                // Initialize array with null values
+                for (let i = 0; i < dataLen; i++) {
+                    data[i] = '';
+                }
+                // Set values for fractions that we want to display
+                let fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
+                for (let i = 0; i < fractions.length; i++) {
+                    let dataIndex = Math.round(dataLen * ((eval(fractions[i])-xMin)/xRange));
+                    data[dataIndex] = fractions[i];
+                }
+                return data;
+            }(),
+            alignWithLabel: true,
+            position: 'top',
+            offset: 2,
+            axisTick: {
+                length: 5,
+                interval: (index, value) => Boolean(value)  // Return true for non-empty values
+            },
+            axisLabel: {
+                interval: 0,
+                rotate: 30 //If the label names are too long you can manage this by rotating the label.
+            }
+        },
     ],
     yAxis: [
         {
@@ -357,7 +387,7 @@ option = {
             min: 0.0,
             max: 1.0,
             position: 'left',
-            offset: 3,
+            offset: 1,
             axisLabel: {
                 formatter: '{value}'
             },
