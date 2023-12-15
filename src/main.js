@@ -242,8 +242,8 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 // Display spectral comparison window and send params
 ipcMain.on('compareSpecs', (event, params) => {
     let specWindow = new BrowserWindow({
-        width: 1000,
-        height: 780,
+        width: 1200,
+        height: 950,
         parent: mainWindow,
         modal: false,
         webPreferences: {
