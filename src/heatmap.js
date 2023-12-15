@@ -314,7 +314,7 @@ option = {
         {
         text: 'two−dataset comparison',
         left: 'center',
-        top: 10,
+        top: 2,
         textStyle: {
                 fontWeight: 'normal',
                 fontSize: 20
@@ -343,6 +343,9 @@ option = {
                         fontStyle: 'italic',
                     },
                 }
+            },
+            axisLine: {
+                show: true,
             },
             min: xMin,
             max: xMax,
