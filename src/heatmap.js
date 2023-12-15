@@ -8,7 +8,14 @@ const compareDirName = 'compareresult'
 var chartDom = document.getElementById('main');
 // var myChart = echarts.init(chartDom, null, { renderer: 'svg' }); // SVG is quite a bit slower than canvas
 var myChart = echarts.init(chartDom);
-myChart.showLoading();
+
+// Show the "loading" animation
+myChart.showLoading({
+    text: 'Working',
+    fontSize: 24,
+    spinnerRadius: 20,
+    lineWidth: 8,
+});
 
 var option;
 const xMin = -1.6;
