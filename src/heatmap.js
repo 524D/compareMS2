@@ -38,7 +38,14 @@ var option = {
         top: 2,
         textStyle: {
                 fontWeight: 'normal',
-                fontSize: 20
+                fontSize: 20,
+            rich: {
+                // (style "a" in text string)
+                a: {
+                    fontSize: 12,
+                    color: '#606060',
+                },
+            }
             }
         }
     ],
@@ -394,9 +401,12 @@ function runCompare(userparams, onFinishedFunc) {
     }
 
     if (mzFile1 == mzFile2) {
-        setTitle("Self comparison");
+        var file1Base = path.basename(mzFile1);
+        setTitle("Self comparison {a|(" + file1Base + ")}");
     } else {
-        setTitle("Two dataset comparison");
+        var file1Base = path.basename(mzFile1);
+        var file2Base = path.basename(mzFile2);
+        setTitle("Two dataset comparison {a|(" + file1Base + " vs " + file2Base + ")}");
     }
 
     if (userparams.specMetric == "0") {
