@@ -117,6 +117,17 @@ typedef struct {
 	char experimentalFeatures;
 } ParametersType;
 
+// Allocate memory, on fail exit with message
+static void* alloc_chk(size_t s)
+{
+	void* p = calloc(1, s);
+	if (p == 0) {
+		fprintf(stderr, "Out of memory\n");
+		exit(1);
+	}
+	return p;
+}
+
 /* atol0 acts the same as atol, but handles a null pointer without crashing */
 static long atol0(const char *p) {
 	if (p == 0) {
@@ -275,7 +286,7 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 				case 'L': par->minMz = parseDouble(argc, argv, &i); break;
 				case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
 				case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
-   				case 'X': strcpy(par->experimentalOutputFilename, realArg(argc, argv, &i)); break;
+				case 'X': strcpy(par->experimentalOutputFilename, realArg(argc, argv, &i)); break;
 				default:
 					printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
 					*err = -1;
@@ -344,7 +355,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 
 	if ((par->topN > -1) && (par->topN < dataset->Size)) {
 		printf("filtering top-%ld spectra...", par->topN);
-		dataset->Intensities = malloc(dataset->Size * sizeof(double));
+		dataset->Intensities = alloc_chk(dataset->Size * sizeof(double));
 		if ((fd = fopen(dataset->Filename, "r")) == NULL) {
 			printf("error opening dataset %c %s for reading", dataset->id, dataset->Filename);
 			return -1;
@@ -466,9 +477,9 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 		}
 		if (strspn("PEPMASS", p) > 6) {
 			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
-			spec[i].mz = (double*) malloc(par->peakCount * sizeof(double));
-			spec[i].intensity = (double*) malloc(par->peakCount * sizeof(double));
-			spec[i].bin = (double*) malloc(par->nBins * sizeof(double));
+			spec[i].mz = (double*) alloc_chk(par->peakCount * sizeof(double));
+			spec[i].intensity = (double*) alloc_chk(par->peakCount * sizeof(double));
+			spec[i].bin = (double*) alloc_chk(par->nBins * sizeof(double));
 			continue;
 		}
 		if (strspn("CHARGE", p) > 5) {
@@ -570,7 +581,7 @@ static void ScaleNormalizeBin(ParametersType *par, DatasetType *dataset, SpecTyp
 
 static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, DatasetType *datasetB,
 	 SpecType *A, SpecType *B, long *dotprodHistogram, long **massDiffDotProductHistogram,
-	 long *nComparisons, long *greaterThanCutoff, long *sAB, long *actualCompared) {
+	 long *nComparisons, long *greaterThanCutoff, long *sAB, long *actualCompared, int asymmetric) {
 	long i, j, k;
 	double maxDotProd;
 	double dotProd;
@@ -605,13 +616,18 @@ static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, 
 				continue;
 			if ((A[i].scan - B[j].scan) > par->maxScanNumberDifference)
 				continue;
+			// We assume the scans are ordered in increasing order
+			// Therefore, we can break the inner loop if the scan difference is too large
+			// (same for retention time a few lines down)
 			if ((B[j].scan - A[i].scan) > par->maxScanNumberDifference)
 				break;
 			if ((A[i].rt - B[j].rt) > par->maxRTDifference)
 				continue;
 			if ((B[j].rt - A[i].rt) > par->maxRTDifference)
 				break;
-			if (fabs(B[j].precursorMz - A[i].precursorMz)
+			double precursorMzA = A[i].precursorMz;
+			double precursorMzB = B[j].precursorMz;
+			if (fabs(precursorMzB - precursorMzA)
 					< par->maxPrecursorDifference) {
 				dotProd = 0;
 				for (k = 0; k < par->nBins; k++)
@@ -622,12 +638,13 @@ static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, 
 
 					dotprodHistogram[(int) (DOTPROD_HISTOGRAM_BINS / 2)
 							+ (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9))]++;
-					if (par->experimentalFeatures == 1) {
+				 	// For computing the MASSDIFF_HISTOGRAM, we don't want symmetry (only compare A to B, not B to A)
+					if ( (par->experimentalFeatures == 1) && (asymmetric) ) {
 						int massDiffBin = (int) (MASSDIFF_HISTOGRAM_BINS / 2) +
-							 (int) (floor((B[j].precursorMz - A[i].precursorMz))*MASSDIFF_HISTOGRAM_BINS/MASSDIFF_HISTOGRAM_RANGE);
+							 (int) (floor((precursorMzB - precursorMzA)*MASSDIFF_HISTOGRAM_BINS/MASSDIFF_HISTOGRAM_RANGE));
 						if ((massDiffBin>=0) && (massDiffBin<MASSDIFF_HISTOGRAM_BINS)) {
 							int dotProdBin = (int) (DOTPROD_HISTOGRAM_BINS / 2) +
-							 (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2));
+							 (int) floor(dotProd * (DOTPROD_HISTOGRAM_BINS / 2 - 1E-9));
 							if ((dotProdBin>=0) && (dotProdBin<DOTPROD_HISTOGRAM_BINS)) {
 								massDiffDotProductHistogram[massDiffBin][dotProdBin]++;
 							}
@@ -705,13 +722,13 @@ int main(int argc, char *argv[]) {
 	/* allocate memory */
 
 	printf("allocating memory...");
-	A = (SpecType*) malloc(datasetA.Size * sizeof(SpecType));
-	B = (SpecType*) malloc(datasetB.Size * sizeof(SpecType));
+	A = (SpecType*) alloc_chk(datasetA.Size * sizeof(SpecType));
+	B = (SpecType*) alloc_chk(datasetB.Size * sizeof(SpecType));
 	if (par.experimentalFeatures == 1) {
-		massDiffDotProductHistogram = (long**) malloc(
+		massDiffDotProductHistogram = (long**) alloc_chk(
 		MASSDIFF_HISTOGRAM_BINS * sizeof(long*));
 		for (i = 0; i < MASSDIFF_HISTOGRAM_BINS; i++)
-			massDiffDotProductHistogram[i] = malloc(
+			massDiffDotProductHistogram[i] = alloc_chk(
 			DOTPROD_HISTOGRAM_BINS * sizeof(long));
 	}
 
@@ -779,13 +796,15 @@ int main(int argc, char *argv[]) {
 
 	computeDotProdHistogram(&par, &datasetA, &datasetB, A, B,
 							&dotprodHistogram[0], massDiffDotProductHistogram,
-	 						&nComparisons, &greaterThanCutoff, &sAB, &datasetAActualCompared);
+	 						&nComparisons, &greaterThanCutoff, &sAB, &datasetAActualCompared,
+							1);
 	printf(".");
 
 	/* Same as above, with A and B swapped */
 	computeDotProdHistogram(&par, &datasetB, &datasetA, B, A,
 							&dotprodHistogram[0], massDiffDotProductHistogram,
-	 						&nComparisons, &greaterThanCutoff, &sBA, &datasetBActualCompared);
+	 						&nComparisons, &greaterThanCutoff, &sBA, &datasetBActualCompared,
+							0);
 
 	printf(
 			".done (compared %ld (|S_AB|=%ld) spectra from dataset A with %ld (|S_BA|=%ld) spectra from dataset B)\nwriting results to file...",
