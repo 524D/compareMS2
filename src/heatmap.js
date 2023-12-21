@@ -30,6 +30,37 @@ let userparams = JSON.parse(query['?userparams']);
 let instanceId = query['instanceId'];
 
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Output logging
+function llog(msg) {
+    log.info(msg);
+
+    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    msg = msg.replace(/(?: )/g, '&nbsp;');
+    document.getElementById('stdout').innerHTML += msg;
+}
+
+function elog(msg) {
+    log.error(msg);
+    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    msg = msg.replace(/(?: )/g, '&nbsp;');
+    // msg = '<span class="warn>' + msg + '</span>';  // Commented out, somehow span doesn't display anything
+    document.getElementById('stdout').innerHTML += msg;
+}
+
+function showActivity(msg) {
+    let act = document.getElementById('activity');
+    act.innerHTML = msg;
+}
+
 function getSelectedScale() {
     return $("#qscale").children("option:selected").val();
 }
@@ -237,37 +268,38 @@ function runCompare(userparams, onFinishedFunc) {
     });
 
     cmp_ms2.on('error', (data) => {
-        console.error('Error running compareMS2');
-        // act.innerHTML = 'Error running compareMS2';
+        hideLoading();
+        elog('Error running compareMS2');
+        showActivity('Error running compareMS2');
     });
 
     cmp_ms2.stderr.on('exit', (code, signal) => {
-        console.error('Error running compareMS2');
+        hideLoading();
+        elog('Error running compareMS2');
+        showActivity('Error running compareMS2');
         // act.innerHTML = 'Error running compareMS2';
     });
 
     cmp_ms2.on('close', (code, signal) => {
+        hideLoading();
         if (code == null) {
-            elog("Error: comparems2 command line executable crashed.\n")
+            elog("Error: comparems2 command line executable crashed (signal 0x" + signal.toString(16) + ")\n")
+            showActivity("Error: comparems2 command line executable crashed (signal 0x" + signal.toString(16) + ")\n")
         }
         else {
-            // Compare finished, rename temporary output file
-            // to final filename
-            fs.rename(comparems2tmpX, cmpFile, function (err) {
-                if (err) throw err
-                onFinishedFunc(cmpFile);
-            });
+            if (code != 0) {
+                elog("Error: comparems2 command line exited with error code " + code.toString(16), "\n")
+                showActivity("Error: comparems2 command line exited with error code " + code.toString(16), "\n")
+            } else {
+                // Compare finished, rename temporary output file
+                // to final filename
+                fs.rename(comparems2tmpX, cmpFile, function (err) {
+                    if (err) throw err
+                    onFinishedFunc(cmpFile);
+                });
+            }
         }
     });
-}
-
-// Output logging
-function llog(msg) {
-    log.info(msg);
-}
-
-function elog(msg) {
-    log.error(msg);
 }
 
 function run() {
@@ -303,6 +335,19 @@ document.addEventListener("keydown", event => {
 // Set color scale when selection changes
 $("#qscale").change(function() {
     updateQScale();
+});
+
+$("#details").on("click", function (e) {
+    if ($(this).html() == "Hide details") {
+        $(".tvert-details").css("visibility", "hidden");
+        $(".info-details").css("height", "1px");
+        $(this).html("Show details");
+    }
+    else {
+        $(".tvert-details").css("visibility", "visible");
+        $(".info-details").css("height", "150px");
+        $(this).html("Hide details");
+    }
 });
 
 // Start the comparison
@@ -478,11 +523,13 @@ function convertResultToHeatmap(cmpFile) {
     // Read cmpFile into tabData
     let tabData = fs.readFileSync(cmpFile, 'utf8');
     [data, xData, yData, realYMin, maxVal] = convertData(tabData)
-    myChart.hideLoading();
     updateOption(xMin, xMax, data, xData, yData, realYMin, maxVal) 
     myChart.setOption(option);
 }
 
+function hideLoading() {
+    myChart.hideLoading();
+}
 
 // option && myChart.setOption(option);
 
