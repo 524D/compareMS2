@@ -641,7 +641,7 @@ $("#qscale").change(function (e) {
     addLegend();
 });
 
-$("#store-svg").on("click", function (e) {
+$("#store-image").on("click", function (e) {
     const v = $('#img-type').val();
     if (v == "svg") {
         const svg = document.querySelector('#main-tree-item svg');
