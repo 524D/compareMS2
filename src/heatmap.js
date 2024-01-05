@@ -626,5 +626,9 @@ $("#details").on("click", function (e) {
     }
 });
 
-// Start the comparison
+window.addEventListener('resize', function() {
+    myChart.resize();
+});
+
+    // Start the comparison
 run();
