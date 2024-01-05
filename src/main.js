@@ -19,6 +19,25 @@ function selectMGFfile(title) {
     return files;
 }
 
+function handleStoreImage(dummy, imgFmt, imageData, instanceId) {
+    const files = dialog.showSaveDialogSync(mainWindow, {
+        title: 'Save image',
+        defaultPath: 'heatmap.' + imgFmt,
+        filters: [
+            { name: imgFmt + ' file', extensions: [imgFmt] },
+            { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+    });
+    if (files) {
+        fs.writeFile(files, imageData, function (err) {
+            if (err) {
+                return console.log(err);
+            }
+        });
+    }
+}
+
 // FIXME: Remove. Not needed anymore, now default:
 app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -332,3 +351,5 @@ ipcMain.on('move-file', (event, fn1, fn2) => {
         }
     });
 })
+
+ipcMain.on('store-image', handleStoreImage);

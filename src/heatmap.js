@@ -1,3 +1,4 @@
+const { ipcRenderer } = nodeRequire('electron');
 const path = nodeRequire('path');
 const querystring = nodeRequire('querystring');
 const { app } = nodeRequire('@electron/remote')
@@ -178,7 +179,7 @@ var option = {
             // Make chart silent so that it doesn't respond to mouse events and pointer remains an arrow
             silent: true,
 
-            name: 'Two dataset comparisonxxx',
+            name: '',
             type: 'heatmap',
             coordinateSystem: 'cartesian2d',
             xAxisIndex: 1,
@@ -186,7 +187,9 @@ var option = {
             data: data,
 
             // Number of items to draw in one "frame" (about 16 ms)
-            progressive: 2000,
+            // Since this also appears to effect the charts rendered to SVG and maybe PNG,
+            // we set it to a very high value to avoid the parts of the chart being lost.
+            progressive: 1000000,
             animation: false
         }
     ]
@@ -515,6 +518,55 @@ function run() {
     runCompare(userparams, convertResultToHeatmap)
 }
 
+// Function renderSVG is renders the chart to an SVG string
+// Parameters option contains the chart "option" object as defined by ECharts
+function renderSVG(option) {
+    // In SSR mode the first container parameter is not required
+    const chart = echarts.init(null, null, {
+        renderer: 'svg', // must use SVG rendering mode
+        ssr: true, // enable SSR
+        width: 1200, // need to specify height and width
+        height: 1000
+    });
+
+    chart.setOption(option);
+    const svgStr = chart.renderToSVGString();
+    chart.dispose();
+    return svgStr;
+}
+
+function createCanvas(width, height) {
+    return Object.assign(document.createElement('canvas'), { width: width, height: height })
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+// Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
+// Parameters option contains the chart "option" object as defined by ECharts
+function saveAsPNG(option) {
+    const canvas = createCanvas(1200, 1000);
+    // ECharts can use the Canvas instance created by node-canvas as a container directly
+    const chart = echarts.init(canvas);
+    
+    chart.setOption(option);
+     //    chart.on('finished', () => {
+     // Sleep is a hack, eCharts doesn't seem to wait for the chart to be rendered
+     // before firing the 'finished' event (and before the 'rendered' event either)
+     sleep(500).then(() => {
+            canvas.toBlob(function(blob) {
+                blob.arrayBuffer().then(function(aBuffer) {
+                    // Convert to Node.js Buffer
+                    const buffer=Buffer.from(aBuffer);
+                    ipcRenderer.send('store-image', "png", buffer, 0);
+                });
+            });
+            chart.dispose();
+        });
+    return;
+}
+
 // ******************************* start of initialization ******************************************** //
 
 if (process.platform === 'linux' && process.arch === 'x64') {
@@ -545,6 +597,21 @@ document.addEventListener("keydown", event => {
 $("#qscale").change(function() {
     updateQScale();
 });
+
+$("#store-image").on("click", function (e) {
+    const imgFmt = $('#img-type').val();
+    var imageData;
+    if (imgFmt == "svg") {
+        imageData = renderSVG(option);
+        ipcRenderer.send('store-image', imgFmt, imageData, instanceId);
+    }        
+    else if (imgFmt == "png") {
+        imageData = saveAsPNG(option);
+    }
+    // Set message to main process to store the SVG string
+    // FIXME: when context isolation is enabled, replace with:
+    // window.electronAPI.storeImage(v, imageData, instanceId);
+})
 
 $("#details").on("click", function (e) {
     if ($(this).html() == "Hide details") {
