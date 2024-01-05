@@ -30,7 +30,7 @@ const defaultOptions = {
     endScan: 1000000,
     cutoff: 0.8,
     specMetric: 0,
-    scaling: 0.5,
+    scaling: 1.0,
     noise: 10,
     metric: 2,
     qc: 0,
