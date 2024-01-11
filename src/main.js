@@ -155,7 +155,7 @@ Menu.setApplicationMenu(menu)
 const createWindow = () => {
     // Create the browser window.
     mainWindow = new BrowserWindow({
-        width: 780,
+        width: 840,
         height: 820,
         webPreferences: {
             nodeIntegration: true,
