@@ -71,15 +71,14 @@ On Windows and Ubuntu, the easiest way to install compareMS2 is through the [ins
 
 Alternatively, and for other platforms, follow the instructions below.
 
-First install nodejs:
+A recent version of `NodeJs` and `yarn` are required. The versions supplied with most Linux distributions are outdated.
+We recommend installing the latest versions from the NodeJs and yarn websites. NodeJs must be installed before yarn.
 
-* On Windows, macOS and other Linux flavors, download from: <https://nodejs.org/en/download/>
-* On Debian/Ubuntu Linux, run `apt install nodejs`, and update yarn to the latest version with:
-
-        curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-        echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-        sudo apt update
-        sudo apt install yarn
+* For NodeJs, use the [installer](https://nodejs.org/en/download), except for Ubuntu/Debian (because no installer is provided).
+  For Ubuntu Linux we used the instructions found
+  [here](https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-22-04#option-2-installing-node-js-with-apt-using-a-nodesource-ppa)
+* For yarn, we used the instructions found [yarn website](https://classic.yarnpkg.com/lang/en/docs/install/)
+  under "Alternatives", installing the "Classic stable" version.
 
 Then run the following on the command line:
 
