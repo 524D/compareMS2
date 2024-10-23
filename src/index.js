@@ -341,3 +341,7 @@ $(document).tooltip({
       collision: "none"
     }
   });
+
+  function openSourceCodeInBrowser() {
+    ipcRenderer.send('openSourceCodeInBrowser')
+  }

@@ -121,3 +121,9 @@ details p {
     opacity: 0.4;
     pointer-events: none;
 }
+
+.extern-link {
+    color: blue;
+    text-decoration: underline;
+    cursor: pointer;
+}

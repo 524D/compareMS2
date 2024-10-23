@@ -353,3 +353,7 @@ ipcMain.on('move-file', (event, fn1, fn2) => {
 })
 
 ipcMain.on('store-image', handleStoreImage);
+
+ipcMain.on('openSourceCodeInBrowser', (event) => {
+    shell.openExternal("https://github.com/524D/compareMS2");
+})
