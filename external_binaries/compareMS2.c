@@ -91,6 +91,7 @@ typedef struct {
 
 typedef struct {
 	char outputFilename[MAX_LEN];
+	char JSONFilename[MAX_LEN];
 	char experimentalOutputFilename[MAX_LEN];
 	double minBasepeakIntensity;
 	double minTotalIonCurrent;
@@ -175,6 +176,7 @@ double quickSelect(double A[], long left, long right, long k) {
 
 static void initPar(ParametersType *par) {
 	strcpy(par->outputFilename, "output.txt");
+	strcpy(par->JSONFilename, "");
 	par->minBasepeakIntensity = DEFAULT_MIN_BASEPEAK_INTENSITY;
 	par->minTotalIonCurrent = DEFAULT_MIN_TOTAL_ION_CURRENT;
 	par->maxScanNumberDifference = DEFAULT_MAX_SCAN_NUMBER_DIFFERENCE;
@@ -250,20 +252,29 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 			switch (argv[i][1]) {
 				case 'A': strcpy(datasetA->Filename, realArg(argc, argv, &i)); break;
 				case 'B': strcpy(datasetB->Filename, realArg(argc, argv, &i)); break;
-				case 'W': strcpy(temp, realArg(argc, argv, &i));
-						  p = strtok(temp, ",");
-						  par->startScan = atol0(p);
-						  p = strtok('\0', ",");
-						  par->endScan = atol0(p);
-						  break;
+				case 'I': par->minPeaks = parseInt(argc, argv, &i); break;
+				case 'J': strcpy(par->JSONFilename, realArg(argc, argv, &i)); break;
+				case 'L': par->minMz = parseDouble(argc, argv, &i); break;
+				case 'N': par->topN = parseInt(argc, argv, &i); break;
 				case 'R': strcpy(temp, realArg(argc, argv, &i));
 							p = strtok(temp, ",");
 							par->startRT = atof0(p);
 							p = strtok('\0', ",");
 							par->endRT = atof0(p);
 							break;
-				case 'o': strcpy(par->outputFilename, realArg(argc, argv, &i)); break;
-				case 'p': par->maxPrecursorDifference = parseDouble(argc, argv, &i); break;
+				case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
+				case 'W': strcpy(temp, realArg(argc, argv, &i));
+						  p = strtok(temp, ",");
+						  par->startScan = atol0(p);
+						  p = strtok('\0', ",");
+						  par->endScan = atol0(p);
+						  break;
+				case 'X': strcpy(par->experimentalOutputFilename, realArg(argc, argv, &i)); break;
+
+				case 'b': par->binSize = parseDouble(argc, argv, &i); break;
+				case 'c': par->cutoff = parseDouble(argc, argv, &i); break;
+				case 'd': par->metric = parseInt(argc, argv, &i); break;
+				case 'f': par->spectrum_metric = parseInt(argc, argv, &i); break;
 				case 'm': /* minimum basepeak and total intensity */
 				 strcpy(temp, realArg(argc, argv, &i));
 							p = strtok(temp, ",");
@@ -271,22 +282,14 @@ static int parseArgs(int argc, char *argv[], ParametersType *par,
 							p = strtok('\0', ",");
 							par->minTotalIonCurrent = atof0(p);
 							break;
-
-				case 'w': par->maxScanNumberDifference = parseDouble(argc, argv, &i); break;
-				case 'r': par->maxRTDifference = parseDouble(argc, argv, &i); break;
-				case 'c': par->cutoff = parseDouble(argc, argv, &i); break;
-				case 's': par->scaling = parseDouble(argc, argv, &i); break;
 				case 'n': par->noise = parseDouble(argc, argv, &i); break;
-				case 'd': par->metric = parseInt(argc, argv, &i); break;
-				case 'f': par->spectrum_metric = parseInt(argc, argv, &i); break;
+				case 'o': strcpy(par->outputFilename, realArg(argc, argv, &i)); break;
+				case 'p': par->maxPrecursorDifference = parseDouble(argc, argv, &i); break;
 				case 'q': par->qc = parseInt(argc, argv, &i); break;
-				case 'N': par->topN = parseInt(argc, argv, &i); break;
-				case 'b': par->binSize = parseDouble(argc, argv, &i); break;
-				case 'I': par->minPeaks = parseInt(argc, argv, &i); break;
-				case 'L': par->minMz = parseDouble(argc, argv, &i); break;
-				case 'U': par->maxMz = parseDouble(argc, argv, &i); break;
+				case 'r': par->maxRTDifference = parseDouble(argc, argv, &i); break;
+				case 's': par->scaling = parseDouble(argc, argv, &i); break;
+				case 'w': par->maxScanNumberDifference = parseDouble(argc, argv, &i); break;
 				case 'x': par->experimentalFeatures = parseInt(argc, argv, &i); break;
-				case 'X': strcpy(par->experimentalOutputFilename, realArg(argc, argv, &i)); break;
 				default:
 					printf("Unknown option: %c\n%s", argv[i][1], USAGE_STRING);
 					*err = -1;
@@ -395,7 +398,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 				specStatus = IN_RANGE_AND_FIRST_PEAK;
 			}
 			// Check if scan number and RT are in range
-			else if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
+			else if (strncmp("SCANS", p, 5) == 0) { /* MGFs with SCANS attributes */
 				p = strtok('\0', " \t");
 				scan = (long) atol0(strpbrk(p, "0123456789"));
 				if (scan < par->startScan || scan > par->endScan) {
@@ -409,7 +412,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 					specStatus = NOT_IN_RANGE;
 				}
 			}
-			else if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
+			else if (strncmp("TITLE", p, 5) == 0) { /* msconvert-style MGFs with NativeID and scan= */
 				while (p != NULL) {
 					if (strstr(p, "scan=") != NULL) {
 						scan = (long) atol0(strpbrk(p, "0123456789"));
@@ -420,7 +423,7 @@ static int preCheckMGF(ParametersType *par, DatasetType *dataset) {
 					p = strtok('\0', " \t");
 				}
 			}
-			else if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+			else if (strncmp("RTINSECONDS", p, 11) == 0) { /* MGFs with RTINSECONDS attributes */
 				rt = atof0(strpbrk(p, "0123456789"));
 				if (rt < par->startRT || rt > par->endRT) {
 					specStatus = NOT_IN_RANGE;
@@ -475,18 +478,18 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			}
 			continue;
 		}
-		if (strspn("PEPMASS", p) > 6) {
+		if (strncmp("PEPMASS", p, 7) == 0) {
 			spec[i].precursorMz = atof(strpbrk(p, "0123456789"));
 			spec[i].mz = (double*) alloc_chk(par->peakCount * sizeof(double));
 			spec[i].intensity = (double*) alloc_chk(par->peakCount * sizeof(double));
 			spec[i].bin = (double*) alloc_chk(par->nBins * sizeof(double));
 			continue;
 		}
-		if (strspn("CHARGE", p) > 5) {
+		if (strncmp("CHARGE", p, 6) == 0) {
 			spec[i].charge = (char) atoi(strpbrk(p, "0123456789"));
 			continue;
 		}
-		if (strspn("SCANS", p) > 4) { /* MGFs with SCANS attributes */
+		if (strncmp("SCANS", p, 5) == 0) { /* MGFs with SCANS attributes */
 			p = strtok('\0', " \t");
 			long scan = atol0(strpbrk(p, "0123456789"));
 			spec[i].scan = scan;
@@ -502,7 +505,7 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			dataset->ScanNumbersCouldBeRead = 1;
 			continue;
 		}
-		if (strspn("TITLE", p) > 4) { /* msconvert-style MGFs with NativeID and scan= */
+		if (strncmp("TITLE", p, 5) == 0) { /* msconvert-style MGFs with NativeID and scan= */
 			while (p != NULL) {
 				if (strstr(p, "scan=") != NULL) {
 					long scan = atol0(strpbrk(p, "0123456789"));
@@ -514,7 +517,7 @@ static int readMGF(ParametersType *par, DatasetType *dataset, SpecType *spec) {
 			}
 			continue;
 		}
-		if (strspn("RTINSECONDS", p) > 10) { /* MGFs with RTINSECONDS attributes */
+		if (strncmp("RTINSECONDS", p, 11) == 0) { /* MGFs with RTINSECONDS attributes */
 			double rt = atof0(strpbrk(p, "0123456789"));
 			spec[i].rt = rt;
 			// printf("%c[%ld].rt = %ld\n", dataset->id, i, spec[i]->scan);
@@ -663,6 +666,174 @@ static void computeDotProdHistogram(ParametersType *par, DatasetType *datasetA, 
 		if (maxDotProd > par->cutoff)
 			(*sAB)++;
 	}
+}
+
+// Function escapeJSON takes a pointer to a string, and returns a pointer to a new string
+// where all special JSON characters have been escaped
+static char *escapeJSON(char *s) {
+	char *escaped = (char*) alloc_chk(strlen(s) * 2 + 1);
+
+	char *p = escaped;
+	while (*s != '\0') {
+		// Special characters: \\ \b \f \n \r \t \"
+		if (*s == '\\') {
+			*p++ = '\\';
+			*p++ = '\\';
+		}
+		else if (*s == '\b') {
+			*p++ = '\\';
+			*p++ = 'b';
+		}
+		else if (*s == '\f') {
+			*p++ = '\\';
+			*p++ = 'f';
+		}
+		else if (*s == '\n') {
+			*p++ = '\\';
+			*p++ = 'n';
+		}
+		else if (*s == '\r') {
+			*p++ = '\\';
+			*p++ = 'r';
+		}
+		else if (*s == '\t') {
+			*p++ = '\\';
+			*p++ = 't';
+		}
+		else if (*s == '"') {
+			*p++ = '\\';
+			*p++ = '"';
+		}
+		else {
+			*p++ = *s;
+		}
+		s++;
+	}
+	*p = '\0';
+	return escaped;
+}
+
+// writeJSON writes the result data in JSON format to the file specified in par->JSONFilename
+// Returns 0 if successful, -1 if not
+static int writeJSON(ParametersType *par, DatasetType *datasetA, DatasetType *datasetB,
+	 long *dotprodHistogram, long *massDiffHistogram, long **massDiffDotProductHistogram,
+	 long nComparisons, long greaterThanCutoff, long sAB, long sBA, int argc, char *argv[]) {
+
+	FILE *output;
+	long i, j;
+	(void) massDiffHistogram; // unused
+
+	if (strcmp(par->JSONFilename, "") == 0) {
+		return 0;
+	}
+	if ((output = fopen(par->JSONFilename, "w")) == NULL) {
+		printf("error opening JSON output file %s for writing", par->outputFilename);
+		return -1;
+	}
+
+	fprintf(output, "{\n");
+	// Write command line parameters to JSON file
+	fprintf(output, "\t\"commandLine\": \"");
+	for (i = 0; i < argc; i++) {
+		// Escape special JSON characters
+		char *arg = escapeJSON(argv[i]);
+		fprintf(output, "\\\"%s\\\" ", arg);
+		free(arg);
+	}
+	fprintf(output, "\",\n");
+	char *fn;
+	fn = escapeJSON(datasetA->Filename);
+	fprintf(output, "\t\"datasetA\": \"%s\",\n", fn);
+	free(fn);
+	fn = escapeJSON(datasetB->Filename);
+	fprintf(output, "\t\"datasetB\": \"%s\",\n", fn);
+	free(fn);
+	if (par->metric == 0) /* original metric */
+	{
+		if (greaterThanCutoff > 0)
+			fprintf(output, "\t\"setDistance\": %1.10f,\n",
+					(double) nComparisons / 2.0 / greaterThanCutoff);
+		if (greaterThanCutoff == 0)
+			fprintf(output, "\t\"setDistance\": \"INF\",\n");
+	}
+	if (par->metric == 1) /* symmetric metric */
+	{
+		if (greaterThanCutoff > 0)
+			fprintf(output, "\t\"setDistance\": %1.10f,\n",
+					(double) (datasetA->Size + datasetB->Size) / greaterThanCutoff);
+		if (greaterThanCutoff == 0)
+			fprintf(output, "\t\"setDistance\": \"INF\",\n");
+	}
+	if (par->metric == 2) /* compareMS2 2.0 symmetric metric */
+	{
+		if ((sAB + sBA) > 0) {
+			fprintf(output, "\t\"setDistance\": %1.10f,\n",
+					1.0
+							/ ((double) sAB / (2 * datasetA->Size)
+									+ (double) sBA / (2 * datasetB->Size)) - 1.0);
+		}
+		if ((sAB + sBA) == 0) { /* distance between sets with no similar spectra */
+			fprintf(output, "\t\"setDistance\": %1.10f,\n",
+					(4.0 * (double) datasetA->Size * datasetB->Size)
+							/ (datasetA->Size + datasetB->Size) - 1.0);
+		}
+	}
+	fprintf(output, "\t\"setMetric\": %i,\n", par->metric);
+	fprintf(output,
+			"\t\"scanRange\": [%ld, %ld],\n\t\"maxScanDiff\": %1.2f,\n\t\"maxMzDiff\": %1.4f,\n\t\"scalingPower\": %1.2f,\n\t\"noiseThreshold\": %1.1f,\n\t\"minBasepeakIntensity\": %1.2f,\n\t\"minTotalIonCurrent\": %1.2f,\n",
+			par->startScan, par->endScan, par->maxScanNumberDifference, par->maxPrecursorDifference,
+			par->scaling, par->noise, par->minBasepeakIntensity, par->minTotalIonCurrent);
+	if (par->qc == 0)
+		fprintf(output, "\t\"datasetAQC\": %ld,\n", datasetA->Size);
+	if (par->qc == 0)
+		fprintf(output, "\t\"datasetBQC\": %ld,\n", datasetB->Size);
+	fprintf(output, "\t\"nrGtCutoff\": %ld,\n", greaterThanCutoff);
+	fprintf(output, "\t\"nrComparisons\": %ld,\n", nComparisons);
+	fprintf(output, "\t\"minPeaks\": %ld,\n", datasetA->Size);
+	fprintf(output, "\t\"maxPeaks\": %ld,\n", datasetB->Size);
+	fprintf(output, "\t\"mzRange\": [%.4f, %.4f]\n,", par->minMz, par->maxMz);
+	fprintf(output, "\t\"mzBinSize\": %.4f,\n", par->binSize);
+	fprintf(output, "\t\"nrMzBins\": %ld,\n", par->nBins);
+
+	char sep = ' ';
+	fprintf(output, "\t\"dotProdHistogram\": {\n");
+	fprintf(output, "\t\t\"nrBins\": %d,\n", DOTPROD_HISTOGRAM_BINS); // Superfluous (equal to number of items in "count"): remove?
+	fprintf(output, "\t\t\"dotProdRange\": [-1.0, 1.0],\n");
+	fprintf(output, "\t\t\"count\": [\n\t\t\t");
+	for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++) {
+		fprintf(output,
+				"%c %ld",
+				sep, 
+				dotprodHistogram[i]);
+		sep = ',';
+	}
+	fprintf(output, "\n\t\t]\n");
+
+	if (par->experimentalFeatures == 1) {
+		fprintf(output, "\t},\n");
+		fprintf(output, "\t\"massDiffDotProdHistogram\": {\n");
+		fprintf(output, "\t\t\"mzRange\": [-%1.1f, %1.1f],\n",
+			MASSDIFF_HISTOGRAM_RANGE/2, MASSDIFF_HISTOGRAM_RANGE/2);
+		fprintf(output, "\t\t\"dotProdRange\": [-1.0, 1.0],\n");
+
+		fprintf(output, "\t\t\"count\": [\n");
+		for (i = 0; i < DOTPROD_HISTOGRAM_BINS; i++) {
+			fprintf(output, "\t\t\t[");
+			for (j = 0; j < MASSDIFF_HISTOGRAM_BINS - 1; j++)
+				fprintf(output, "%ld, ", massDiffDotProductHistogram[j][i]);
+			fprintf(output, "%ld],\n",
+					massDiffDotProductHistogram[MASSDIFF_HISTOGRAM_BINS - 1][i]);
+		}
+		fprintf(output, "\t\t\t[");
+		for (j = 0; j < MASSDIFF_HISTOGRAM_BINS - 1; j++)
+			fprintf(output, "%ld, ", massDiffDotProductHistogram[j][DOTPROD_HISTOGRAM_BINS - 1]);
+		fprintf(output, "%ld]\n\t\t]\n",
+				massDiffDotProductHistogram[MASSDIFF_HISTOGRAM_BINS - 1][DOTPROD_HISTOGRAM_BINS - 1]);
+	}
+	fprintf(output, "\t}\n");
+	fprintf(output, "}\n");
+	fclose (output);
+	return 0;
 }
 
 /* compareMS2 main function */
@@ -886,6 +1057,10 @@ int main(int argc, char *argv[]) {
 		fclose(output);
 	}
 
+    err = writeJSON(&par, &datasetA, &datasetB, &dotprodHistogram[0],
+			&massDiffHistogram[0], massDiffDotProductHistogram, nComparisons,
+			greaterThanCutoff, sAB, sBA, argc, argv);
+
 	/* free memory */
 	printf("done\nfreeing memory...");
 	free(A);
@@ -894,5 +1069,5 @@ int main(int argc, char *argv[]) {
 
 	/* return from main */
 
-	return 0;
+	return err;
 }

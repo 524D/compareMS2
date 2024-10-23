@@ -357,7 +357,7 @@ int main(int argc, char* argv[])
 {
 	FILE* input_file;
 	char input_filename[MAX_PATH], output_filename_stem[MAX_PATH], sample_species_mapping_filename[MAX_PATH], format, *p, line[MAX_LINE], **comparison, **X, **Y, **sample_name, **short_sample_name, **species_name, use_mapping = 0, metric = 0;
-	long i, x, y, n_comparisons;
+	long i, a, b, x, y, n_comparisons;
 	double cutoff;
 
 	int rv = 0; // Return value
@@ -466,6 +466,8 @@ int main(int argc, char* argv[])
 			printf("error opening MS2compare results file %s for reading", input_filename);
 			return -1;
 		}
+		a = 0;
+		b = 0;
 		x = 0;
 		y = 0;
 		while (fgets(line, 512, input_file) != NULL) {
@@ -476,18 +478,21 @@ int main(int argc, char* argv[])
 
 			if (strcmp(p, "dataset_A") == 0) {
 				p = strtok(NULL, "\t\n");
-				x = sample_name_to_species_index(p, &species);
+				a = sample_name_to_species_index(p, &species);
 				printf("\nread pairwise comparison %li (%s and ", i + 1, p);
 			} else if (strcmp(p, "dataset_B") == 0) {
 				p = strtok(NULL, "\t\n");
-				y = sample_name_to_species_index(p, &species);
+				b = sample_name_to_species_index(p, &species);
+				// (x,y) are the coordinates in the distance matrix
 				// The distance matrix is (supposed to be) symmetric and we
 				// will only compute the lower left triangle, e.g. y>x
 				// Swap coordinates if comparison is for upper right (x>y)
-				if (y < x) {
-					int tmp = x;
-					x = y;
-					y = tmp;
+				if (x < y) {
+					x = a;
+					y = b;
+				} else {
+					x = b;
+					y = a;
 				}
 				printf("%s)", p);
 			} else if (strcmp(p, "set_distance") == 0) {
@@ -501,13 +506,13 @@ int main(int argc, char* argv[])
 			} else if (strcmp(p, "dataset_A_QC") == 0) {
 				p = strtok(NULL, "\t");
 				double qc = atof(p);
-				qc_value[x] += qc;
-				qc_samples[x]++;
+				qc_value[a] += qc;
+				qc_samples[a]++;
 			} else if (strcmp(p, "dataset_B_QC") == 0) {
 				p = strtok(NULL, "\t");
 				double qc = atof(p);
-				qc_value[y] += qc;
-				qc_samples[y]++;
+				qc_value[b] += qc;
+				qc_samples[b]++;
 			}
 		}
 
