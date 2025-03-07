@@ -487,7 +487,7 @@ int main(int argc, char* argv[])
 				// The distance matrix is (supposed to be) symmetric and we
 				// will only compute the lower left triangle, e.g. y>x
 				// Swap coordinates if comparison is for upper right (x>y)
-				if (x < y) {
+				if (a < b) {
 					x = a;
 					y = b;
 				} else {
