@@ -9,7 +9,8 @@ compareMS2 calculates the global similarity between tandem mass spectrometry dat
 | **License** | [![GitHub](https://img.shields.io/github/license/524D/compareMS2)](https://github.com/524D/compareMS2/blob/main/LICENSE.txt)  |
 | **Community Registry**|[![RSD](https://img.shields.io/badge/rsd-compareMS2-00a3e3.svg)](https://research-software.nl/software/comparems2) |
 | **Citation** | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14990300.svg)](https://doi.org/10.5281/zenodo.14990300) |
-| **FAIR status** | [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu) |
+| **Best practices** |[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10480/badge)](https://www.bestpractices.dev/projects/10480) |
+| **FAIR status** | [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu) |
 
 [1. Introduction](#1-Introduction)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1.1 What is compareMS2?](#11-What-is-compareMS2)  
