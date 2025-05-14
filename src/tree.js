@@ -200,26 +200,9 @@ function compareNext() {
             [mgf1, mgf2] = [mgf2, mgf1];
         }
 
-        let cmdArgs =
-            ['-A', mgf1,
-                '-B', mgf2,
-                '-p', paramsGlobal.maxPrecursorDifference,
-                '-m', paramsGlobal.minBasepeakIntensity + ',' + paramsGlobal.minTotalIonCurrent,
-                '-w', paramsGlobal.maxScanNumberDifference,
-                '-W', paramsGlobal.startScan + ',' + paramsGlobal.endScan,
-                '-r', paramsGlobal.maxRTDifference,
-                '-R', paramsGlobal.startRT + ',' + paramsGlobal.endRT,
-                '-c', paramsGlobal.cutoff,
-                '-f', paramsGlobal.specMetric,
-                '-s', paramsGlobal.scaling,
-                '-n', paramsGlobal.noise,
-                '-q', paramsGlobal.qc,
-                '-d', paramsGlobal.metric,
-                '-N', paramsGlobal.topN,
-            ]
+        let cmdArgs = buildCmdArgs(mgf1, mgf2, paramsGlobal)
         // Create a unique filename based on parameters
-        const hashName = shortHashObj({ cmdArgs });
-        let cmpFile = path.join(compareDir, hashName + ".txt");
+        let {cmpFile, hashName} = getHashName(cmdArgs, compareDir);
 
         // Temporary output filename of compare ms2
         // used to avoid stale incomplete output after interrupt
@@ -289,6 +272,64 @@ function compareFinished(compResultListFile, cmpFile) {
         // Finished new row, create tree
         makeTree();
     }
+}
+
+function buildCmdArgs(mgf1, mgf2, opts) {
+    let cmdArgs =
+        ['-A', mgf1,
+            '-B', mgf2,
+            '-p', opts.maxPrecursorDifference,
+            '-m', opts.minBasepeakIntensity + ',' + opts.minTotalIonCurrent,
+            '-w', opts.maxScanNumberDifference,
+            '-W', opts.startScan + ',' + opts.endScan,
+            '-r', opts.maxRTDifference,
+            '-R', opts.startRT + ',' + opts.endRT,
+            '-c', opts.cutoff,
+            '-f', opts.specMetric,
+            '-s', opts.scaling,
+            '-n', opts.noise,
+            '-q', opts.qc,
+            '-d', opts.metric,
+            '-N', opts.topN,
+        ]
+    return cmdArgs
+}
+
+function getHashName(cmdArgs, compareDir) {
+    // Create a unique filename based on parameters
+    const hashName = shortHashObj({ cmdArgs });
+    const cmpFile = path.join(compareDir, hashName + ".txt");
+    return {cmpFile, hashName};
+}
+
+// findLastFinishedRow returns the index of the last row in the
+// comparison matrix for which we already have all the comparisons.
+// This is used to continue the comparison after a the program
+// is interrupted.
+function findLastFinishedRow(mgfFiles, opts, compareDir) {
+    let lastRow = 0;
+    let lastCol = 0;
+    let nMgf = mgfFiles.length;
+    for (let i = 1; i < nMgf; i++) {
+        for (let j = 0; j < i; j++) {
+            let mgf1 = mgfFiles[i];
+            let mgf2 = mgfFiles[j];
+            if (mgf1 > mgf2) {
+                [mgf1, mgf2] = [mgf2, mgf1];
+            }
+            let {cmpFile} = getHashName(buildCmdArgs(mgf1, mgf2, opts), compareDir);
+            if (fs.existsSync(cmpFile)) {
+                lastRow = i;
+                lastCol = j;
+            } else {
+                if (lastRow > lastCol - 1) {
+                    lastRow -= 1;
+                }
+                return lastRow
+            }
+        }
+    }
+    return lastRow
 }
 
 // Parse distance matrix that is output by compareMS2_to_distance_matrices
@@ -568,6 +609,7 @@ function runCompare(params) {
     paramsGlobal = params;
     file1Idx = 1;
     file2Idx = 0;
+//    file1Idx = findLastFinishedRow(mgfFilesGlobal, params, compareDir)
 
     // Create empty comparison list file
     compResultListFile = path.join(paramsGlobal.mgfDir, "cmp_list-" + instanceId + ".txt");
