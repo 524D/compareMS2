@@ -133,9 +133,23 @@ function saveOptionsToFile(fn, options) {
 // FIXME: update info only after waiting some time
 function updateMgfInfo(path) {
     const mgfinfo = document.getElementById('mgfinfo');
-    var mgfFiles = getMgfFiles(path);
-    var nMgf = mgfFiles.length;
-    mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf - 1)) / 2 + " comparisons.";
+    const mgfFiles = getMgfFiles(path);
+    const nMgf = mgfFiles.length;
+    const cmpMode = getCmpMode()
+    var msg= "";
+    var nComp = 0;
+    switch (cmpMode) {
+        case "phyltree":
+            nComp = (nMgf * (nMgf - 1)) / 2;
+            msg = nMgf + " MGF files, " + nComp + " comparisons.";
+            break;
+        case "spec-to-species":
+            nComp = nMgf;
+            msg = nMgf + " MGF files, " + nComp + " comparisons.";
+            break;
+    }
+
+    mgfinfo.innerHTML = msg;
     // Disable submit button if < 2 MGF files
     updateSubmitButton();
 }
@@ -145,27 +159,36 @@ function getCmpMode() {
     return mode;
 }
 
-// Enable or disable submit button
-// The submit button is enabled if:
-// - the compare mode is "compare" and both files are selected
-// - the compare mode is "tree" and a folder is selected, and the
-//     folder contains at least 2 MGF files
-function updateSubmitButton() {
-    const mode = getCmpMode()
+function computeSubmitButtonState(mode, mgfFiles, mgfFile1) {
     let enabled = false;
-    if (mode == "heatmap") {
-        if ($('#file1').val()) {
-            enabled = true;
-        }
-    }
-    else { // mode == "tree" 
-        if ( $('#mgfdir').val() ) {
-            const mgfFiles = getMgfFiles($('#mgfdir').val());
+    switch (mode) {
+        case "phyltree":
             if (mgfFiles.length >= 2) {
                 enabled = true;
             }
-        }
+            break;
+        case "heatmap":
+            if (mgfFile1) {
+                enabled = true;
+            }
+            break;
+        case "spec-to-species":
+            if (mgfFile1 && mgfFiles.length >= 2) {
+                enabled = true;
+            }
+            break;
+        default:
+            break;
     }
+    return enabled;
+}
+
+// Enable or disable submit button
+function updateSubmitButton() {
+    const mode = getCmpMode()
+    const mgfFiles = getMgfFiles($('#mgfdir').val());
+    const mgfFile1 = $('#file1').val();
+    let enabled = computeSubmitButtonState(mode, mgfFiles, mgfFile1);
     $('#submit').prop('disabled', !enabled);
 }
 
@@ -237,6 +260,7 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
 $('.cmpmode').change(function() {
     updateCmpModeElems();
     updateSubmitButton();
+    updateMgfInfo($('#mgfdir').val());
 });
 
 // Handle the "Compare only N most intense spectra" input

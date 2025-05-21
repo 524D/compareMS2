@@ -56,15 +56,23 @@
     <!-- Tab content -->
     <div id="CompareMode" class="tabcontent tabdefault">
         <div><label class="input-label">Compare mode:</label>
-            <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
-                 title="Compare many files and generate a phylogenetic tree">
-            <label for="phyltree">Phylogenetic tree (N vs N)</label>
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
-                title="Compare two files and mass difference heatmap">
-            <label for="heatmap">Heatmap (1 vs 1)</label>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
+                    title="Compare many files and generate a phylogenetic tree">
+                <label for="phyltree">Phylogenetic tree (N vs N)</label>
+            </div>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
+                    title="Compare two files and mass difference heatmap">
+                <label for="heatmap">Heatmap (1 vs 1)</label>
+            </div>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="spec-to-species" name="cmpmode" value="spec-to-species"
+                    title="Compare one file to many files">
+                <label for="spec-to-species">Spectra to Species (1 vs N)</label>
+            </div>
         </div>
-        <div class="enable_in_mode phyltree">
+        <div class="enable_in_mode phyltree spec-to-species">
             <div><label class="input-label2">Directory of MGF files:</label>
                 <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
                 <button type="button" id="select-directory">
@@ -74,12 +82,14 @@
                 <span id=mgfinfo class="small"></span>
             </div>
         </div>
-        <div class="enable_in_mode heatmap">
+        <div class="enable_in_mode heatmap spec-to-species">
             <div><label class="input-label2">File 1:</label>
                 <input class="input-value" type="text" id="file1" spellcheck="false">&nbsp;
                 <button type="button" id="select-file1">
                     <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 1</button>
             </div>
+        </div>
+        <div class="enable_in_mode heatmap">
             <div><label class="input-label3 small"></label>
                 <span class="small">Compare to self if file 2 is not set</span>
             </div>

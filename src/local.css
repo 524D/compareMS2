@@ -12,6 +12,12 @@ html, body {
     padding: 0;
  }
 
+.input-select {
+  position: relative;
+  left: 8%;
+  width: 92%;
+}
+
 .input-label {
   width: 40%;
   padding: 10px;
