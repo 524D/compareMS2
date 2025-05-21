@@ -2,7 +2,6 @@
 // Copyright 2022 Rob Marissen.
 
 const { BrowserWindow, app } = nodeRequire('@electron/remote')
-const path = nodeRequire('path')
 const { ipcRenderer } = nodeRequire('electron')
 var appVersion = app.getVersion();
 
@@ -12,6 +11,12 @@ const selectFile2Btn = document.getElementById('select-file2')
 const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
 
 var s2sFileManualSet = false;
+
+var mgfDirFull = {
+    dir: "",
+    mgfFiles: [],
+    s2sFile: "",
+};
 
 const homedir = nodeRequire('os').homedir();
 
@@ -74,7 +79,9 @@ function setOptions(options) {
     document.getElementById("outmega").checked = options.outMega;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
-    updateMgfInfo(options.mgfDir);
+    mgfDirFull.dir = options.mgfDir;
+    // FIXME: also get rest of mfgDirFull.
+    updateMgfInfo();
 }
 
 // Get all values set by user
@@ -130,10 +137,9 @@ function saveOptionsToFile(fn, options) {
 }
 
 // Update MGF files info
-// FIXME: update info only after waiting some time
-function updateMgfInfo(path) {
+function updateMgfInfo() {
     const mgfinfo = document.getElementById('mgfinfo');
-    const mgfFiles = getMgfFiles(path);
+    const mgfFiles = mgfDirFull.mgfFiles;
     const nMgf = mgfFiles.length;
     const cmpMode = getCmpMode()
     var msg= "";
@@ -233,12 +239,6 @@ setOptions(defaultOptions);
 // Grey out the elements that are not needed for the selected compare mode
 updateCmpModeElems()
 
-// Update MGF info on manual input
-const inputHandler = function (e) {
-    updateMgfInfo(e.target.value);
-}
-document.getElementById("mgfdir").addEventListener('input', inputHandler);
-
 // Handle browse buttons
 selectDirBtn.addEventListener('click', (event) => {
     ipcRenderer.send('open-dir-dialog')
@@ -300,21 +300,19 @@ ipcRenderer.on('reset-options', (event, p) => {
 })
 
 ipcRenderer.on('selected-directory', (event, p) => {
-    var fn = `${p}`;
+    mgfDirFull=p;
+    const fn = mgfDirFull.dir;
     document.getElementById("mgfdir").value = fn;
-    updateMgfInfo(fn);
+    updateMgfInfo();
     // If sample-to-species file was not manually set, check if
     // a file named 'sample_to_species.txt' exists in the selected
     // dir, and set the path if so.
     if (!s2sFileManualSet) {
-        const s2sFn = path.join(fn, "sample_to_species.txt");// p+"/sample_to_species.txt"; 
-        fs.access(s2sFn, fs.F_OK, (err) => {
-            if (err) {
-                return
-            }
-            document.getElementById("s2sfile").value = s2sFn;
-        });
+        if (mgfDirFull.s2sFn) {
+            document.getElementById("s2sfile").value = mgfDirFull.s2sFn;
+        }
     }
+    updateSubmitButton();
 })
 
 ipcRenderer.on('selected-file1', (event, p) => {

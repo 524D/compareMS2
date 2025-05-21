@@ -221,12 +221,35 @@ app.on('activate', () => {
 const { ipcMain, dialog } = require('electron')
 
 ipcMain.on('open-dir-dialog', (event) => {
-    const files = dialog.showOpenDialogSync(mainWindow, {
+    const dir = dialog.showOpenDialogSync(mainWindow, {
         title: 'Select sample directory',
         properties: ['openDirectory']
     });
-    if (files) {
-        mainWindow.send('selected-directory', files)
+    if (dir) {
+        const filesAndDirs = fs.readdirSync(dir[0]);
+        const files = filesAndDirs.filter(file => {
+            const filePath = path.join(dir[0], file);
+            return fs.statSync(filePath).isFile();
+        });
+        // Filter for MGF files
+        const mgfFiles = files.filter(file => file.endsWith('.mgf'));
+        const mgfFilesFull = mgfFiles.map(file => path.join(dir[0], file));
+        const mgfFilesShort = mgfFiles.map(file => path.basename(file));
+        var s2sFn = path.join(dir[0], "sample_to_species.txt");
+        fs.access(s2sFn, fs.F_OK, (err) => {
+            s2sFn = null;
+        })
+
+        mainWindow.send('selected-directory', 
+            {
+                dir: dir,
+                files: files,
+                mgfFiles: mgfFiles,
+                mgfFilesFull: mgfFilesFull,
+                mgfFilesShort: mgfFilesShort,
+                s2sFn: s2sFn
+             }
+        )
     }
 })
 
