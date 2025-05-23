@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright 2022 Rob Marissen.
+// Copyright Rob Marissen.
 
 // Convert a distance matrix into a phylogenetic tree
 // The tree is represented in Newick format

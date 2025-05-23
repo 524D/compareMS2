@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright 2022 Rob Marissen.
+// Copyright Rob Marissen.
 
 // Get list of MGF files in dir
 const fs = require('fs');

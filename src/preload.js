@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright 2022 Rob Marissen.
+// Copyright Rob Marissen.
 
 // FIXME: enable context isolation by implementing all relevant functions in preload.js and
 //  uncommenting below
