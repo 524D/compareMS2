@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<!--- SPDX-License-Identifier: MIT --->
+<!--- Copyright Rob Marissen. --->
+
+<head>
+    <meta charset="utf-8" />
+    <title>Heatmap</title>
+    
+    <link rel="stylesheet" href="assets/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/micon_nb.min.css">
+    <link rel="stylesheet" href="local.css">
+    <link rel="stylesheet" href="heatmap.css">
+  </head>
+  <body>
+
+    <div class="tvert-container">
+        <div class="tvert-main">
+            <div class="mainhor-container">
+                <div class="main-control-item">
+                    <div class="control-container">
+                        <div class="control-item">
+                            <label>Color scale:</label>
+                            <select id="qscale">
+                                <option value="rwb" selected="selected">Red-white-blue</option>
+                                <option value="gray">Grayscale</option>
+                                <option value="rgb">Red-green-blue</option>
+                                <option value="ylgnbu">Yellow-green-blue</option>
+                            </select>
+                            <br><br>
+                        </div>
+                        <div class="control-item">
+                            &nbsp;<button id="store-image"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save
+                                picture</button>
+                            <label class="small-input">image type:</label>
+                            <select class="small-input" name="img-type" id="img-type">
+                                <option value="png">PNG</option>
+                                <option value="svg">SVG</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Prepare a DOM with a defined width and height for ECharts -->
+                <div id="main" style="width: 1200px;height:800px;"></div>
+            </div>
+        </div>
+        <div class="tvert-activity">
+            <div class="act-hor-container">
+                <div class="act-text-item">
+                    <div id="activity" class="info-activity"></div>
+                </div>
+                <div class="act-details-button-item">
+                    <div class="info-control"><button id="details">Show details</botton>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <div class="tvert-details">
+            <div id="stdout" class="info-details"></div>
+        </div>
+      </div>
+      <script src="util.js"></script>
+      <script src="assets/echarts.5.6.0.min.js"></script>
+      <script src="assets/jquery-3.6.0.min.js"></script>
+      <script type="module" src="spectra2species.js"></script>
+      </body>
+</html>
