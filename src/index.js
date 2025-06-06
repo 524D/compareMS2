@@ -343,11 +343,16 @@ submitBtn.addEventListener('click', (event) => {
     var params = getOptions();
     // Check if we should show phylogenetic tree or show spectral comparison
     const mode = getCmpMode();
-    if (mode == "heatmap"){
-        ipcRenderer.send('compareSpecs', params)
-    }
-    else {
-        ipcRenderer.send('maketree', params)
+    switch (mode) {
+        case "phyltree":
+            ipcRenderer.send('maketree', params)
+            break;
+        case "heatmap":
+            ipcRenderer.send('compareSpecs', params)
+            break;
+        case "spec-to-species":
+            ipcRenderer.send('spectra2Species', params)
+            break;
     }
 })
 
