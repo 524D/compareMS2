@@ -48,6 +48,8 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 // Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let s2sWindows = [];
+let s2sInstanceCount = 0;
 let specWindows = [];
 let specInstanceCount = 0;
 let treeWindows = [];
@@ -218,7 +220,24 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
-const { ipcMain, dialog } = require('electron')
+const { ipcMain, dialog } = require('electron');
+
+// We don't accept filenames from the renderer process, but just use the data that was
+// selected in the dialog.
+// This is to prevent security issues with the renderer process.
+var fileParams = {
+    file1: null,
+    file2: null,
+    sampleDir: {
+        dir: null,
+        files: [],
+        mgfFiles: [],
+        mgfFilesFull: [],
+        mgfFilesShort: [],
+        s2sFn: null
+    },
+    sampleToSpeciesFn: null,
+};
 
 ipcMain.on('open-dir-dialog', (event) => {
     const dir = dialog.showOpenDialogSync(mainWindow, {
@@ -236,34 +255,46 @@ ipcMain.on('open-dir-dialog', (event) => {
         const mgfFilesFull = mgfFiles.map(file => path.join(dir[0], file));
         const mgfFilesShort = mgfFiles.map(file => path.basename(file));
         var s2sFn = path.join(dir[0], "sample_to_species.txt");
+        // Check if sample_to_species.txt exists
         fs.access(s2sFn, fs.F_OK, (err) => {
-            s2sFn = null;
-        })
+            if (err) {
+                // If the file does not exist, set s2sFn to null
+                s2sFn = null;
+            } else {
+                if (!fileParams.sampleToSpeciesFn) {
+                    // If the file exists and we don't have a sampleToSpeciesFn yet, set it
+                    fileParams.sampleToSpeciesFn = s2sFn;
+                }
+            }
+        });
 
-        mainWindow.send('selected-directory', 
-            {
-                dir: dir,
-                files: files,
-                mgfFiles: mgfFiles,
-                mgfFilesFull: mgfFilesFull,
-                mgfFilesShort: mgfFilesShort,
-                s2sFn: s2sFn
-             }
-        )
+        // Store the parameters in the fileParams object
+        fileParams.sampleDir = {
+            dir: dir[0],
+            files: files,
+            mgfFiles: mgfFiles,
+            mgfFilesFull: mgfFilesFull,
+            mgfFilesShort: mgfFilesShort,
+            s2sFn: s2sFn
+        };
+
+        mainWindow.send('selected-directory', fileParams.sampleDir);
     }
 })
 
 ipcMain.on('open-file1-dialog', (event) => {
     const files = selectMGFfile('First sample file');
     if (files) {
-        mainWindow.send('selected-file1', files)
+        fileParams.file1 = files[0];
+        mainWindow.send('selected-file1', fileParams.file1)
     }
 })
 
 ipcMain.on('open-file2-dialog', (event) => {
     const files = selectMGFfile('Second sample file');
     if (files) {
-        mainWindow.send('selected-file2', files)
+        fileParams.file2 = files[0];
+        mainWindow.send('selected-file2', fileParams.file2)
     }
 })
 
@@ -277,8 +308,44 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
         properties: ['openFile']
     });
     if (files) {
-        mainWindow.send('selected-speciesfile', files)
+        fileParams.sampleToSpeciesFn = files[0];
+        mainWindow.send('selected-speciesfile', fileParams.sampleToSpeciesFn)
     }
+})
+
+// Display spectral comparison window and send params
+ipcMain.on('spectra2Species', (event, params) => {
+    let s2sWindow = new BrowserWindow({
+        width: 1200,
+        height: 950,
+        parent: mainWindow,
+        modal: false,
+        webPreferences: {
+            nodeIntegration: true,
+            enableRemoteModule: true,
+            contextIsolation: false,  // without this, we can't open new windows
+            preload: path.join(__dirname, 'preload.js')
+        },
+        icon: path.join(iconPath, 'tree.png'),
+    });
+    s2sInstanceCount++;
+    s2sWindows[s2sInstanceCount] = s2sWindow;
+    s2sWindow.on('close', () => { s2sWindow = null })
+    s2sWindow.removeMenu();
+    s2sWindow.loadFile(path.join(__dirname, '/spectra2species.html'),
+        {
+            query: {
+                "userparams": JSON.stringify(params),
+                "instanceId": s2sInstanceCount
+            }
+        });
+    require("@electron/remote/main").enable(s2sWindow.webContents);
+    if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
+        // Open the DevTools.
+        s2sWindow.webContents.openDevTools();
+    }
+
+    s2sWindow.show();
 })
 
 // Display spectral comparison window and send params
