@@ -3,6 +3,7 @@
 const { app, BrowserWindow, Menu, shell, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
 require('@electron/remote/main').initialize();
@@ -48,12 +49,12 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 // Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
-let s2sWindows = [];
-let s2sInstanceCount = 0;
 let specWindows = [];
 let specInstanceCount = 0;
 let treeWindows = [];
 let treeInstanceCount = 0;
+
+initS2S();
 
 const iconPath = path.join(app.getAppPath(), 'src', 'assets', 'images');
 // Icons were obtained from http://xtoolkit.github.io/Micon/icons/
@@ -315,38 +316,15 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 
 // Display spectral comparison window and send params
 ipcMain.on('spectra2Species', (event, params) => {
-    let s2sWindow = new BrowserWindow({
-        width: 1200,
-        height: 950,
-        parent: mainWindow,
-        modal: false,
-        webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,  // without this, we can't open new windows
-            preload: path.join(__dirname, 'preload.js')
-        },
-        icon: path.join(iconPath, 'tree.png'),
-    });
-    s2sInstanceCount++;
-    s2sWindows[s2sInstanceCount] = s2sWindow;
-    s2sWindow.on('close', () => { s2sWindow = null })
-    s2sWindow.removeMenu();
-    s2sWindow.loadFile(path.join(__dirname, '/spectra2species.html'),
-        {
-            query: {
-                "userparams": JSON.stringify(params),
-                "instanceId": s2sInstanceCount
-            }
-        });
-    require("@electron/remote/main").enable(s2sWindow.webContents);
-    if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
-        // Open the DevTools.
-        s2sWindow.webContents.openDevTools();
-    }
-
-    s2sWindow.show();
-})
+    // Replace the file items in params with the info from fileParams
+    params.file1 = fileParams.file1;
+    params.file2 = fileParams.file2;
+    params.sampleDir = fileParams.sampleDir;
+    params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
+    // Show Spectra2Species window and send params
+    showS2SWindow(mainWindow, path.join(iconPath, 'tree.png'), params); // FIXME: use different icon
+}
+);
 
 // Display spectral comparison window and send params
 ipcMain.on('compareSpecs', (event, params) => {
@@ -393,9 +371,6 @@ ipcMain.on('maketree', (event, params) => {
         parent: mainWindow,
         modal: false,
         webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,  // without this, we can't open new windows
             preload: path.join(__dirname, 'preload.js')
         },
         icon: path.join(iconPath, 'tree.png'),
