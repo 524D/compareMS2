@@ -1,9 +1,46 @@
 // SPDX-License-Identifier: MIT
 // Copyright Rob Marissen.
 const { app, BrowserWindow, Menu, shell, webContents } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
+const homedir = require('os').homedir();
+
+const defaultOptions = {
+    compareMode: "phyltree",
+    mgfDir: homedir,
+    mzFile1: "",
+    mzFile2: "",
+    maxPrecursorDifference: 2.05,
+    minBasepeakIntensity: 10000,
+    minTotalIonCurrent: 0,
+    maxRTDifference: 60,
+    startRT: 0,
+    endRT: 100000,
+    maxScanNumberDifference: 10000,
+    startScan: 1,
+    endScan: 1000000,
+    cutoff: 0.8,
+    specMetric: 0,
+    scaling: 1.0,
+    noise: 10,
+    metric: 2,
+    qc: 0,
+    topN: -1,
+    s2sFile: homedir,
+    outBasename: "comp",
+    avgSpecie: true,
+    outNexus: false,
+    outNewick: false,
+    outMega: true,
+    impMissing: false,
+    compareOrder: "smallest-largest",
+    keepSettings: true,
+}
+
+// The filename where options of the last run are stored
+const prevOptionsFn = path.join(homedir, 'compareMS2opts.json');
 
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
 require('@electron/remote/main').initialize();
@@ -38,6 +75,123 @@ function handleStoreImage(dummy, imgFmt, imageData, instanceId) {
         });
     }
 }
+
+// Get the initial parameters for the main window
+ipcMain.on('request-options', (event) => {
+    // Check if the options file exists
+    fs.access(prevOptionsFn, fs.F_OK, (err) => {
+        if (err) {
+            // Load the default options 
+            updateOptionsToRenderer(defaultOptions);
+        } else {
+            // If the file exists, load the options from the file
+            loadOptionsFromFile(prevOptionsFn, (options) => {
+                // Update the options in the main window
+                updateOptionsToRenderer(options);
+            });
+        }
+    });
+})
+
+ipcMain.on('open-dir-dialog', (event) => {
+    const dir = dialog.showOpenDialogSync(mainWindow, {
+        title: 'Select sample directory',
+        properties: ['openDirectory']
+    });
+    if (dir && dir[0]) {
+        getSampleDirFiles(dir[0]);
+        mainWindow.send('selected-directory', fileParams.sampleDir);
+        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
+        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+    }
+})
+
+ipcMain.on('open-file1-dialog', (event) => {
+    const files = selectMGFfile('First sample file');
+    if (files) {
+        fileParams.file1 = files[0];
+        mainWindow.send('selected-file1', fileParams.file1)
+        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
+        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+    }
+})
+
+ipcMain.on('open-file2-dialog', (event) => {
+    const files = selectMGFfile('Second sample file');
+    if (files) {
+        fileParams.file2 = files[0];
+        mainWindow.send('selected-file2', fileParams.file2)
+        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
+        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+    }
+})
+
+ipcMain.on('open-speciesfile-dialog', (event) => {
+    const files = dialog.showOpenDialogSync(mainWindow, {
+        title: 'Open sample-to-species file',
+        filters: [
+            { name: 'Text file', extensions: ['txt'] },
+            { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+    });
+    if (files) {
+        fileParams.sampleToSpeciesFn = files[0];
+        fileParams.sampleToSpeciesManuallySet = true;
+        mainWindow.send('selected-speciesfile', fileParams.sampleToSpeciesFn)
+    }
+})
+
+ipcMain.on('start-comparison', (event, mode, params) => {
+    // Save parameters for next time
+    const fn = path.join(homedir, 'compareMS2opts.json');
+    saveOptionsToFile(fn, params)
+    // Replace the file items in params with the info from fileParams
+    params.file1 = fileParams.file1;
+    params.file2 = fileParams.file2;
+    params.sampleDir = fileParams.sampleDir;
+    params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
+
+    switch (mode) {
+        case "phyltree":
+            showPhylTreeWindow(mainWindow, params)
+            break;
+        case "heatmap":
+            showCompareSpecsWindow(mainWindow, params)
+            break;
+        case "spec-to-species":
+            // Show Spectra2Species window and send params
+            showS2SWindow(mainWindow, path.join(iconPath, 'tree.png'), params); // FIXME: use different icon
+            break;
+    }
+});
+
+// Toggle full screen tree window. Doesn't work :(
+ipcMain.on('toggle-fullscreen', (event, instanceId) => {
+    treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
+})
+
+ipcMain.on('write-newick', (event, newickFn, newick) => {
+    fs.writeFile(newickFn, newick, function (err) {
+        if (err) {
+            return console.log(err);
+        }
+    });
+})
+
+ipcMain.on('move-file', (event, fn1, fn2) => {
+    fs.rename(fn1, fn2, function (err) {
+        if (err) {
+            return console.log(err);
+        }
+    });
+})
+
+ipcMain.on('store-image', handleStoreImage);
+
+ipcMain.on('openSourceCodeInBrowser', (event) => {
+    shell.openExternal("https://github.com/524D/compareMS2");
+})
 
 // FIXME: Remove. Not needed anymore, now default:
 app.allowRendererProcessReuse = true;
@@ -76,7 +230,11 @@ let template = [{
                 properties: ['openFile']
             });
             if (files) {
-                focusedWindow.send('load-options', files);
+                //                focusedWindow.send('load-options', files);
+                loadOptionsFromFile(files[0], (options) => {
+                    // Update the options in the main window
+                    updateOptionsToRenderer(options);
+                });
             }
         },
         icon: path.join(iconPath, 'OpenFile.png'),
@@ -84,7 +242,7 @@ let template = [{
         label: 'Save options',
         accelerator: 'CmdOrCtrl+S',
         click: (item, focusedWindow) => {
-            const files = dialog.showSaveDialogSync(mainWindow, {
+            const optionSaveFn = dialog.showSaveDialogSync(mainWindow, {
                 title: 'Save options',
                 defaultPath: 'compareMS2opts.json',
                 filters: [
@@ -93,8 +251,14 @@ let template = [{
                 ],
                 properties: ['openFile']
             });
-            if (files) {
-                focusedWindow.send('save-options', files);
+            if (optionSaveFn) {
+                // The renderer process will send the options back to the main process
+                // with a 'store-options' message and we will save them to the file
+                ipcMain.once('store-options', (event, options) => {
+                    saveOptionsToFile(optionSaveFn, options);
+                });
+                // Request the options from the main window
+                mainWindow.send('save-options');
             }
         },
         icon: path.join(iconPath, 'Save.png'),
@@ -102,7 +266,8 @@ let template = [{
         label: 'Restore default option',
         accelerator: 'CmdOrCtrl+R',
         click: (item, focusedWindow) => {
-            focusedWindow.send('reset-options');
+            options = JSON.parse(JSON.stringify(defaultOptions));
+            updateOptionsToRenderer(options);
         },
         icon: path.join(iconPath, 'Refresh.png'),
     },
@@ -219,10 +384,6 @@ app.on('activate', () => {
     }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
-const { ipcMain, dialog } = require('electron');
-
 // We don't accept filenames from the renderer process, but just use the data that was
 // selected in the dialog.
 // This is to prevent security issues with the renderer process.
@@ -234,100 +395,13 @@ var fileParams = {
         files: [],
         mgfFiles: [],
         mgfFilesFull: [],
-        mgfFilesShort: [],
-        s2sFn: null
+        mgfFilesShort: []
     },
     sampleToSpeciesFn: null,
+    sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
 };
 
-ipcMain.on('open-dir-dialog', (event) => {
-    const dir = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Select sample directory',
-        properties: ['openDirectory']
-    });
-    if (dir) {
-        const filesAndDirs = fs.readdirSync(dir[0]);
-        const files = filesAndDirs.filter(file => {
-            const filePath = path.join(dir[0], file);
-            return fs.statSync(filePath).isFile();
-        });
-        // Filter for MGF files
-        const mgfFiles = files.filter(file => file.endsWith('.mgf'));
-        const mgfFilesFull = mgfFiles.map(file => path.join(dir[0], file));
-        const mgfFilesShort = mgfFiles.map(file => path.basename(file));
-        var s2sFn = path.join(dir[0], "sample_to_species.txt");
-        // Check if sample_to_species.txt exists
-        fs.access(s2sFn, fs.F_OK, (err) => {
-            if (err) {
-                // If the file does not exist, set s2sFn to null
-                s2sFn = null;
-            } else {
-                if (!fileParams.sampleToSpeciesFn) {
-                    // If the file exists and we don't have a sampleToSpeciesFn yet, set it
-                    fileParams.sampleToSpeciesFn = s2sFn;
-                }
-            }
-        });
-
-        // Store the parameters in the fileParams object
-        fileParams.sampleDir = {
-            dir: dir[0],
-            files: files,
-            mgfFiles: mgfFiles,
-            mgfFilesFull: mgfFilesFull,
-            mgfFilesShort: mgfFilesShort,
-            s2sFn: s2sFn
-        };
-
-        mainWindow.send('selected-directory', fileParams.sampleDir);
-    }
-})
-
-ipcMain.on('open-file1-dialog', (event) => {
-    const files = selectMGFfile('First sample file');
-    if (files) {
-        fileParams.file1 = files[0];
-        mainWindow.send('selected-file1', fileParams.file1)
-    }
-})
-
-ipcMain.on('open-file2-dialog', (event) => {
-    const files = selectMGFfile('Second sample file');
-    if (files) {
-        fileParams.file2 = files[0];
-        mainWindow.send('selected-file2', fileParams.file2)
-    }
-})
-
-ipcMain.on('open-speciesfile-dialog', (event) => {
-    const files = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Open sample-to-species file',
-        filters: [
-            { name: 'Text file', extensions: ['txt'] },
-            { name: 'All Files', extensions: ['*'] }
-        ],
-        properties: ['openFile']
-    });
-    if (files) {
-        fileParams.sampleToSpeciesFn = files[0];
-        mainWindow.send('selected-speciesfile', fileParams.sampleToSpeciesFn)
-    }
-})
-
-// Display spectral comparison window and send params
-ipcMain.on('spectra2Species', (event, params) => {
-    // Replace the file items in params with the info from fileParams
-    params.file1 = fileParams.file1;
-    params.file2 = fileParams.file2;
-    params.sampleDir = fileParams.sampleDir;
-    params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
-    // Show Spectra2Species window and send params
-    showS2SWindow(mainWindow, path.join(iconPath, 'tree.png'), params); // FIXME: use different icon
-}
-);
-
-// Display spectral comparison window and send params
-ipcMain.on('compareSpecs', (event, params) => {
+function showCompareSpecsWindow(mainWindow, params) {
     let specWindow = new BrowserWindow({
         width: 1200,
         height: 950,
@@ -359,18 +433,18 @@ ipcMain.on('compareSpecs', (event, params) => {
     }
 
     specWindow.show();
-})
+}
 
-
-// Display tree window and send params
-ipcMain.on('maketree', (event, params) => {
-    const treePath = path.join('file://', __dirname, '/tree.html')
+function showPhylTreeWindow(mainWindow, params) {
     let treeWindow = new BrowserWindow({
         width: 1000,
         height: 780,
         parent: mainWindow,
         modal: false,
         webPreferences: {
+            nodeIntegration: true,
+            enableRemoteModule: true,
+            contextIsolation: false,  // without this, we can't open new windows
             preload: path.join(__dirname, 'preload.js')
         },
         icon: path.join(iconPath, 'tree.png'),
@@ -394,31 +468,114 @@ ipcMain.on('maketree', (event, params) => {
     }
 
     treeWindow.show();
-})
+}
 
-// Toggle full screen tree window. Doesn't work :(
-ipcMain.on('toggle-fullscreen', (event, instanceId) => {
-    treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
-})
-
-ipcMain.on('write-newick', (event, newickFn, newick) => {
-    fs.writeFile(newickFn, newick, function (err) {
+function getSampleDirFiles(dir) {
+    const filesAndDirs = fs.readdirSync(dir);
+    const files = filesAndDirs.filter(file => {
+        const filePath = path.join(dir, file);
+        return fs.statSync(filePath).isFile();
+    });
+    // Filter for MGF files
+    const mgfFiles = files.filter(file => file.endsWith('.mgf'));
+    const mgfFilesFull = mgfFiles.map(file => path.join(dir, file));
+    const mgfFilesShort = mgfFiles.map(file => path.basename(file));
+    var s2sFn = path.join(dir, "sample_to_species.txt");
+    // Check if sample_to_species.txt exists
+    fs.access(s2sFn, fs.F_OK, (err) => {
         if (err) {
-            return console.log(err);
+            // No sample_to_species.txt file found
+        } else {
+            if (!fileParams.sampleToSpeciesManuallySet) {
+                // If the file exists and we don't have a sampleToSpeciesFn yet, set it
+                fileParams.sampleToSpeciesFn = s2sFn;
+            }
         }
     });
-})
 
-ipcMain.on('move-file', (event, fn1, fn2) => {
-    fs.rename(fn1, fn2, function (err) {
+    // Store the parameters in the fileParams object
+    fileParams.sampleDir = {
+        dir: dir,
+        files: files,
+        mgfFiles: mgfFiles,
+        mgfFilesFull: mgfFilesFull,
+        mgfFilesShort: mgfFilesShort,
+    };
+}
+
+function loadOptionsFromFile(fn, processOpts) {
+    fs.readFile(fn, 'utf-8', (err, data) => {
         if (err) {
-            return console.log(err);
+            alert("An error occurred reading the file :" + err.message);
+            return;
+        }
+        else {
+            const options = JSON.parse(data);
+            // Check is all options in defaultOptions are present in options
+            for (const key in defaultOptions) {
+                if (!options.hasOwnProperty(key)) {
+                    // If not, set the default value
+                    options[key] = defaultOptions[key];
+                }
+            }
+            // Read the sample directory files and update fileParam
+            getSampleDirFiles(options.mgfDir);
+            // Update the fileParams object with the options
+            fileParams.file1 = options.mzFile1;
+            fileParams.file2 = options.mzFile2;
+            processOpts(options);
         }
     });
-})
+}
 
-ipcMain.on('store-image', handleStoreImage);
+function saveOptionsToFile(fn, options) {
+    // Replace file names with stored paths
+    options.mzFile1 = fileParams.file1;
+    options.mzFile2 = fileParams.file2;
+    options.mgfDir = fileParams.sampleDir.dir;
+    options.s2sFile = fileParams.sampleToSpeciesFn;
+    try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
+    catch (e) { alert('Failed to save options file'); }
+}
 
-ipcMain.on('openSourceCodeInBrowser', (event) => {
-    shell.openExternal("https://github.com/524D/compareMS2");
-})
+function updateOptionsToRenderer(options) {
+    // Send the options to the renderer process
+    mainWindow.webContents.send('update-options', options);
+
+    // Update the main window items based on the options
+    const sampleDir = fileParams.sampleDir;
+    const sampleFile1 = fileParams.file1;
+    const mainWindowsComputedItems = getMainWindowCompItems(sampleDir, sampleFile1);
+    // Send the computed items to the main window
+    // This will update the main window items in the renderer process
+    mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+}
+
+// Get the main window component items for the different compare modes
+// Returns an object with the compare mode as key and an array with:
+// [message, number of comparisons, submit enabled]
+function getMainWindowCompItems(sampleDir, sampleFile1) {
+    const mgfFiles = sampleDir.mgfFiles;
+    const nMgf = mgfFiles.length;
+
+    // Message for compare mode "phyltree":
+    const nCompPhylTree = (nMgf * (nMgf - 1)) / 2;
+    const phylTreeMsg = nMgf + " MGF files, " + nCompPhylTree + " comparisons.";
+    const phylTreeSubmitEnabled = (mgfFiles.length >= 2);
+    // Message for compare mode "heatmap":
+    const nCompHeatMap = 1;
+    const heatMapMsg = ""
+    const heatMapSubmitEnabled = (sampleFile1 !== null);
+
+    // Message for compare mode "spec-to-species":
+    const nCompSpectra2Species = nMgf;
+    const spectra2SpeciesMsg = nMgf + " MGF files, " + nCompSpectra2Species + " comparisons.";
+    const spectra2SpeciesSubmitEnabled = ((sampleFile1 !== null) && mgfFiles.length >= 2);
+    return {
+        'phyltree': [phylTreeMsg, phylTreeSubmitEnabled],
+        'heatmap': [heatMapMsg, heatMapSubmitEnabled],
+        'spec-to-species': [spectra2SpeciesMsg, spectra2SpeciesSubmitEnabled]
+    };
+}
+
+

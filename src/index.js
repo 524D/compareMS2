@@ -1,10 +1,21 @@
 // SPDX-License-Identifier: MIT
 // Copyright Rob Marissen.
 
-const { BrowserWindow, app } = nodeRequire('@electron/remote')
+const { app } = nodeRequire('@electron/remote')
 const { ipcRenderer } = nodeRequire('electron')
 var appVersion = app.getVersion();
 
+// Info on number of comparisons and Submit button state
+// for each compare mode
+// The first element is a string with the info text,
+// the second element is a boolean indicating if the submit button should be enabled,
+var computedItems = {
+    'phyltree': ['', false],
+    'heatmap': ['', false],
+    'spec-to-species': ['', false]
+}
+
+const keepSettingsFn = `${nodeRequire('os').homedir()}/comparems2options.json`;
 const selectDirBtn = document.getElementById('select-directory')
 const selectFile1Btn = document.getElementById('select-file1')
 const selectFile2Btn = document.getElementById('select-file2')
@@ -21,6 +32,7 @@ var mgfDirFull = {
 const homedir = nodeRequire('os').homedir();
 
 const defaultOptions = {
+    compareMode: "phyltree",
     mgfDir: homedir,
     mzFile1: "",
     mzFile2: "",
@@ -48,10 +60,27 @@ const defaultOptions = {
     outMega: true,
     impMissing: false,
     compareOrder: "smallest-largest",
+    keepSettings: true,
 }
+
+// On document ready, request the options from the main process
+$(document).ready(function () {
+    // Request the options from the main process
+    ipcRenderer.send('request-options');
+});
+
 
 // Set all user interface elements according to options
 function setOptions(options) {
+    // Set compare mode
+    const cmpMode = options.compareMode;
+    $('input[name="cmpmode"]').each(function () {
+        if ($(this).val() === cmpMode) {
+            $(this).prop('checked', true);
+        } else {
+            $(this).prop('checked', false);
+        }
+    });
     document.getElementById("mgfdir").value = options.mgfDir;
     document.getElementById("file1").value = options.mzFile1;
     document.getElementById("file2").value = options.mzFile2;
@@ -65,7 +94,7 @@ function setOptions(options) {
     document.getElementById("startScan").value = options.startScan;
     document.getElementById("endScan").value = options.endScan;
     document.getElementById("cutoff").value = options.cutoff;
-    document.getElementById("specMetric").value = options.specMetric;  
+    document.getElementById("specMetric").value = options.specMetric;
     document.getElementById("scaling").value = options.scaling;
     document.getElementById("noise").value = options.noise;
     document.getElementById("metric").value = options.metric;
@@ -79,6 +108,7 @@ function setOptions(options) {
     document.getElementById("outmega").checked = options.outMega;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
+    document.getElementById("keepsetting").value = options.keepSettings;
     mgfDirFull.dir = options.mgfDir;
     // FIXME: also get rest of mfgDirFull.
     updateMgfInfo();
@@ -87,6 +117,7 @@ function setOptions(options) {
 // Get all values set by user
 function getOptions() {
     var options = {
+        compareMode: $('input[name="cmpmode"]:checked').val(),
         mgfDir: document.getElementById("mgfdir").value,
         mzFile1: document.getElementById("file1").value,
         mzFile2: document.getElementById("file2").value,
@@ -114,6 +145,7 @@ function getOptions() {
         outMega: document.getElementById("outmega").checked,
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
+        keepSettings: document.getElementById("keepsetting").value,
     }
     return options;
 }
@@ -121,11 +153,19 @@ function getOptions() {
 function loadOptionsFromFile(fn, processOpts) {
     fs.readFile(fn, 'utf-8', (err, data) => {
         if (err) {
-            alert("An error ocurred reading the file :" + err.message);
+            alert("An error occurred reading the file :" + err.message);
             return;
         }
         else {
             const options = JSON.parse(data);
+            // Check is all options in defaultOptions are present in options
+            for (const key in defaultOptions) {
+                if (!options.hasOwnProperty(key)) {
+                    // If not, set the default value
+                    options[key] = defaultOptions[key];
+                }
+            }
+            // Check if options.mgfDir is set, if not, set it to the home
             processOpts(options);
         }
     });
@@ -142,7 +182,7 @@ function updateMgfInfo() {
     const mgfFiles = mgfDirFull.mgfFiles;
     const nMgf = mgfFiles.length;
     const cmpMode = getCmpMode()
-    var msg= "";
+    var msg = "";
     var nComp = 0;
     switch (cmpMode) {
         case "phyltree":
@@ -191,11 +231,7 @@ function computeSubmitButtonState(mode, mgfFiles, mgfFile1) {
 
 // Enable or disable submit button
 function updateSubmitButton() {
-    const mode = getCmpMode()
-    const mgfFiles = getMgfFiles($('#mgfdir').val());
-    const mgfFile1 = $('#file1').val();
-    let enabled = computeSubmitButtonState(mode, mgfFiles, mgfFile1);
-    $('#submit').prop('disabled', !enabled);
+    updateMainWindowItems();
 }
 
 // Enable/disable elements depending on compare mode
@@ -208,6 +244,20 @@ function updateCmpModeElems() {
     // which makes the elements partly transparent and disables them.
     $(".enable_in_mode." + mode).removeClass("disabled-area");
     $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
+}
+
+// Update elements in the main window
+// This is called when the compare mode is changed or when the options are updated
+// It updates the MGF info and the submit button.
+function updateMainWindowItems() {
+    // Get the current compare mode
+    const mode = getCmpMode();
+    // Update the MGF info
+    const mgfinfo = document.getElementById('mgfinfo');
+    mgfinfo.innerHTML = computedItems[mode][0];;
+    // Update the submit button state
+    let enabled = computedItems[mode][1];;
+    $('#submit').prop('disabled', !enabled);
 }
 
 function openTab(evt, tabName) {
@@ -233,12 +283,6 @@ function openTab(evt, tabName) {
 
 // *******************************start of initialization ******************************************** //
 
-// Set defaults for input fields
-setOptions(defaultOptions);
-
-// Grey out the elements that are not needed for the selected compare mode
-updateCmpModeElems()
-
 // Handle browse buttons
 selectDirBtn.addEventListener('click', (event) => {
     ipcRenderer.send('open-dir-dialog')
@@ -257,7 +301,7 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
 })
 
 // Handle compare mode selection
-$('.cmpmode').change(function() {
+$('.cmpmode').change(function () {
     updateCmpModeElems();
     updateSubmitButton();
     updateMgfInfo($('#mgfdir').val());
@@ -285,22 +329,15 @@ $("#about-close").click(function () {
 });
 
 // Handle messages from main process
-ipcRenderer.on('load-options', (event, p) => {
-    var fn = `${p}`;
-    loadOptionsFromFile(fn, setOptions);
-})
 
-ipcRenderer.on('save-options', (event, p) => {
-    var fn = `${p}`;
-    saveOptionsToFile(fn, getOptions());
-})
-
-ipcRenderer.on('reset-options', (event, p) => {
-    setOptions(defaultOptions);
+ipcRenderer.on('save-options', (event) => {
+    const options = getOptions();
+    // Send message to main process to save options
+    ipcRenderer.send('store-options', options);
 })
 
 ipcRenderer.on('selected-directory', (event, p) => {
-    mgfDirFull=p;
+    mgfDirFull = p;
     const fn = mgfDirFull.dir;
     document.getElementById("mgfdir").value = fn;
     updateMgfInfo();
@@ -312,19 +349,16 @@ ipcRenderer.on('selected-directory', (event, p) => {
             document.getElementById("s2sfile").value = mgfDirFull.s2sFn;
         }
     }
-    updateSubmitButton();
 })
 
 ipcRenderer.on('selected-file1', (event, p) => {
     var fn = `${p}`;
     document.getElementById("file1").value = fn;
-    updateSubmitButton();    
 })
 
 ipcRenderer.on('selected-file2', (event, p) => {
     var fn = `${p}`;
     document.getElementById("file2").value = fn;
-    updateSubmitButton();    
 })
 
 ipcRenderer.on('selected-speciesfile', (event, p) => {
@@ -337,23 +371,28 @@ ipcRenderer.on('show-about', (event) => {
     $('#about').show();
 });
 
+ipcRenderer.on('update-options', (event, options, mgfInfo) => {
+    // Update the options in the UI
+    setOptions(options);
+    // Update the MGF info
+    updateMgfInfo();
+    // Update the submit button state
+    updateSubmitButton();
+});
+
+ipcRenderer.on('update-main-window-items', (event, mainWindowsComputedItems) => {
+    // Update the main window items
+    computedItems = mainWindowsComputedItems;
+    updateMainWindowItems();
+});
+
 // Handle submit button
 const submitBtn = document.getElementById('submit');
 submitBtn.addEventListener('click', (event) => {
-    var params = getOptions();
+    const params = getOptions();
     // Check if we should show phylogenetic tree or show spectral comparison
     const mode = getCmpMode();
-    switch (mode) {
-        case "phyltree":
-            ipcRenderer.send('maketree', params)
-            break;
-        case "heatmap":
-            ipcRenderer.send('compareSpecs', params)
-            break;
-        case "spec-to-species":
-            ipcRenderer.send('spectra2Species', params)
-            break;
-    }
+    ipcRenderer.send('start-comparison', mode, params);
 })
 
 // Show version
@@ -363,12 +402,12 @@ versDiv.innerHTML = "version: " + appVersion;
 // Enable tooltips
 $(document).tooltip({
     position: {
-      my: "left top",
-      at: "left+50 bottom-2",
-      collision: "none"
+        my: "left top",
+        at: "left+50 bottom-2",
+        collision: "none"
     }
-  });
+});
 
-  function openSourceCodeInBrowser() {
+function openSourceCodeInBrowser() {
     ipcRenderer.send('openSourceCodeInBrowser')
-  }
+}
