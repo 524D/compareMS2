@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright Rob Marissen.
-
-const { app } = nodeRequire('@electron/remote')
 const { ipcRenderer } = nodeRequire('electron')
-var appVersion = app.getVersion();
+
+const searchParams = new URLSearchParams(global.location.search);
+const appVersion = searchParams.get('version') || 'unknown';
+
+const selectDirBtn = document.getElementById('select-directory')
+const selectFile1Btn = document.getElementById('select-file1')
+const selectFile2Btn = document.getElementById('select-file2')
+const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
 
 // Info on number of comparisons and Submit button state
 // for each compare mode
@@ -15,11 +20,6 @@ var computedItems = {
     'spec-to-species': ['', false]
 }
 
-const selectDirBtn = document.getElementById('select-directory')
-const selectFile1Btn = document.getElementById('select-file1')
-const selectFile2Btn = document.getElementById('select-file2')
-const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
-
 var s2sFileManualSet = false;
 
 var mgfDirFull = {
@@ -27,8 +27,6 @@ var mgfDirFull = {
     mgfFiles: [],
     s2sFile: "",
 };
-
-const homedir = nodeRequire('os').homedir();
 
 // On document ready, request the options from the main process
 $(document).ready(function () {

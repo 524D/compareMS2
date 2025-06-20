@@ -193,8 +193,6 @@ ipcMain.on('openSourceCodeInBrowser', (event) => {
     shell.openExternal("https://github.com/524D/compareMS2");
 })
 
-// FIXME: Remove. Not needed anymore, now default:
-app.allowRendererProcessReuse = true;
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
     app.quit();
@@ -335,7 +333,13 @@ const createWindow = () => {
     });
 
     // and load the index.html of the app.
-    mainWindow.loadURL(`file://${__dirname}/index.html`);
+    mainWindow.loadFile(path.join(__dirname, '/index.html'),
+        {
+            query: {
+                "version": app.getVersion()
+            }
+        });
+
     require("@electron/remote/main").enable(mainWindow.webContents);
 
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
