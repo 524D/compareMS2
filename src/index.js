@@ -15,7 +15,6 @@ var computedItems = {
     'spec-to-species': ['', false]
 }
 
-const keepSettingsFn = `${nodeRequire('os').homedir()}/comparems2options.json`;
 const selectDirBtn = document.getElementById('select-directory')
 const selectFile1Btn = document.getElementById('select-file1')
 const selectFile2Btn = document.getElementById('select-file2')
@@ -30,38 +29,6 @@ var mgfDirFull = {
 };
 
 const homedir = nodeRequire('os').homedir();
-
-const defaultOptions = {
-    compareMode: "phyltree",
-    mgfDir: homedir,
-    mzFile1: "",
-    mzFile2: "",
-    maxPrecursorDifference: 2.05,
-    minBasepeakIntensity: 10000,
-    minTotalIonCurrent: 0,
-    maxRTDifference: 60,
-    startRT: 0,
-    endRT: 100000,
-    maxScanNumberDifference: 10000,
-    startScan: 1,
-    endScan: 1000000,
-    cutoff: 0.8,
-    specMetric: 0,
-    scaling: 1.0,
-    noise: 10,
-    metric: 2,
-    qc: 0,
-    topN: -1,
-    s2sFile: homedir,
-    outBasename: "comp",
-    avgSpecie: true,
-    outNexus: false,
-    outNewick: false,
-    outMega: true,
-    impMissing: false,
-    compareOrder: "smallest-largest",
-    keepSettings: true,
-}
 
 // On document ready, request the options from the main process
 $(document).ready(function () {
@@ -109,9 +76,6 @@ function setOptions(options) {
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
     document.getElementById("keepsetting").value = options.keepSettings;
-    mgfDirFull.dir = options.mgfDir;
-    // FIXME: also get rest of mfgDirFull.
-    updateMgfInfo();
 }
 
 // Get all values set by user
@@ -150,100 +114,9 @@ function getOptions() {
     return options;
 }
 
-function loadOptionsFromFile(fn, processOpts) {
-    fs.readFile(fn, 'utf-8', (err, data) => {
-        if (err) {
-            alert("An error occurred reading the file :" + err.message);
-            return;
-        }
-        else {
-            const options = JSON.parse(data);
-            // Check is all options in defaultOptions are present in options
-            for (const key in defaultOptions) {
-                if (!options.hasOwnProperty(key)) {
-                    // If not, set the default value
-                    options[key] = defaultOptions[key];
-                }
-            }
-            // Check if options.mgfDir is set, if not, set it to the home
-            processOpts(options);
-        }
-    });
-}
-
-function saveOptionsToFile(fn, options) {
-    try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
-    catch (e) { alert('Failed to save options file'); }
-}
-
-// Update MGF files info
-function updateMgfInfo() {
-    const mgfinfo = document.getElementById('mgfinfo');
-    const mgfFiles = mgfDirFull.mgfFiles;
-    const nMgf = mgfFiles.length;
-    const cmpMode = getCmpMode()
-    var msg = "";
-    var nComp = 0;
-    switch (cmpMode) {
-        case "phyltree":
-            nComp = (nMgf * (nMgf - 1)) / 2;
-            msg = nMgf + " MGF files, " + nComp + " comparisons.";
-            break;
-        case "spec-to-species":
-            nComp = nMgf;
-            msg = nMgf + " MGF files, " + nComp + " comparisons.";
-            break;
-    }
-
-    mgfinfo.innerHTML = msg;
-    // Disable submit button if < 2 MGF files
-    updateSubmitButton();
-}
-
 function getCmpMode() {
     const mode = $('input[name="cmpmode"]:checked').val();
     return mode;
-}
-
-function computeSubmitButtonState(mode, mgfFiles, mgfFile1) {
-    let enabled = false;
-    switch (mode) {
-        case "phyltree":
-            if (mgfFiles.length >= 2) {
-                enabled = true;
-            }
-            break;
-        case "heatmap":
-            if (mgfFile1) {
-                enabled = true;
-            }
-            break;
-        case "spec-to-species":
-            if (mgfFile1 && mgfFiles.length >= 2) {
-                enabled = true;
-            }
-            break;
-        default:
-            break;
-    }
-    return enabled;
-}
-
-// Enable or disable submit button
-function updateSubmitButton() {
-    updateMainWindowItems();
-}
-
-// Enable/disable elements depending on compare mode
-function updateCmpModeElems() {
-    const mode = getCmpMode();
-    // Enable/disable elements depending on compare mode
-    // Elements that must be set have class "enable_in_mode"
-    // plus the mode name, e.g. "enable_in_mode compare"
-    // This is done by adding/removing the class "disabled-area",
-    // which makes the elements partly transparent and disables them.
-    $(".enable_in_mode." + mode).removeClass("disabled-area");
-    $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
 }
 
 // Update elements in the main window
@@ -255,6 +128,13 @@ function updateMainWindowItems() {
     // Update the MGF info
     const mgfinfo = document.getElementById('mgfinfo');
     mgfinfo.innerHTML = computedItems[mode][0];;
+    // Enable/disable elements depending on compare mode
+    // Elements that must be set have class "enable_in_mode"
+    // plus the mode name, e.g. "enable_in_mode compare"
+    // This is done by adding/removing the class "disabled-area",
+    // which makes the elements partly transparent and disables them.
+    $(".enable_in_mode." + mode).removeClass("disabled-area");
+    $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
     // Update the submit button state
     let enabled = computedItems[mode][1];;
     $('#submit').prop('disabled', !enabled);
@@ -302,9 +182,7 @@ selectSpeciesfileBtn.addEventListener('click', (event) => {
 
 // Handle compare mode selection
 $('.cmpmode').change(function () {
-    updateCmpModeElems();
-    updateSubmitButton();
-    updateMgfInfo($('#mgfdir').val());
+    updateMainWindowItems();
 });
 
 // Handle the "Compare only N most intense spectra" input
@@ -340,15 +218,6 @@ ipcRenderer.on('selected-directory', (event, p) => {
     mgfDirFull = p;
     const fn = mgfDirFull.dir;
     document.getElementById("mgfdir").value = fn;
-    updateMgfInfo();
-    // If sample-to-species file was not manually set, check if
-    // a file named 'sample_to_species.txt' exists in the selected
-    // dir, and set the path if so.
-    if (!s2sFileManualSet) {
-        if (mgfDirFull.s2sFn) {
-            document.getElementById("s2sfile").value = mgfDirFull.s2sFn;
-        }
-    }
 })
 
 ipcRenderer.on('selected-file1', (event, p) => {
@@ -374,10 +243,6 @@ ipcRenderer.on('show-about', (event) => {
 ipcRenderer.on('update-options', (event, options, mgfInfo) => {
     // Update the options in the UI
     setOptions(options);
-    // Update the MGF info
-    updateMgfInfo();
-    // Update the submit button state
-    updateSubmitButton();
 });
 
 ipcRenderer.on('update-main-window-items', (event, mainWindowsComputedItems) => {
@@ -390,7 +255,7 @@ ipcRenderer.on('update-main-window-items', (event, mainWindowsComputedItems) => 
 const submitBtn = document.getElementById('submit');
 submitBtn.addEventListener('click', (event) => {
     const params = getOptions();
-    // Check if we should show phylogenetic tree or show spectral comparison
+    // Start the comparison in the selected mode
     const mode = getCmpMode();
     ipcRenderer.send('start-comparison', mode, params);
 })
