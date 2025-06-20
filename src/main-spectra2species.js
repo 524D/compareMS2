@@ -2,20 +2,19 @@
 // Copyright Rob Marissen.
 
 // This file contains the part of the main process that relates to the spectra2species functionality.
-const { app, BrowserWindow } = require('electron');
+const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { ipcMain } = require('electron');
 
 let s2sWindows = [];
 let s2sParams = [];
 let s2sInstanceCount = 0;
 
-var compareMS2exe = null; // Path to the compareMS2 executable
-var compToDistExe = null; // Path to the compareMS2_to_distance_matrices executable
+var generalParams = null;
 
-function initS2S() {
-    setExe();
+function initS2S(genParams) {
+    generalParams = genParams;
+
     ipcMain.on('s2s-stop', (event, p) => {
     })
 
@@ -24,25 +23,6 @@ function initS2S() {
 
     ipcMain.on('s2s-continue', (event, p) => {
     })
-}
-
-function setExe() {
-    const myPath = app.getAppPath();
-
-    if (process.platform === 'linux' && process.arch === 'x64') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
-        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
-    } else if (process.platform === 'win32' && process.arch === 'x64') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
-        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
-    }
-    else if (process.platform == 'darwin') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
-        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
-    } else {
-        console.error('Unsupported platform: ' + process.platform);
-        return;
-    }
 }
 
 function sleep(ms) {

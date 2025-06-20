@@ -4,6 +4,8 @@ const { app, BrowserWindow, Menu, shell, webContents } = require('electron');
 const { ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { initPhylTree, showPhylTreeWindow } = require('./main-phyltree.js');
+const { initCompareSpecs, showCompareSpecsWindow } = require('./main-comparespecs.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 const homedir = require('os').homedir();
 
@@ -42,8 +44,35 @@ const defaultOptions = {
 // The filename where options of the last run are stored
 const prevOptionsFn = path.join(homedir, 'compareMS2opts.json');
 
+// General values passed used for all compare functions
+const generalParams = getExe();
+
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
 require('@electron/remote/main').initialize();
+
+function getExe() {
+    const myPath = app.getAppPath();
+    // Return the path to the compareMS2 and compareMS2_to_distance_matrices executables
+    let compareMS2exe = null;
+    let compToDistExe = null;
+
+    if (process.platform === 'linux' && process.arch === 'x64') {
+        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
+        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
+    } else if (process.platform === 'win32' && process.arch === 'x64') {
+        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
+        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
+    }
+    else if (process.platform == 'darwin') {
+        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
+        compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
+    } else {
+        console.error('Unsupported platform: ' + process.platform);
+        return;
+    }
+    return { compareMS2exe: compareMS2exe, compToDistExe: compToDistExe };
+}
+
 
 function selectMGFfile(title) {
     const files = dialog.showOpenDialogSync(mainWindow, {
@@ -152,16 +181,16 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     params.sampleDir = fileParams.sampleDir;
     params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
 
+    const icon = path.join(iconPath, 'tree.png'); // Default icon for the windows
     switch (mode) {
         case "phyltree":
-            showPhylTreeWindow(mainWindow, params)
+            showPhylTreeWindow(mainWindow, icon, params)
             break;
         case "heatmap":
-            showCompareSpecsWindow(mainWindow, params)
+            showCompareSpecsWindow(mainWindow, icon, params)
             break;
         case "spec-to-species":
-            // Show Spectra2Species window and send params
-            showS2SWindow(mainWindow, path.join(iconPath, 'tree.png'), params); // FIXME: use different icon
+            showS2SWindow(mainWindow, icon, params);
             break;
     }
 });
@@ -169,22 +198,6 @@ ipcMain.on('start-comparison', (event, mode, params) => {
 // Toggle full screen tree window. Doesn't work :(
 ipcMain.on('toggle-fullscreen', (event, instanceId) => {
     treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
-})
-
-ipcMain.on('write-newick', (event, newickFn, newick) => {
-    fs.writeFile(newickFn, newick, function (err) {
-        if (err) {
-            return console.log(err);
-        }
-    });
-})
-
-ipcMain.on('move-file', (event, fn1, fn2) => {
-    fs.rename(fn1, fn2, function (err) {
-        if (err) {
-            return console.log(err);
-        }
-    });
 })
 
 ipcMain.on('store-image', handleStoreImage);
@@ -201,12 +214,10 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 // Keep a global reference of the window objects, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
-let specWindows = [];
-let specInstanceCount = 0;
-let treeWindows = [];
-let treeInstanceCount = 0;
 
-initS2S();
+initPhylTree(generalParams);
+initCompareSpecs(generalParams);
+initS2S(generalParams);
 
 const iconPath = path.join(app.getAppPath(), 'src', 'assets', 'images');
 // Icons were obtained from http://xtoolkit.github.io/Micon/icons/
@@ -405,75 +416,6 @@ var fileParams = {
     sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
 };
 
-function showCompareSpecsWindow(mainWindow, params) {
-    let specWindow = new BrowserWindow({
-        width: 1200,
-        height: 950,
-        parent: mainWindow,
-        modal: false,
-        webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,  // without this, we can't open new windows
-            preload: path.join(__dirname, 'preload.js')
-        },
-        icon: path.join(iconPath, 'tree.png'),
-    });
-    specInstanceCount++;
-    specWindows[specInstanceCount] = specWindow;
-    specWindow.on('close', () => { specWindow = null })
-    specWindow.removeMenu();
-    specWindow.loadFile(path.join(__dirname, '/heatmap.html'),
-        {
-            query: {
-                "userparams": JSON.stringify(params),
-                "instanceId": specInstanceCount
-            }
-        });
-    require("@electron/remote/main").enable(specWindow.webContents);
-    if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
-        // Open the DevTools.
-        specWindow.webContents.openDevTools();
-    }
-
-    specWindow.show();
-}
-
-function showPhylTreeWindow(mainWindow, params) {
-    let treeWindow = new BrowserWindow({
-        width: 1000,
-        height: 780,
-        parent: mainWindow,
-        modal: false,
-        webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,  // without this, we can't open new windows
-            preload: path.join(__dirname, 'preload.js')
-        },
-        icon: path.join(iconPath, 'tree.png'),
-    });
-    treeInstanceCount++;
-    treeWindows[treeInstanceCount] = treeWindow;
-    //treeWindow.maximize();
-    treeWindow.on('close', () => { treeWindow = null })
-    treeWindow.removeMenu();
-    treeWindow.loadFile(path.join(__dirname, '/tree.html'),
-        {
-            query: {
-                "userparams": JSON.stringify(params),
-                "instanceId": treeInstanceCount
-            }
-        });
-    require("@electron/remote/main").enable(treeWindow.webContents);
-    if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
-        // Open the DevTools.
-        treeWindow.webContents.openDevTools();
-    }
-
-    treeWindow.show();
-}
-
 function getSampleDirFiles(dir) {
     const filesAndDirs = fs.readdirSync(dir);
     const files = filesAndDirs.filter(file => {
@@ -581,5 +523,3 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
         'spec-to-species': [spectra2SpeciesMsg, spectra2SpeciesSubmitEnabled]
     };
 }
-
-
