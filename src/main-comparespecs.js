@@ -35,7 +35,7 @@ function showCompareSpecsWindow(mainWindow, icon, params) {
             nodeIntegration: true,
             enableRemoteModule: true,
             contextIsolation: false,  // without this, we can't open new windows
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'heatmap-preload.js')
         },
         icon: icon,
     });

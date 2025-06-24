@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright Rob Marissen.
-const { ipcRenderer } = nodeRequire('electron')
-
-const searchParams = new URLSearchParams(global.location.search);
+const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
 
 const selectDirBtn = document.getElementById('select-directory')
@@ -20,18 +18,10 @@ var computedItems = {
     'spec-to-species': ['', false]
 }
 
-var s2sFileManualSet = false;
-
-var mgfDirFull = {
-    dir: "",
-    mgfFiles: [],
-    s2sFile: "",
-};
-
 // On document ready, request the options from the main process
-$(document).ready(function () {
+document.addEventListener('DOMContentLoaded', function () {
     // Request the options from the main process
-    ipcRenderer.send('request-options');
+    window.electronAPI.requestOptions();
 });
 
 
@@ -163,19 +153,23 @@ function openTab(evt, tabName) {
 
 // Handle browse buttons
 selectDirBtn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-dir-dialog')
+    window.electronAPI.openDirDialog();
+    //    ipcRenderer.send('open-dir-dialog')
 })
 
 selectFile1Btn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-file1-dialog')
+    window.electronAPI.openFile1Dialog();
+    //    ipcRenderer.send('open-file1-dialog')
 })
 
 selectFile2Btn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-file2-dialog')
+    window.electronAPI.openFile2Dialog();
+    //    ipcRenderer.send('open-file2-dialog')
 })
 
 selectSpeciesfileBtn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-speciesfile-dialog')
+    window.electronAPI.openSpeciesfileDialog();
+    //    ipcRenderer.send('open-speciesfile-dialog')
 })
 
 // Handle compare mode selection
@@ -204,46 +198,24 @@ $("#about-close").click(function () {
     $('#about').hide();
 });
 
-// Handle messages from main process
-
-ipcRenderer.on('save-options', (event) => {
+// This function handles the request for options from the main process
+// It is called when the menu option "Save Options" is clicked
+window.electronAPI.onSaveOptions(() => {
     const options = getOptions();
     // Send message to main process to save options
-    ipcRenderer.send('store-options', options);
-})
-
-ipcRenderer.on('selected-directory', (event, p) => {
-    mgfDirFull = p;
-    const fn = mgfDirFull.dir;
-    document.getElementById("mgfdir").value = fn;
-})
-
-ipcRenderer.on('selected-file1', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("file1").value = fn;
-})
-
-ipcRenderer.on('selected-file2', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("file2").value = fn;
-})
-
-ipcRenderer.on('selected-speciesfile', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("s2sfile").value = fn;
-    s2sFileManualSet = true;
-})
-
-ipcRenderer.on('show-about', (event) => {
-    $('#about').show();
+    window.electronAPI.storeOptions(options);
 });
 
-ipcRenderer.on('update-options', (event, options, mgfInfo) => {
+// This function handles the update of options from the main process
+// It is called when the main process sends an update for options,
+// such as when the app starts or when options are loaded through the menu
+window.electronAPI.onUpdateOptions((options, mgfInfo) => {
     // Update the options in the UI
     setOptions(options);
 });
 
-ipcRenderer.on('update-main-window-items', (event, mainWindowsComputedItems) => {
+// This function handles the update of computed main window items from the main process
+window.electronAPI.onUpdateMainWindowItems((mainWindowsComputedItems) => {
     // Update the main window items
     computedItems = mainWindowsComputedItems;
     updateMainWindowItems();
@@ -255,7 +227,8 @@ submitBtn.addEventListener('click', (event) => {
     const params = getOptions();
     // Start the comparison in the selected mode
     const mode = getCmpMode();
-    ipcRenderer.send('start-comparison', mode, params);
+    window.electronAPI.startComparison(mode, params);
+    //    ipcRenderer.send('start-comparison', mode, params);
 })
 
 // Show version
@@ -272,5 +245,6 @@ $(document).tooltip({
 });
 
 function openSourceCodeInBrowser() {
-    ipcRenderer.send('openSourceCodeInBrowser')
+    window.electronAPI.openSourceCodeInBrowser();
+    //    ipcRenderer.send('openSourceCodeInBrowser')
 }

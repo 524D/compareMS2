@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright Rob Marissen.
-const { app, BrowserWindow, Menu, shell, webContents } = require('electron');
+const { app, BrowserWindow, Menu, shell } = require('electron');
 const { ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -335,9 +335,6 @@ const createWindow = () => {
         width: 840,
         height: 820,
         webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
-            contextIsolation: false,  // without this, we can't open new windows
             preload: path.join(__dirname, 'preload.js')
         },
         icon: path.join(iconPath, 'tree.png'),
@@ -367,10 +364,7 @@ const createWindow = () => {
         mainWindow = null;
     });
 
-    // mainWindow.setWindowOpenHandler(function(details) {
-    //     require('electron').shell.openExternal(details.url);
-    // });
-
+    // Open external links in the default browser (but there should not be any)
     mainWindow.webContents.on('new-window', function (e, url) {
         e.preventDefault();
         require('electron').shell.openExternal(url);
