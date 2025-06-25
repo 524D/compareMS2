@@ -12,7 +12,7 @@ let specInstanceCount = 0;
 
 var generalParams = null;
 
-function initCompareSpecs(genParams) {
+function initHeatMap(genParams) {
     generalParams = genParams;
 
     ipcMain.on('phyltree-stop', (event, p) => {
@@ -25,7 +25,7 @@ function initCompareSpecs(genParams) {
     })
 }
 
-function showCompareSpecsWindow(mainWindow, icon, params) {
+function showHeatMapWindow(mainWindow, icon, params) {
     let specWindow = new BrowserWindow({
         width: 1200,
         height: 950,
@@ -60,5 +60,5 @@ function showCompareSpecsWindow(mainWindow, icon, params) {
     specWindow.show();
 }
 
-exports.showCompareSpecsWindow = showCompareSpecsWindow;
-exports.initCompareSpecs = initCompareSpecs;
+exports.showHeatMapWindow = showHeatMapWindow;
+exports.initHeatMap = initHeatMap;

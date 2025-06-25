@@ -5,7 +5,7 @@ const { ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { initPhylTree, showPhylTreeWindow } = require('./main-phyltree.js');
-const { initCompareSpecs, showCompareSpecsWindow } = require('./main-comparespecs.js');
+const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 const homedir = require('os').homedir();
 
@@ -68,7 +68,6 @@ function getExe() {
         compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
     } else {
         console.error('Unsupported platform: ' + process.platform);
-        return;
     }
     return { compareMS2exe: compareMS2exe, compToDistExe: compToDistExe };
 }
@@ -187,7 +186,7 @@ ipcMain.on('start-comparison', (event, mode, params) => {
             showPhylTreeWindow(mainWindow, icon, params)
             break;
         case "heatmap":
-            showCompareSpecsWindow(mainWindow, icon, params)
+            showHeatMapWindow(mainWindow, icon, params)
             break;
         case "spec-to-species":
             showS2SWindow(mainWindow, icon, params);
@@ -216,7 +215,7 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 let mainWindow;
 
 initPhylTree(generalParams);
-initCompareSpecs(generalParams);
+initHeatMap(generalParams);
 initS2S(generalParams);
 
 const iconPath = path.join(app.getAppPath(), 'src', 'assets', 'images');
@@ -420,7 +419,7 @@ function getSampleDirFiles(dir) {
     const mgfFiles = files.filter(file => file.endsWith('.mgf'));
     const mgfFilesFull = mgfFiles.map(file => path.join(dir, file));
     const mgfFilesShort = mgfFiles.map(file => path.basename(file));
-    var s2sFn = path.join(dir, "sample_to_species.txt");
+    const s2sFn = path.join(dir, "sample_to_species.txt");
     // Check if sample_to_species.txt exists
     fs.access(s2sFn, fs.F_OK, (err) => {
         if (err) {
@@ -503,7 +502,6 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
     const phylTreeMsg = nMgf + " MGF files, " + nCompPhylTree + " comparisons.";
     const phylTreeSubmitEnabled = (mgfFiles.length >= 2);
     // Message for compare mode "heatmap":
-    const nCompHeatMap = 1;
     const heatMapMsg = ""
     const heatMapSubmitEnabled = (sampleFile1 !== null);
 
