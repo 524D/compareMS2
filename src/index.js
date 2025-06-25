@@ -3,10 +3,10 @@
 const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
 
-const selectDirBtn = document.getElementById('select-directory')
-const selectFile1Btn = document.getElementById('select-file1')
-const selectFile2Btn = document.getElementById('select-file2')
-const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
+const selectDirBtn = document.getElementById('select-directory');
+const selectFile1Btn = document.getElementById('select-file1');
+const selectFile2Btn = document.getElementById('select-file2');
+const selectSpeciesfileBtn = document.getElementById('select-speciesfile');
 
 // Info on number of comparisons and Submit button state
 // for each compare mode
@@ -16,7 +16,7 @@ var computedItems = {
     'phyltree': ['', false],
     'heatmap': ['', false],
     'spec-to-species': ['', false]
-}
+};
 
 // On document ready, request the options from the main process
 document.addEventListener('DOMContentLoaded', function () {
@@ -24,18 +24,14 @@ document.addEventListener('DOMContentLoaded', function () {
     window.electronAPI.requestOptions();
 });
 
-
 // Set all user interface elements according to options
 function setOptions(options) {
     // Set compare mode
     const cmpMode = options.compareMode;
-    $('input[name="cmpmode"]').each(function () {
-        if ($(this).val() === cmpMode) {
-            $(this).prop('checked', true);
-        } else {
-            $(this).prop('checked', false);
-        }
+    document.querySelectorAll('input[name="cmpmode"]').forEach(function (radio) {
+        radio.checked = (radio.value === cmpMode);
     });
+
     document.getElementById("mgfdir").value = options.mgfDir;
     document.getElementById("file1").value = options.mzFile1;
     document.getElementById("file2").value = options.mzFile2;
@@ -69,7 +65,7 @@ function setOptions(options) {
 // Get all values set by user
 function getOptions() {
     var options = {
-        compareMode: $('input[name="cmpmode"]:checked').val(),
+        compareMode: document.querySelector('input[name="cmpmode"]:checked').value,
         mgfDir: document.getElementById("mgfdir").value,
         mzFile1: document.getElementById("file1").value,
         mzFile2: document.getElementById("file2").value,
@@ -98,12 +94,12 @@ function getOptions() {
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
         keepSettings: document.getElementById("keepsetting").value,
-    }
+    };
     return options;
 }
 
 function getCmpMode() {
-    const mode = $('input[name="cmpmode"]:checked').val();
+    const mode = document.querySelector('input[name="cmpmode"]:checked').value;
     return mode;
 }
 
@@ -115,17 +111,26 @@ function updateMainWindowItems() {
     const mode = getCmpMode();
     // Update the MGF info
     const mgfinfo = document.getElementById('mgfinfo');
-    mgfinfo.innerHTML = computedItems[mode][0];;
+    mgfinfo.innerHTML = computedItems[mode][0];
+
     // Enable/disable elements depending on compare mode
     // Elements that must be set have class "enable_in_mode"
     // plus the mode name, e.g. "enable_in_mode compare"
     // This is done by adding/removing the class "disabled-area",
     // which makes the elements partly transparent and disables them.
-    $(".enable_in_mode." + mode).removeClass("disabled-area");
-    $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
+    document.querySelectorAll(`.enable_in_mode.${mode}`).forEach(element => {
+        element.classList.remove("disabled-area");
+    });
+
+    document.querySelectorAll('.enable_in_mode').forEach(element => {
+        if (!element.classList.contains(mode)) {
+            element.classList.add("disabled-area");
+        }
+    });
+
     // Update the submit button state
-    let enabled = computedItems[mode][1];;
-    $('#submit').prop('disabled', !enabled);
+    let enabled = computedItems[mode][1];
+    document.getElementById('submit').disabled = !enabled;
 }
 
 function openTab(evt, tabName) {
@@ -154,48 +159,45 @@ function openTab(evt, tabName) {
 // Handle browse buttons
 selectDirBtn.addEventListener('click', (event) => {
     window.electronAPI.openDirDialog();
-    //    ipcRenderer.send('open-dir-dialog')
-})
+});
 
 selectFile1Btn.addEventListener('click', (event) => {
     window.electronAPI.openFile1Dialog();
-    //    ipcRenderer.send('open-file1-dialog')
-})
+});
 
 selectFile2Btn.addEventListener('click', (event) => {
     window.electronAPI.openFile2Dialog();
-    //    ipcRenderer.send('open-file2-dialog')
-})
+});
 
 selectSpeciesfileBtn.addEventListener('click', (event) => {
     window.electronAPI.openSpeciesfileDialog();
-    //    ipcRenderer.send('open-speciesfile-dialog')
-})
+});
 
 // Handle compare mode selection
-$('.cmpmode').change(function () {
-    updateMainWindowItems();
+document.querySelectorAll('.cmpmode').forEach(radio => {
+    radio.addEventListener('change', function () {
+        updateMainWindowItems();
+    });
 });
 
 // Handle the "Compare only N most intense spectra" input
 // Init 
-$('#topN').hide();
+document.getElementById('topN').style.display = 'none';
 
-$('#topAll').change(function () {
+document.getElementById('topAll').addEventListener('change', function () {
     if (this.checked) {
-        $('#topN').hide();
-        $('#topN').val(-1)
+        document.getElementById('topN').style.display = 'none';
+        document.getElementById('topN').value = -1;
     }
     else {
-        $('#topN').show();
-        $('#topN').val(1000)
+        document.getElementById('topN').style.display = 'block';
+        document.getElementById('topN').value = 1000;
     }
 });
 
 // Handle closing the "about" overlay
-$("#about-close").click(function () {
-    //    $("#about").removeClass( "modal" ).addClass( "hidden");
-    $('#about').hide();
+document.getElementById("about-close").addEventListener('click', function () {
+    document.getElementById('about').style.display = 'none';
 });
 
 // This function handles the request for options from the main process
@@ -228,8 +230,7 @@ submitBtn.addEventListener('click', (event) => {
     // Start the comparison in the selected mode
     const mode = getCmpMode();
     window.electronAPI.startComparison(mode, params);
-    //    ipcRenderer.send('start-comparison', mode, params);
-})
+});
 
 // Show version
 const versDiv = document.getElementById('versioninfo');
@@ -246,5 +247,4 @@ $(document).tooltip({
 
 function openSourceCodeInBrowser() {
     window.electronAPI.openSourceCodeInBrowser();
-    //    ipcRenderer.send('openSourceCodeInBrowser')
 }
