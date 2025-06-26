@@ -50,6 +50,27 @@ const generalParams = getExe();
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
 require('@electron/remote/main').initialize();
 
+// We don't accept filenames from the renderer process, but just use the data that was
+// selected in the dialog.
+// This is to prevent security issues with the renderer process.
+var fileParams = getDefaultFileParams();
+
+function getDefaultFileParams() {
+    return {
+        file1: null,
+        file2: null,
+        sampleDir: {
+            dir: homedir,
+            files: [],
+            mgfFiles: [],
+            mgfFilesFull: [],
+            mgfFilesShort: []
+        },
+        sampleToSpeciesFn: null,
+        sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
+    };
+}
+
 function getExe() {
     const myPath = app.getAppPath();
     // Return the path to the compareMS2 and compareMS2_to_distance_matrices executables
@@ -274,6 +295,7 @@ let template = [{
         label: 'Restore default option',
         accelerator: 'CmdOrCtrl+R',
         click: (item, focusedWindow) => {
+            fileParams = getDefaultFileParams();
             options = JSON.parse(JSON.stringify(defaultOptions));
             updateOptionsToRenderer(options);
         },
@@ -392,23 +414,6 @@ app.on('activate', () => {
     }
 });
 
-// We don't accept filenames from the renderer process, but just use the data that was
-// selected in the dialog.
-// This is to prevent security issues with the renderer process.
-var fileParams = {
-    file1: null,
-    file2: null,
-    sampleDir: {
-        dir: null,
-        files: [],
-        mgfFiles: [],
-        mgfFilesFull: [],
-        mgfFilesShort: []
-    },
-    sampleToSpeciesFn: null,
-    sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
-};
-
 function getSampleDirFiles(dir) {
     const filesAndDirs = fs.readdirSync(dir);
     const files = filesAndDirs.filter(file => {
@@ -479,6 +484,10 @@ function saveOptionsToFile(fn, options) {
 
 function updateOptionsToRenderer(options) {
     // Send the options to the renderer process
+    options.mgfDir = fileParams.sampleDir.dir;
+    options.mzFile1 = fileParams.file1;
+    options.mzFile2 = fileParams.file2;
+    options.s2sFile = fileParams.sampleToSpeciesFn;
     mainWindow.webContents.send('update-options', options);
 
     // Update the main window items based on the options

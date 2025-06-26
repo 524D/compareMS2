@@ -167,7 +167,7 @@
                     title="For this filter, the spectrum intensity is equal to the sum of all peaks in a spectrum.">
             </span>
         </div>
-        <div class="enable_in_mode phyltree">
+        <div class="enable_in_mode phyltree spec-to-species">
             <div><label class="input-label">Version of set distance metric</label>
                 <select id="metric" name="metric">
                     <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
@@ -176,7 +176,7 @@
                 </select>
             </div>
             <div><label class="input-label">Sample to species file</label>
-                <input class="input-value" type="text" id="s2sfile"
+                <input class="input-value" type="text" id="s2sfile" spellcheck="false" disabled
                     title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
                 &nbsp;
                 <button type="button" id="select-speciesfile" title="">
@@ -187,6 +187,8 @@
             <div><label class="input-label">Output filename root</label>
                 <input class="input-value" type="text" id="outbasename" title="Root filename for output file">
             </div>
+        </div>
+        <div class="enable_in_mode phyltree">
             <div><label class="input-label">Output format</label>
                 <input disabled type="checkbox" id="outmega" name="output-mega">
                 <label> MEGA</label>
@@ -226,5 +228,4 @@
     <script src="assets/jquery-ui.min.js"></script>
     <script src="index.js"></script>
 </body>
-
 </html>
