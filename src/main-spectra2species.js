@@ -5,6 +5,10 @@
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const log = require('electron-log');
+
+const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
 let s2sWindows = [];
 let s2sParams = [];
@@ -29,11 +33,121 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function readSampleFiles(mgfDir) {
+    // Read all files in the mgfDir directory and return an array of sample files
+    if (!fs.existsSync(mgfDir)) {
+        console.error('Directory does not exist: ' + mgfDir);
+        return [];
+    }
+    const files = fs.readdirSync(mgfDir);
+    // Filter files to only include .mfg files
+    const sampleFiles = files.filter(file => file.endsWith('.mgf')); // Get the full path of the files
+    return sampleFiles;
+}
+
+// Read the Sample2Species file
+// The file is expected to be a tab-separated file with two columns: sample name and species name
+// 
+// The sample name is the base name of the sample file.
+// If the sample name is not present in the file, it will be added with the species name equal to the sample name.
+function readSample2Species(fn, sampleFiles) {
+    const sample2Species = {};
+    const extraSamples = new Set(); // To collect all sample names
+    if (fs.existsSync(fn)) {
+        const sample2SpeciesRaw = fs.readFileSync(fn, 'utf8');
+        const lines = sample2SpeciesRaw.split('\n').filter(line => line.trim() !== ''); // Remove empty lines
+        for (const line of lines) {
+            const parts = line.split('\t');
+            if (parts.length === 2) {
+                const sample = parts[0].trim();
+                const species = parts[1].trim();
+                sample2Species[sample] = species;
+                extraSamples.add(species); // Add sample
+            }
+        }
+    }
+    // Remove the samples that exist in sampleFiles from the extraSamples set
+    for (const sampleFn of sampleFiles) {
+        if (extraSamples.has(sampleFn)) {
+            extraSamples.delete(sampleFn);
+        }
+    }
+    // The remaining samples in extraSamples are not present in the sample2Species file
+    // Remove them from the sample2Species object
+    for (const sample of extraSamples) {
+        if (sample2Species.hasOwnProperty(sample)) {
+            delete sample2Species[sample];
+        }
+    }
+
+    // Ensure all samples in sampleFiles are present in the sample2Species
+    for (const sampleFn of sampleFiles) {
+        if (!sample2Species.hasOwnProperty(sampleFn)) {
+            sample2Species[sampleFn] = sampleFn; // Use the sample name
+        }
+    }
+    return sample2Species;
+}
+
+// FIXME: the following 2 functions should go into a separate module because
+// they are used in other compare modes as well
+
+// Function to build the command line arguments for the compareMS2 executable
+function buildCmdArgs(mgf1, mgf2, opts) {
+    let cmdArgs =
+        ['-A', mgf1,
+            '-B', mgf2,
+            '-p', opts.maxPrecursorDifference,
+            '-m', opts.minBasepeakIntensity + ',' + opts.minTotalIonCurrent,
+            '-w', opts.maxScanNumberDifference,
+            '-W', opts.startScan + ',' + opts.endScan,
+            '-r', opts.maxRTDifference,
+            '-R', opts.startRT + ',' + opts.endRT,
+            '-c', opts.cutoff,
+            '-f', opts.specMetric,
+            '-s', opts.scaling,
+            '-n', opts.noise,
+            '-q', opts.qc,
+            '-d', opts.metric,
+            '-N', opts.topN,
+        ]
+    return cmdArgs
+}
+
+function getHashName(cmdArgs, compareDir) {
+    // Create a unique filename based on parameters
+    const hashName = shortHashObj({ cmdArgs });
+    const cmpFile = path.join(compareDir, hashName + '.txt');
+    const cmpFileJSON = path.join(compareDir, hashName + '.json');
+    return { cmpFile, cmpFileJSON, hashName };
+}
+
+// Return an hexadecimal hash from an object
+// The hash is the first 24 (for brevity) hex characters
+// of the SHA256 hash of the JSON representation of the object
+function shortHashObj(obj) {
+    const json = JSON.stringify(obj);
+    let sha256 = crypto.createHash('sha256');
+    let hex = sha256.update(json).digest('hex');
+    return hex.substr(0, 24)
+}
+
+// Output logging
+function llog(window, msg) {
+    log.info(msg);
+
+    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    msg = msg.replace(/(?: )/g, '&nbsp;');
+    window.webContents.send('logMessage', msg);
+}
+
+
+
 // Function to show the Spectra2Species window
 function showS2SWindow(mainWindow, icon, params) {
     let s2sWindow = new BrowserWindow({
         width: 1200,
-        height: 950,
+        height: 720,
         parent: mainWindow,
         modal: false,
         webPreferences: {
@@ -134,6 +248,62 @@ async function runS2S(params, window) {
     };
 
     window.webContents.send('updateEchartJSON', dummy);
+
+    // Create directory for compare results
+    const compareDir = path.join(params.mgfDir, compareDirName);
+    if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
+
+    const sampleFiles = readSampleFiles(params.mgfDir);
+    if (sampleFiles.length === 0) {
+        console.error('No sample files found in directory: ' + params.mgfDir);
+        return;
+    }
+    const sample2Species = readSample2Species(params.s2sFile, sampleFiles);
+
+    // Compare params.mzFile1 to all files in sampleFiles
+    // After each comparison compute the distances,
+    // and create a JSON
+    // data structure that can be used to create an eCharts bar chart
+    for (const sampleFile of sampleFiles) {
+        const sampleFileFull = path.join(params.mgfDir, sampleFile);
+        // Convert parameters to command line arguments for the comparems2 executable
+        const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
+        // Get the hash name and compare file
+        const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
+        // Check if the compare file already exists
+        if (fs.existsSync(cmpFileJSON)) {
+            console.log('Compare file already exists: ' + cmpFileJSON);
+        }
+        else {
+
+            // Temporary output filename of compare ms2
+            // used to avoid stale incomplete output after interrupt
+            const comparems2tmp = path.join(compareDir, hashName + "-" + s2sInstanceCount + ".tmp");
+            const comparems2tmpJSON = comparems2tmp + '.json';
+            // Append output filename, should not be part of hash
+            cmdArgs.push('-o', comparems2tmp, '-J', comparems2tmpJSON);
+
+            const compareMS2exe = generalParams.compareMS2Exe;
+            let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
+            llog(window, 'Executing: ' + cmdStr + '\n');
+
+            // If the compare file does not exist, run the compareMS2 executable
+            const spawnSync = require('child_process').spawnSync;
+            try {
+                spawnSync(compareMS2exe, cmdArgs, { windowsHide: true, stdio: 'inherit' });
+                console.log('Compare file created: ' + cmpFile);
+            } catch (error) {
+                console.error('Error running compareMS2:', error);
+                continue; // Skip to the next sample file if there is an error
+            }
+        }
+        // Rename the output file to the final name
+        if (fs.existsSync(cmpFileJSON)) {
+            fs.renameSync(comparems2tmpJSON, cmpFileJSON);
+            fs.renameSync(comparems2tmp, cmpFile);
+            llog(window, 'Compare file created: ' + cmpFileJSON);
+        }
+    }
 }
 
 // This function reads an array of compareFiles and returns a maps of distances

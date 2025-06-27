@@ -77,23 +77,23 @@ function getDefaultFileParams() {
 function getExe() {
     const myPath = app.getAppPath();
     // Return the path to the compareMS2 and compareMS2_to_distance_matrices executables
-    let compareMS2exe = null;
+    let compareMS2Exe = null;
     let compToDistExe = null;
 
     if (process.platform === 'linux' && process.arch === 'x64') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2');
+        compareMS2Exe = path.join(myPath, 'external_binaries', 'compareMS2');
         compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices');
     } else if (process.platform === 'win32' && process.arch === 'x64') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
+        compareMS2Exe = path.join(myPath, 'external_binaries', 'compareMS2.exe');
         compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices.exe');
     }
     else if (process.platform == 'darwin') {
-        compareMS2exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
+        compareMS2Exe = path.join(myPath, 'external_binaries', 'compareMS2_darwin');
         compToDistExe = path.join(myPath, 'external_binaries', 'compareMS2_to_distance_matrices_darwin');
     } else {
         console.error('Unsupported platform: ' + process.platform);
     }
-    return { compareMS2exe: compareMS2exe, compToDistExe: compToDistExe };
+    return { compareMS2Exe: compareMS2Exe, compToDistExe: compToDistExe };
 }
 
 // Get the user data file name where the options are stored
