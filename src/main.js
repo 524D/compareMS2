@@ -42,9 +42,12 @@ const defaultOptions = {
 }
 
 // The filename where options of the last run are stored
-const prevOptionsFn = path.join(homedir, 'compareMS2opts.json');
+const prevOptionsFn = getUserDataFn();
 
-// General values passed used for all compare functions
+// We have split the code for the different compare modes into separate files
+// This is to keep the main.js file clean and to allow for easier maintenance
+// Some parameters are shared between the different compare modes, so we define them here
+// and pass them to the different modules.
 const generalParams = getExe();
 
 // FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
@@ -93,6 +96,24 @@ function getExe() {
     return { compareMS2exe: compareMS2exe, compToDistExe: compToDistExe };
 }
 
+// Get the user data file name where the options are stored
+// This is used to store the options for the next run of the application
+// The file is stored in the userData directory of the application
+// The userData directory is located in a platform-specific location:
+// e.g. on Windows: C:\Users\<username>\AppData\Roaming\compareMS2
+// e.g. on Linux: /home/<username>/.config/compareMS2
+// e.g. on macOS: /Users/<username>/Library/Application Support/compareMS2
+// The file is named compareMS2opts.json
+// The directory is created if it does not exist yet.
+function getUserDataFn() {
+    const userData = app.getPath('userData');
+    const fn = path.join(userData, 'compareMS2opts.json');
+    // Ensure the userData directory exists
+    if (!fs.existsSync(userData)) {
+        fs.mkdirSync(userData, { recursive: true });
+    }
+    return fn;
+}
 
 function selectMGFfile(title) {
     const files = dialog.showOpenDialogSync(mainWindow, {
@@ -193,7 +214,7 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 
 ipcMain.on('start-comparison', (event, mode, params) => {
     // Save parameters for next time
-    const fn = path.join(homedir, 'compareMS2opts.json');
+    const fn = getUserDataFn();
     saveOptionsToFile(fn, params)
     // Replace the file items in params with the info from fileParams
     params.file1 = fileParams.file1;
