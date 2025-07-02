@@ -53,6 +53,7 @@ function readSampleFiles(mgfDir) {
 function readSample2Species(fn, sampleFiles) {
     const sample2Species = {};
     const extraSamples = new Set(); // To collect all sample names
+    const sampleFilesBaseNames = sampleFiles.map(file => path.basename(file)); // Get base names of sample files
     if (fs.existsSync(fn)) {
         const sample2SpeciesRaw = fs.readFileSync(fn, 'utf8');
         const lines = sample2SpeciesRaw.split('\n').filter(line => line.trim() !== ''); // Remove empty lines
@@ -67,7 +68,7 @@ function readSample2Species(fn, sampleFiles) {
         }
     }
     // Remove the samples that exist in sampleFiles from the extraSamples set
-    for (const sampleFn of sampleFiles) {
+    for (const sampleFn of sampleFilesBaseNames) {
         if (extraSamples.has(sampleFn)) {
             extraSamples.delete(sampleFn);
         }
@@ -81,7 +82,7 @@ function readSample2Species(fn, sampleFiles) {
     }
 
     // Ensure all samples in sampleFiles are present in the sample2Species
-    for (const sampleFn of sampleFiles) {
+    for (const sampleFn of sampleFilesBaseNames) {
         if (!sample2Species.hasOwnProperty(sampleFn)) {
             sample2Species[sampleFn] = sampleFn; // Use the sample name
         }
@@ -182,6 +183,7 @@ function showS2SWindow(mainWindow, icon, params) {
     runS2S(params, s2sWindow);
 }
 
+// Start the spectra2species run
 async function runS2S(params, window) {
     // Start the spectra2species run
 
@@ -264,8 +266,14 @@ async function runS2S(params, window) {
     // After each comparison compute the distances,
     // and create a JSON
     // data structure that can be used to create an eCharts bar chart
+    const cmpFilesJSON = [];
     for (const sampleFile of sampleFiles) {
         const sampleFileFull = path.join(params.mgfDir, sampleFile);
+        // Skip the mzFile1 file, it is the reference file
+        if (sampleFileFull == params.mzFile1) {
+            console.log('Skipping reference file: ' + sampleFileFull);
+            continue;
+        }
         // Convert parameters to command line arguments for the comparems2 executable
         const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
         // Get the hash name and compare file
@@ -296,102 +304,189 @@ async function runS2S(params, window) {
                 console.error('Error running compareMS2:', error);
                 continue; // Skip to the next sample file if there is an error
             }
+            // Rename the output file to the final name
+            if (fs.existsSync(comparems2tmpJSON)) {
+                fs.renameSync(comparems2tmpJSON, cmpFileJSON);
+                fs.renameSync(comparems2tmp, cmpFile);
+                llog(window, 'Compare file created: ' + cmpFileJSON);
+            } else {
+                llog(window, 'Compare file not created: ' + cmpFileJSON);
+                continue; // Skip to the next sample file if the compare file was not created
+            }
         }
-        // Rename the output file to the final name
-        if (fs.existsSync(cmpFileJSON)) {
-            fs.renameSync(comparems2tmpJSON, cmpFileJSON);
-            fs.renameSync(comparems2tmp, cmpFile);
-            llog(window, 'Compare file created: ' + cmpFileJSON);
+        // Add the compare file to the list of compare files
+        cmpFilesJSON.push(cmpFileJSON);
+        // Parse the compare file and create a distance map
+        const distanceMap = comparisons2Distance(params.mzFile1, cmpFilesJSON, sample2Species);
+        if (distanceMap.length === 0) {
+            llog(window, 'No distances found for sample: ' + sampleFile);
+            continue; // Skip to the next sample file if no distances were found
         }
+        // Find the maximum distance for similarity calculation
+        const maxDistance = Math.max(...distanceMap.map(item => item.distance));
+        if (maxDistance <= 0) {
+            llog(window, 'Maximum distance is 0 or negative for sample: ' + sampleFile);
+            continue; // Skip to the next sample file if max distance is not positive
+        }
+        // Convert distances to similarities
+        distanceMap.forEach(item => {
+            item.similarity = distance2Similarity(item.distance, maxDistance);
+        });
+        const maxVal = 1; // Set the maximum value for the visualMap (always 1 for perfect similarity)
+        // Create the echartData object for the eCharts bar chart
+        const echartData = {
+            title: {
+                text: 'Spectra2Species Comparison for ' + sampleFile,
+                subtext: 'Similarity with ' + params.mzFile1,
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow' // Use shadow pointer for bar chart
+                }
+            },
+            xAxis: {
+                type: 'category',
+                data: distanceMap.map(item => item.species), // Use species names as x-axis
+                axisLabel: {
+                    interval: 0, // Show all labels
+                    rotate: 45 // Rotate labels for better readability
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Similarity',
+                axisLabel: {
+                    formatter: '{value}' // Format the y-axis labels
+                }
+            },
+            visualMap: {
+                calculable: false,
+                realtime: false,
+                min: 0,
+                max: maxVal,
+                right: 0,
+                top: 'center',
+                inRange: {
+                    color: [
+                        '#313695',
+                        '#4575b4',
+                        '#74add1',
+                        '#abd9e9',
+                        '#e0f3f8',
+                        '#ffffbf',
+                        '#fee090',
+                        '#fdae61',
+                        '#f46d43',
+                        '#d73027',
+                        '#a50026'
+                    ]
+                }
+            },
+
+            series: [{
+                name: 'Similarity',
+                type: 'bar',
+                data: distanceMap.map(item => ({
+                    value: item.similarity,
+                })),
+                emphasis: {
+                    focus: 'series',
+                    itemStyle: {
+                        color: '#FF5722' // Change color on hover
+                    }
+                }
+            }]
+        };
+        // Send the echartData to the renderer process to update the chart
+        window.webContents.send('updateEchartJSON', echartData);
+        // Log the distances for debugging
+        llog(window, 'Distances for sample ' + sampleFile + ': ' + JSON.stringify(distanceMap, null, 2));
     }
+    // After all comparisons, send a message to the renderer process to indicate completion
+    window.webContents.send('s2s-complete', {
+        message: 'Spectra2Species comparison completed successfully.',
+        sampleFiles: sampleFiles,
+        compareDir: compareDir
+    });
+    llog(window, 'Spectra2Species comparison completed successfully.');
+}
+
+function distance2Similarity(distance, maxDistance) {
+    // Convert distance to similarity
+    // The formula is: similarity = 1 - (distance / maxDistance)
+    if (distance < 0) {
+        console.warn('Distance cannot be negative. Returning 0 similarity.');
+        return 0; // Negative distances are not valid, return 0 similarity
+    }
+    if (maxDistance <= 0) {
+        console.warn('Max distance must be greater than 0. Returning 0 similarity.');
+        return 0; // If maxDistance is not positive, return 0 similarity
+    }
+    const similarity = 1 - (distance / maxDistance);
+    // Ensure similarity is between 0 and 1
+    if (similarity < 0) {
+        console.warn('Similarity cannot be negative. Returning 0.');
+        return 0; // If similarity is negative, return 0
+    }
+    if (similarity > 1) {
+        console.warn('Similarity cannot be greater than 1. Returning 1.');
+        return 1; // If similarity is greater than 1, return 1
+    }
+    return similarity; // Return the calculated similarity
 }
 
 // This function reads an array of compareFiles and returns a maps of distances
-// for each specie in the sample2SpeciesFile. The compareFiles are expected to be
-// in the format created by compareMS2, and the sample2SpeciesFile is expected to
-// be a tab-separated file with two columns: sample name and species name.
-function comparisons2Distance(specie, compareFiles, sample2SpeciesFile) {
+// for each specie in the sample2Species (as returned by readSample2Species).
+// The compareFiles are expected to be in the JSON format created by compareMS2.
+function comparisons2Distance(checkFile, compareFiles, sample2Species) {
 
     // Check if the compareFiles array is empty
     if (compareFiles.length === 0) {
         console.error('No compare files provided.');
         return [];
     }
-    // Check if the sample2SpeciesFile exists
-    if (!fs.existsSync(sample2SpeciesFile)) {
-        console.error('Sample to species file does not exist: ' + sample2SpeciesFile);
-        return [];
-    }
 
     // Initialize an empty distance map
     const distanceMap = {};
 
-    // Read sample2SpeciesFile into an array of strings
-    const sample2SpeciesRaw = fs.readFileSync(sample2SpeciesFile, 'utf8');
-    const sample2SpeciesRaw1 = sample2SpeciesRaw.split('\n').filter(line => line.trim() !== ''); // Remove empty lines
-
-    const sample2Species = ensureSample2Species(sample2SpeciesRaw1, compareFiles);
-
     for (const compareFile of compareFiles) {
         const parsedData = parseCompareMS2JSON(compareFile);
-        const specie1 = sample2Species[parsedData.sample1];
-        const specie2 = sample2Species[parsedData.sample2];
-        const distance = parsedData.distance;
-        // Check if the species match the given specie
-        if (specie1 === specie || specie2 === specie) {
-            const otherSpecie = specie1 === specie ? specie2 : specie1;
-            // If the other species is not in the distance map, initialize it
-            if (!distanceMap.hasOwnProperty(otherSpecie)) {
-                distanceMap[otherSpecie] = [];
-            }
-            // Add the distance to the distance map
-            distanceMap[otherSpecie].push(distance);
+        if ((checkFile !== parsedData.sample1) && (checkFile !== parsedData.sample2)) {
+            console.warn(`Check file ${checkFile} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
+            continue; // Skip this comparison if the check file does not match the sample names
         }
+        const otherFile = (checkFile === parsedData.sample1 ? parsedData.sample2 : parsedData.sample1);
+        const otherFileBase = path.basename(otherFile);
+        // Check if the sample names are in the sample2Species map
+        if (!sample2Species.hasOwnProperty(otherFileBase)) {
+            console.warn(`Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
+            continue; // Skip this comparison if the sample names are not found
+        }
+        const otherSpecie = sample2Species[otherFileBase];
+        const distance = parsedData.distance;
+        // If the other species is not in the distance map, initialize it
+        if (!distanceMap.hasOwnProperty(otherSpecie)) {
+            distanceMap[otherSpecie] = [];
+        }
+        // Add the distance to the distance map
+        distanceMap[otherSpecie].push(distance);
     }
     // Create an average distance map from the distance map
-    const averageDistanceMap = {};
+    const averageDistanceMap = [];
     for (const otherSpecie in distanceMap) {
-        //        if (distanceMap.hasOwnProperty(otherSpecie)) {
         const distances = distanceMap[otherSpecie];
         // Calculate the average distance
         const averageDistance = distances.reduce((sum, value) => sum + value, 0) / distances.length;
-        averageDistanceMap[otherSpecie] = averageDistance;
-        //        }
+        averageDistanceMap.push({ species: otherSpecie, distance: averageDistance });
     }
 
     // Sort the average distance map by distance
-    const sortedDistanceMap = Object.entries(averageDistanceMap).sort((a, b) => a[1] - b[1]);
+    const sortedDistanceMap = averageDistanceMap.sort((a, b) => a.distance - b.distance);
 
     return sortedDistanceMap;
 
-}
-
-// This function converts a raw sample2Species file into a dictionary
-// where the keys are the sample names and the values are the species names.
-// Furthermore, it checks if all samples in sampleFiles are present in the sample2SpeciesRaw file,
-// and if not, it adds them with the species name that is equal to the sample name
-function ensureSample2Species(sample2SpeciesRaw, sampleFiles) {
-    const sample2Species = {};
-    const lines = sample2SpeciesRaw.split('\n');
-
-    // Parse the sample2SpeciesRaw file
-    for (const line of lines) {
-        const parts = line.split('\t');
-        if (parts.length === 2) {
-            const sample = parts[0].trim();
-            const species = parts[1].trim();
-            sample2Species[sample] = species;
-        }
-    }
-
-    // Ensure all samples in sampleFiles are present in sample2Species
-    for (const sample of sampleFiles) {
-        if (!sample2Species.hasOwnProperty(sample)) {
-            sample2Species[sample] = path.basename(sample, path.extname(sample)); // Use the sample name as species name
-        }
-    }
-
-    return sample2Species;
 }
 
 function parseCompareMS2JSON(jsonFile) {
@@ -400,8 +495,8 @@ function parseCompareMS2JSON(jsonFile) {
     const jsonData = fs.readFileSync(jsonFile, 'utf8');
     const data = JSON.parse(jsonData);
 
-    file1 = path.basename(data.datasetA);
-    file2 = path.basename(data.datasetB);
+    file1 = data.datasetA;
+    file2 = data.datasetB;
     distance = data.setDistance;
     return {
         sample1: file1,
