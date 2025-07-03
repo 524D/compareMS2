@@ -187,69 +187,6 @@ function showS2SWindow(mainWindow, icon, params) {
 async function runS2S(params, window) {
     // Start the spectra2species run
 
-    // Sleep for 2 seconds
-    await sleep(2000);
-
-    const dummy = option = {
-        xAxis: {
-            type: 'category',
-            data: ['Cow', 'Horse', 'Human', 'T.Rex', 'E.T.', 'Ant', 'Soy bean']
-        },
-        yAxis: {
-            type: 'value'
-        },
-        series: [
-            {
-                data: [
-                    {
-                        value: 99,
-                        itemStyle: {
-                            color: '#a900A0'
-                        }
-                    },
-                    {
-                        value: 50,
-                        itemStyle: {
-                            color: '#8844A0'
-                        }
-                    },
-                    {
-                        value: 20,
-                        itemStyle: {
-                            color: '#7844A0'
-                        }
-                    },
-                    {
-                        value: 15,
-                        itemStyle: {
-                            color: '#6844A0'
-                        }
-                    },
-                    {
-                        value: 14,
-                        itemStyle: {
-                            color: '#5844A0'
-                        }
-                    },
-                    {
-                        value: 10,
-                        itemStyle: {
-                            color: '#4844A0'
-                        }
-                    },
-                    {
-                        value: 6,
-                        itemStyle: {
-                            color: '#3844A0'
-                        }
-                    }
-                ],
-                type: 'bar'
-            }
-        ]
-    };
-
-    window.webContents.send('updateEchartJSON', dummy);
 
     // Create directory for compare results
     const compareDir = path.join(params.mgfDir, compareDirName);
@@ -322,22 +259,18 @@ async function runS2S(params, window) {
             llog(window, 'No distances found for sample: ' + sampleFile);
             continue; // Skip to the next sample file if no distances were found
         }
-        // Find the maximum distance for similarity calculation
-        const maxDistance = Math.max(...distanceMap.map(item => item.distance));
-        if (maxDistance <= 0) {
-            llog(window, 'Maximum distance is 0 or negative for sample: ' + sampleFile);
-            continue; // Skip to the next sample file if max distance is not positive
-        }
         // Convert distances to similarities
         distanceMap.forEach(item => {
-            item.similarity = distance2Similarity(item.distance, maxDistance);
+            item.similarity = distance2Similarity(item.distance);
         });
-        const maxVal = 1; // Set the maximum value for the visualMap (always 1 for perfect similarity)
+        var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
+        if (distanceMap.length > 0) {
+            maxVal = Math.max(...distanceMap.map(item => item.similarity));
+        }
         // Create the echartData object for the eCharts bar chart
         const echartData = {
             title: {
-                text: 'Spectra2Species Comparison for ' + sampleFile,
-                subtext: 'Similarity with ' + params.mzFile1,
+                text: 'Spectra2Species Comparison for ' + path.basename(params.mzFile1),
                 left: 'center'
             },
             tooltip: {
@@ -362,12 +295,14 @@ async function runS2S(params, window) {
                 }
             },
             visualMap: {
-                calculable: false,
-                realtime: false,
+                calculable: true,
+                realtime: true,
                 min: 0,
                 max: maxVal,
+                precision: 3,
                 right: 0,
                 top: 'center',
+                itemHeight: 300,
                 inRange: {
                     color: [
                         '#313695',
@@ -399,6 +334,8 @@ async function runS2S(params, window) {
                 }
             }]
         };
+        await sleep(500); // FIXME: should not be needed if we use async code
+
         // Send the echartData to the renderer process to update the chart
         window.webContents.send('updateEchartJSON', echartData);
         // Log the distances for debugging
@@ -413,28 +350,11 @@ async function runS2S(params, window) {
     llog(window, 'Spectra2Species comparison completed successfully.');
 }
 
-function distance2Similarity(distance, maxDistance) {
-    // Convert distance to similarity
-    // The formula is: similarity = 1 - (distance / maxDistance)
-    if (distance < 0) {
-        console.warn('Distance cannot be negative. Returning 0 similarity.');
-        return 0; // Negative distances are not valid, return 0 similarity
-    }
-    if (maxDistance <= 0) {
-        console.warn('Max distance must be greater than 0. Returning 0 similarity.');
-        return 0; // If maxDistance is not positive, return 0 similarity
-    }
-    const similarity = 1 - (distance / maxDistance);
-    // Ensure similarity is between 0 and 1
-    if (similarity < 0) {
-        console.warn('Similarity cannot be negative. Returning 0.');
-        return 0; // If similarity is negative, return 0
-    }
-    if (similarity > 1) {
-        console.warn('Similarity cannot be greater than 1. Returning 1.');
-        return 1; // If similarity is greater than 1, return 1
-    }
-    return similarity; // Return the calculated similarity
+// Convert distance to similarity
+function distance2Similarity(distance) {
+    const similarity = 1 / (1 + distance); // Convert distance to similarity
+    // Round similarity to 4 decimal places
+    return Math.round(similarity * 10000) / 10000;
 }
 
 // This function reads an array of compareFiles and returns a maps of distances
