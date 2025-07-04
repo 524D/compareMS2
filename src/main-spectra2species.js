@@ -148,7 +148,9 @@ function llog(window, msg) {
 function showS2SWindow(mainWindow, icon, params) {
     let s2sWindow = new BrowserWindow({
         width: 1200,
-        height: 720,
+        height: 960,
+        minWidth: 720,
+        minHeight: 480,
         parent: mainWindow,
         modal: false,
         webPreferences: {
@@ -278,7 +280,7 @@ async function runS2S(params, window) {
         });
         // Create the echartData object for the eCharts bar chart
         const echartData = makeEChartsOption(distanceMap, params.mzFile1);
-        await sleep(500); // FIXME: should not be needed if we use async code
+        await sleep(200); // FIXME: Why is this needed? Without, precomputed files don't show up in the chart
 
         // Send the echartData to the renderer process to update the chart
         window.webContents.send('updateEchartJSON', echartData);
@@ -361,6 +363,8 @@ function makeEChartsOption(distanceMap, mzFile1) {
     if (distanceMap.length > 0) {
         maxVal = Math.max(...distanceMap.map(item => item.similarity));
     }
+    // Adjust the fond size according to the number of items in the distanceMap
+    const fontSize = Math.max(10, 12 - Math.floor(distanceMap.length / 10)); // Decrease font size as the number of items increases, but not below 10
 
     return {
         title: {
@@ -373,12 +377,22 @@ function makeEChartsOption(distanceMap, mzFile1) {
                 type: 'shadow' // Use shadow pointer for bar chart
             }
         },
+        grid: {
+            left: '13%',
+            right: '10%',
+            bottom: '2%',
+            containLabel: true
+        },
         xAxis: {
             type: 'category',
             data: distanceMap.map(item => item.species), // Use species names as x-axis
             axisLabel: {
                 interval: 0, // Show all labels
-                rotate: 45 // Rotate labels for better readability
+                rotate: 45, // Rotate labels for better readability
+                overflow: 'truncate', // Truncate labels that are too long
+                textStyle: {
+                    fontSize: fontSize
+                }
             }
         },
         yAxis: {
