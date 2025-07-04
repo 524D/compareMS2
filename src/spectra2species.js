@@ -59,9 +59,18 @@ option = {
 };
 
 option && myChart.setOption(option);
+// Show the "loading" animation
+myChart.showLoading({
+    text: 'Working',
+    fontSize: 24,
+    spinnerRadius: 20,
+    lineWidth: 8,
+});
 
 // The function updateEchartJSON is called by the main process through the preload script
 window.s2sAPI.updateEchartJSON((option) => {
+    // Hide the "loading" animation
+    myChart.hideLoading();
     option && myChart.setOption(option);
 })
 
