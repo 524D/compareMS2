@@ -152,9 +152,8 @@ function showS2SWindow(mainWindow, icon, params) {
         parent: mainWindow,
         modal: false,
         webPreferences: {
-            nodeIntegration: true,
-            enableRemoteModule: true,
             contextIsolation: true,
+            sandbox: true,
             preload: path.join(__dirname, 'spectra2species-preload.js')
         },
         icon: icon,
@@ -185,9 +184,6 @@ function showS2SWindow(mainWindow, icon, params) {
 
 // Start the spectra2species run
 async function runS2S(params, window) {
-    // Start the spectra2species run
-
-
     // Create directory for compare results
     const compareDir = path.join(params.mgfDir, compareDirName);
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
@@ -204,6 +200,7 @@ async function runS2S(params, window) {
     // and create a JSON
     // data structure that can be used to create an eCharts bar chart
     const cmpFilesJSON = [];
+    const compareResults = [];
     for (const sampleFile of sampleFiles) {
         const sampleFileFull = path.join(params.mgfDir, sampleFile);
         // Skip the mzFile1 file, it is the reference file
@@ -253,8 +250,10 @@ async function runS2S(params, window) {
         }
         // Add the compare file to the list of compare files
         cmpFilesJSON.push(cmpFileJSON);
-        // Parse the compare file and create a distance map
-        const distanceMap = comparisons2Distance(params.mzFile1, cmpFilesJSON, sample2Species);
+        // Append the compare results
+        compareResults.push(parseCompareMS2JSON(cmpFileJSON));
+        // Create a distance map
+        const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species);
         if (distanceMap.length === 0) {
             llog(window, 'No distances found for sample: ' + sampleFile);
             continue; // Skip to the next sample file if no distances were found
@@ -263,77 +262,8 @@ async function runS2S(params, window) {
         distanceMap.forEach(item => {
             item.similarity = distance2Similarity(item.distance);
         });
-        var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
-        if (distanceMap.length > 0) {
-            maxVal = Math.max(...distanceMap.map(item => item.similarity));
-        }
         // Create the echartData object for the eCharts bar chart
-        const echartData = {
-            title: {
-                text: 'Spectra2Species Comparison for ' + path.basename(params.mzFile1),
-                left: 'center'
-            },
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'shadow' // Use shadow pointer for bar chart
-                }
-            },
-            xAxis: {
-                type: 'category',
-                data: distanceMap.map(item => item.species), // Use species names as x-axis
-                axisLabel: {
-                    interval: 0, // Show all labels
-                    rotate: 45 // Rotate labels for better readability
-                }
-            },
-            yAxis: {
-                type: 'value',
-                name: 'Similarity',
-                axisLabel: {
-                    formatter: '{value}' // Format the y-axis labels
-                }
-            },
-            visualMap: {
-                calculable: true,
-                realtime: true,
-                min: 0,
-                max: maxVal,
-                precision: 3,
-                right: 0,
-                top: 'center',
-                itemHeight: 300,
-                inRange: {
-                    color: [
-                        '#313695',
-                        '#4575b4',
-                        '#74add1',
-                        '#abd9e9',
-                        '#e0f3f8',
-                        '#ffffbf',
-                        '#fee090',
-                        '#fdae61',
-                        '#f46d43',
-                        '#d73027',
-                        '#a50026'
-                    ]
-                }
-            },
-
-            series: [{
-                name: 'Similarity',
-                type: 'bar',
-                data: distanceMap.map(item => ({
-                    value: item.similarity,
-                })),
-                emphasis: {
-                    focus: 'series',
-                    itemStyle: {
-                        color: '#FF5722' // Change color on hover
-                    }
-                }
-            }]
-        };
+        const echartData = makeEChartsOption(distanceMap, params.mzFile1);
         await sleep(500); // FIXME: should not be needed if we use async code
 
         // Send the echartData to the renderer process to update the chart
@@ -357,35 +287,26 @@ function distance2Similarity(distance) {
     return Math.round(similarity * 10000) / 10000;
 }
 
-// This function reads an array of compareFiles and returns a maps of distances
+// This function reads an array of results from comparisons and returns a maps of distances
 // for each specie in the sample2Species (as returned by readSample2Species).
-// The compareFiles are expected to be in the JSON format created by compareMS2.
-function comparisons2Distance(checkFile, compareFiles, sample2Species) {
-
-    // Check if the compareFiles array is empty
-    if (compareFiles.length === 0) {
-        console.error('No compare files provided.');
-        return [];
-    }
-
+function comparisons2Distance(checkFileName, compareResults, sample2Species) {
     // Initialize an empty distance map
     const distanceMap = {};
 
-    for (const compareFile of compareFiles) {
-        const parsedData = parseCompareMS2JSON(compareFile);
-        if ((checkFile !== parsedData.sample1) && (checkFile !== parsedData.sample2)) {
-            console.warn(`Check file ${checkFile} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
+    for (const compareResult of compareResults) {
+        if ((checkFileName !== compareResult.sample1) && (checkFileName !== compareResult.sample2)) {
+            console.error(`Check file ${checkFileName} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
             continue; // Skip this comparison if the check file does not match the sample names
         }
-        const otherFile = (checkFile === parsedData.sample1 ? parsedData.sample2 : parsedData.sample1);
+        const otherFile = (checkFileName === compareResult.sample1 ? compareResult.sample2 : compareResult.sample1);
         const otherFileBase = path.basename(otherFile);
         // Check if the sample names are in the sample2Species map
         if (!sample2Species.hasOwnProperty(otherFileBase)) {
-            console.warn(`Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
+            console.error(`Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
             continue; // Skip this comparison if the sample names are not found
         }
         const otherSpecie = sample2Species[otherFileBase];
-        const distance = parsedData.distance;
+        const distance = compareResult.distance;
         // If the other species is not in the distance map, initialize it
         if (!distanceMap.hasOwnProperty(otherSpecie)) {
             distanceMap[otherSpecie] = [];
@@ -422,6 +343,59 @@ function parseCompareMS2JSON(jsonFile) {
         sample1: file1,
         sample2: file2,
         distance: distance,
+    };
+}
+
+// Create the echartData object for the eCharts bar chart
+function makeEChartsOption(distanceMap, mzFile1) {
+    var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
+    if (distanceMap.length > 0) {
+        maxVal = Math.max(...distanceMap.map(item => item.similarity));
+    }
+
+    return {
+        title: {
+            text: 'Spectra2Species Comparison for ' + path.basename(mzFile1),
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow' // Use shadow pointer for bar chart
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: distanceMap.map(item => item.species), // Use species names as x-axis
+            axisLabel: {
+                interval: 0, // Show all labels
+                rotate: 45 // Rotate labels for better readability
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Similarity',
+            axisLabel: {
+                formatter: '{value}' // Format the y-axis labels
+            }
+        },
+        visualMap: {
+            max: maxVal,
+        },
+
+        series: [{
+            name: 'Similarity',
+            type: 'bar',
+            data: distanceMap.map(item => ({
+                value: item.similarity,
+            })),
+            emphasis: {
+                focus: 'series',
+                itemStyle: {
+                    color: '#FF5722' // Change color on hover
+                }
+            }
+        }]
     };
 }
 

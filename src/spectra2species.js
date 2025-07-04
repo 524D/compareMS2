@@ -26,12 +26,14 @@ option = {
         type: 'value'
     },
     visualMap: {
-        calculable: false,
-        realtime: false,
+        calculable: true,
+        realtime: true,
         min: 0,
         max: 1,
+        precision: 3,
         right: 0,
         top: 'center',
+        itemHeight: 300,
         inRange: {
             color: [
                 '#313695',
