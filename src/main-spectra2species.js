@@ -230,10 +230,24 @@ async function runS2S(params, window) {
             llog(window, 'Executing: ' + cmdStr + '\n');
 
             // If the compare file does not exist, run the compareMS2 executable
-            const spawnSync = require('child_process').spawnSync;
+            const spawn = require('child_process').spawn;
             try {
-                spawnSync(compareMS2exe, cmdArgs, { windowsHide: true, stdio: 'inherit' });
-                console.log('Compare file created: ' + cmpFile);
+                await new Promise((resolve, reject) => {
+                    const child = spawn(compareMS2exe, cmdArgs, { windowsHide: true, stdio: 'inherit' });
+
+                    child.on('close', (code) => {
+                        if (code === 0) {
+                            console.log('Compare file created: ' + cmpFile);
+                            resolve();
+                        } else {
+                            reject(new Error(`compareMS2 process exited with code ${code}`));
+                        }
+                    });
+
+                    child.on('error', (error) => {
+                        reject(error);
+                    });
+                });
             } catch (error) {
                 console.error('Error running compareMS2:', error);
                 continue; // Skip to the next sample file if there is an error
@@ -272,11 +286,6 @@ async function runS2S(params, window) {
         llog(window, 'Distances for sample ' + sampleFile + ': ' + JSON.stringify(distanceMap, null, 2));
     }
     // After all comparisons, send a message to the renderer process to indicate completion
-    window.webContents.send('s2s-complete', {
-        message: 'Spectra2Species comparison completed successfully.',
-        sampleFiles: sampleFiles,
-        compareDir: compareDir
-    });
     llog(window, 'Spectra2Species comparison completed successfully.');
 }
 
