@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld(
         stop: () => ipcRenderer.send('s2s-stop'),
         pause: () => ipcRenderer.send('s2s-pause'),
         continue: () => ipcRenderer.send('s2s-continue'),
+        storeImage: (defaultName, format, data) => ipcRenderer.send('store-image-v2', defaultName, format, data),
         updateEchartJSON: (callback) => ipcRenderer.on('updateEchartJSON', (_event, value) => callback(value)),
     }
 )

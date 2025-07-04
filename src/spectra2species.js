@@ -157,12 +157,16 @@ function getColorScale(cScale) {
 // Function renderSVG is renders the chart to an SVG string
 // Parameters option contains the chart "option" object as defined by ECharts
 function renderSVG(option) {
+    // Get the width and height from the HTML element with id 'main'
+    const mainElement = document.getElementById('main');
+    const width = mainElement.clientWidth || 1200; // Default to 1200
+    const height = mainElement.clientHeight || 1000; // Default to 1000 
     // In SSR mode the first container parameter is not required
     const chart = echarts.init(null, null, {
         renderer: 'svg', // must use SVG rendering mode
         ssr: true, // enable SSR
-        width: 1200, // need to specify height and width
-        height: 1000
+        width: width,
+        height: height
     });
 
     chart.setOption(option);
@@ -181,8 +185,13 @@ function sleep(ms) {
 
 // Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
 // Parameters option contains the chart "option" object as defined by ECharts
-function saveAsPNG(option) {
-    const canvas = createCanvas(1200, 1000);
+function saveAsPNG(option, defaultName, imgFmt) {
+    // Get the width and height from the HTML element with id 'main'
+    const mainElement = document.getElementById('main');
+    const width = mainElement.clientWidth || 1200;
+    const height = mainElement.clientHeight || 1000; // Default to 10000 
+
+    const canvas = createCanvas(width, height);
     // ECharts can use the Canvas instance created by node-canvas as a container directly
     const chart = echarts.init(canvas);
 
@@ -193,9 +202,10 @@ function saveAsPNG(option) {
     sleep(500).then(() => {
         canvas.toBlob(function (blob) {
             blob.arrayBuffer().then(function (aBuffer) {
+                // FIXME: we don't have Node here
                 // Convert to Node.js Buffer
-                const buffer = Buffer.from(aBuffer);
-                ipcRenderer.send('store-image', "png", buffer, 0);
+                // const abuffer = Buffer.from(aBuffer);
+                window.s2sAPI.storeImage(defaultName, imgFmt, aBuffer);
             });
         });
         chart.dispose();
@@ -210,17 +220,15 @@ document.getElementById("qscale").addEventListener("change", function () {
 
 document.getElementById("store-image").addEventListener("click", function (e) {
     const imgFmt = document.getElementById('img-type').value;
-    var imageData;
+    const defaultName = "spectra2species";
+    const option = myChart.getOption(); // Get the current chart option
     if (imgFmt == "svg") {
-        imageData = renderSVG(option);
-        ipcRenderer.send('store-image', imgFmt, imageData, instanceId);
+        const imageData = renderSVG(option);
+        window.s2sAPI.storeImage(defaultName, imgFmt, imageData);
     }
     else if (imgFmt == "png") {
-        imageData = saveAsPNG(option);
+        saveAsPNG(option, defaultName, imgFmt);
     }
-    // Set message to main process to store the SVG string
-    // FIXME: when context isolation is enabled, replace with:
-    // window.electronAPI.storeImage(v, imageData, instanceId);
 })
 
 document.getElementById("details").addEventListener("click", function (e) {

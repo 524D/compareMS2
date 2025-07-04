@@ -146,6 +146,43 @@ function handleStoreImage(dummy, imgFmt, imageData, instanceId) {
     }
 }
 
+function handleStoreImageV2(dummy, defaultName, imgFmt, imageData) {
+    // Sanitize the defaultName to ensure it is a valid filename
+    defaultName = defaultName.replace(/[^a-z0-9_\-\.]/gi, '_').toLowerCase();
+    // Ensure the defaultName does not end with a dot
+    if (defaultName.endsWith('.')) {
+        defaultName = defaultName.slice(0, -1);
+    }
+    // Sanitize the imgFmt to ensure it is a valid file extension
+    imgFmt = imgFmt.replace(/[^a-z0-9_\-]/gi, '').toLowerCase();
+    // Ensure the imgFmt is not empty
+    if (!imgFmt) {
+        imgFmt = 'png'; // Default to png if imgFmt is empty
+    }
+    // For PNG files, imageData is of type ArrayBuffer,
+    // Convert it to a Buffer using Buffer.from
+    if (imgFmt === 'png' && imageData instanceof ArrayBuffer) {
+        imageData = Buffer.from(imageData);
+    }
+
+    const files = dialog.showSaveDialogSync(mainWindow, {
+        title: 'Save image',
+        defaultPath: defaultName + '' + imgFmt,
+        filters: [
+            { name: imgFmt + ' file', extensions: [imgFmt] },
+            { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+    });
+    if (files) {
+        fs.writeFile(files, imageData, function (err) {
+            if (err) {
+                return console.log(err);
+            }
+        });
+    }
+}
+
 // Get the initial parameters for the main window
 ipcMain.on('request-options', (event) => {
     // Check if the options file exists
@@ -242,6 +279,8 @@ ipcMain.on('toggle-fullscreen', (event, instanceId) => {
 })
 
 ipcMain.on('store-image', handleStoreImage);
+
+ipcMain.on('store-image-v2', handleStoreImageV2);
 
 ipcMain.on('openSourceCodeInBrowser', (event) => {
     shell.openExternal("https://github.com/524D/compareMS2");
