@@ -67,13 +67,13 @@ myChart.showLoading({
     lineWidth: 8,
 });
 
-// The function updateEchartJSON is called by the main process through the preload script
-window.s2sAPI.updateEchartJSON((option) => {
+// The function updateChart is called by the main process through the preload script
+window.s2sAPI.updateChart((distanceMap, compareDir, mzFile1, s2sFile) => {
     // Hide the "loading" animation
     myChart.hideLoading();
-    option && myChart.setOption(option);
+    const option = makeEChartsOption(distanceMap, compareDir, mzFile1, s2sFile);
+    myChart.setOption(option);
 })
-
 
 function elog(...args) {
     // Log to the console if debug mode is enabled
@@ -211,6 +211,81 @@ function saveAsPNG(option, defaultName, imgFmt) {
         chart.dispose();
     });
     return;
+}
+
+// Create the echartData object for the eCharts bar chart
+function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
+    var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
+    if (distanceMap.length > 0) {
+        maxVal = Math.max(...distanceMap.map(item => item.similarity));
+    }
+    // Adjust the fond size according to the number of items in the distanceMap
+    const fontSize = Math.max(10, 12 - Math.floor(distanceMap.length / 10)); // Decrease font size as the number of items increases, but not below 10
+    var subText = 'comparing to directory: ' + dirName;
+    if (s2sFile) {
+        subText += ' using mapping file ' + s2sFile;
+    }
+
+    return {
+        title: {
+            text: 'Spectra2Species Comparison for ' + mzFile1,
+            subtext: subText,
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow' // Use shadow pointer for bar chart
+            }
+        },
+        grid: {
+            left: '13%',
+            right: '10%',
+            bottom: '2%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: distanceMap.map(item => item.species), // Use species names as x-axis
+            axisLabel: {
+                interval: 0, // Show all labels
+                rotate: 45, // Rotate labels for better readability
+                overflow: 'truncate', // Truncate labels that are too long
+                textStyle: {
+                    fontSize: fontSize
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Similarity',
+            nameLocation: 'middle',
+            nameGap: 50, // Space between the axis name and the axis line
+            nameTextStyle: {
+                fontSize: 17,
+            },
+            axisLabel: {
+                formatter: '{value}' // Format the y-axis labels
+            }
+        },
+        visualMap: {
+            max: maxVal,
+        },
+
+        series: [{
+            name: 'Similarity',
+            type: 'bar',
+            data: distanceMap.map(item => ({
+                value: item.similarity,
+            })),
+            emphasis: {
+                focus: 'series',
+                itemStyle: {
+                    color: '#FF5722' // Change color on hover
+                }
+            }
+        }]
+    };
 }
 
 // Set color scale when selection changes

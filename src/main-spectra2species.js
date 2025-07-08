@@ -278,14 +278,14 @@ async function runS2S(params, window) {
         distanceMap.forEach(item => {
             item.similarity = distance2Similarity(item.distance);
         });
-        // Create the echartData object for the eCharts bar chart
-        const echartData = makeEChartsOption(distanceMap, params.mgfDir, params.mzFile1, params.s2sFile);
         await sleep(200); // FIXME: Why is this needed? Without, precomputed files don't show up in the chart
 
-        // Send the echartData to the renderer process to update the chart
-        window.webContents.send('updateEchartJSON', echartData);
-        // Log the distances for debugging
-        llog(window, 'Distances for sample ' + sampleFile + ': ' + JSON.stringify(distanceMap, null, 2));
+        window.webContents.send('updateChart', distanceMap,
+            path.basename(params.mgfDir),
+            path.basename(params.mzFile1),
+            params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+
+
     }
     // After all comparisons, send a message to the renderer process to indicate completion
     llog(window, 'Spectra2Species comparison completed successfully.');
@@ -354,81 +354,6 @@ function parseCompareMS2JSON(jsonFile) {
         sample1: file1,
         sample2: file2,
         distance: distance,
-    };
-}
-
-// Create the echartData object for the eCharts bar chart
-function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
-    var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
-    if (distanceMap.length > 0) {
-        maxVal = Math.max(...distanceMap.map(item => item.similarity));
-    }
-    // Adjust the fond size according to the number of items in the distanceMap
-    const fontSize = Math.max(10, 12 - Math.floor(distanceMap.length / 10)); // Decrease font size as the number of items increases, but not below 10
-    var subText = 'comparing to directory: ' + path.basename(dirName);
-    if (s2sFile) {
-        subText += ' using mapping file ' + path.basename(s2sFile);
-    }
-
-    return {
-        title: {
-            text: 'Spectra2Species Comparison for ' + path.basename(mzFile1),
-            subtext: subText,
-            left: 'center'
-        },
-        tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-                type: 'shadow' // Use shadow pointer for bar chart
-            }
-        },
-        grid: {
-            left: '13%',
-            right: '10%',
-            bottom: '2%',
-            containLabel: true
-        },
-        xAxis: {
-            type: 'category',
-            data: distanceMap.map(item => item.species), // Use species names as x-axis
-            axisLabel: {
-                interval: 0, // Show all labels
-                rotate: 45, // Rotate labels for better readability
-                overflow: 'truncate', // Truncate labels that are too long
-                textStyle: {
-                    fontSize: fontSize
-                }
-            }
-        },
-        yAxis: {
-            type: 'value',
-            name: 'Similarity',
-            nameLocation: 'middle',
-            nameGap: 50, // Space between the axis name and the axis line
-            nameTextStyle: {
-                fontSize: 17,
-            },
-            axisLabel: {
-                formatter: '{value}' // Format the y-axis labels
-            }
-        },
-        visualMap: {
-            max: maxVal,
-        },
-
-        series: [{
-            name: 'Similarity',
-            type: 'bar',
-            data: distanceMap.map(item => ({
-                value: item.similarity,
-            })),
-            emphasis: {
-                focus: 'series',
-                itemStyle: {
-                    color: '#FF5722' // Change color on hover
-                }
-            }
-        }]
     };
 }
 
