@@ -49,7 +49,7 @@ function colorNodesByName(element, data) {
 };
 
 let treeOptions = {
-    'container': "#main-tree-item",
+    'container': "#main-chart",
     'draw-size-bubbles': false,
     'brush': false, // We have no use for the brush
     'show-scale': true,
@@ -202,7 +202,7 @@ function compareNext() {
 
         let cmdArgs = buildCmdArgs(mgf1, mgf2, paramsGlobal)
         // Create a unique filename based on parameters
-        let {cmpFile, hashName} = getHashName(cmdArgs, compareDir);
+        let { cmpFile, hashName } = getHashName(cmdArgs, compareDir);
 
         // Temporary output filename of compare ms2
         // used to avoid stale incomplete output after interrupt
@@ -299,7 +299,7 @@ function getHashName(cmdArgs, compareDir) {
     // Create a unique filename based on parameters
     const hashName = shortHashObj({ cmdArgs });
     const cmpFile = path.join(compareDir, hashName + ".txt");
-    return {cmpFile, hashName};
+    return { cmpFile, hashName };
 }
 
 // findLastFinishedRow returns the index of the last row in the
@@ -317,7 +317,7 @@ function findLastFinishedRow(mgfFiles, opts, compareDir) {
             if (mgf1 > mgf2) {
                 [mgf1, mgf2] = [mgf2, mgf1];
             }
-            let {cmpFile} = getHashName(buildCmdArgs(mgf1, mgf2, opts), compareDir);
+            let { cmpFile } = getHashName(buildCmdArgs(mgf1, mgf2, opts), compareDir);
             if (fs.existsSync(cmpFile)) {
                 lastRow = i;
                 lastCol = j;
@@ -609,7 +609,7 @@ function runCompare(params) {
     paramsGlobal = params;
     file1Idx = 1;
     file2Idx = 0;
-//    file1Idx = findLastFinishedRow(mgfFilesGlobal, params, compareDir)
+    //    file1Idx = findLastFinishedRow(mgfFilesGlobal, params, compareDir)
 
     // Create empty comparison list file
     compResultListFile = path.join(paramsGlobal.mgfDir, "cmp_list-" + instanceId + ".txt");
@@ -686,11 +686,11 @@ $("#qscale").change(function (e) {
 $("#store-image").on("click", function (e) {
     const v = $('#img-type').val();
     if (v == "svg") {
-        const svg = document.querySelector('#main-tree-item svg');
+        const svg = document.querySelector('#main-chart svg');
         downloadSvg(svg, "phylotree");
     }
     else if (v == "png") {
-        d3ToPng('#main-tree-item svg', 'phylotree', {
+        d3ToPng('#main-chart svg', 'phylotree', {
             scale: 5
         }
         );

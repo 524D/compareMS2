@@ -40,8 +40,10 @@
     height: 100%;
 }
 
-#main-tree-item {
+#main-chart {
     flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
 }
 
 .main-control-item  {
