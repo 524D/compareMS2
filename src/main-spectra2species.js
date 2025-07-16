@@ -18,15 +18,6 @@ var generalParams = null;
 
 function initS2S(genParams) {
     generalParams = genParams;
-
-    ipcMain.on('s2s-stop', (event, p) => {
-    })
-
-    ipcMain.on('s2s-pause', (event, p) => {
-    })
-
-    ipcMain.on('s2s-continue', (event, p) => {
-    })
 }
 
 function sleep(ms) {

@@ -8,9 +8,6 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld(
     's2sAPI',
     {
-        stop: () => ipcRenderer.send('s2s-stop'),
-        pause: () => ipcRenderer.send('s2s-pause'),
-        continue: () => ipcRenderer.send('s2s-continue'),
         storeImage: (defaultName, format, data) => ipcRenderer.send('store-image-v2', defaultName, format, data),
         updateChart: (callback) => ipcRenderer.on('updateChart', (_event, distanceMap, compareDir, mzFile1, s2sFile) => callback(distanceMap, compareDir, mzFile1, s2sFile)),
     }
