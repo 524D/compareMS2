@@ -5,8 +5,7 @@
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
-const log = require('electron-log');
+const { llog, elog, buildCmdArgs, getHashName } = require('./main-common.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
@@ -80,60 +79,6 @@ function readSample2Species(fn, sampleFiles) {
     }
     return sample2Species;
 }
-
-// FIXME: the following 2 functions should go into a separate module because
-// they are used in other compare modes as well
-
-// Function to build the command line arguments for the compareMS2 executable
-function buildCmdArgs(mgf1, mgf2, opts) {
-    let cmdArgs =
-        ['-A', mgf1,
-            '-B', mgf2,
-            '-p', opts.maxPrecursorDifference,
-            '-m', opts.minBasepeakIntensity + ',' + opts.minTotalIonCurrent,
-            '-w', opts.maxScanNumberDifference,
-            '-W', opts.startScan + ',' + opts.endScan,
-            '-r', opts.maxRTDifference,
-            '-R', opts.startRT + ',' + opts.endRT,
-            '-c', opts.cutoff,
-            '-f', opts.specMetric,
-            '-s', opts.scaling,
-            '-n', opts.noise,
-            '-q', opts.qc,
-            '-d', opts.metric,
-            '-N', opts.topN,
-        ]
-    return cmdArgs
-}
-
-function getHashName(cmdArgs, compareDir) {
-    // Create a unique filename based on parameters
-    const hashName = shortHashObj({ cmdArgs });
-    const cmpFile = path.join(compareDir, hashName + '.txt');
-    const cmpFileJSON = path.join(compareDir, hashName + '.json');
-    return { cmpFile, cmpFileJSON, hashName };
-}
-
-// Return an hexadecimal hash from an object
-// The hash is the first 24 (for brevity) hex characters
-// of the SHA256 hash of the JSON representation of the object
-function shortHashObj(obj) {
-    const json = JSON.stringify(obj);
-    let sha256 = crypto.createHash('sha256');
-    let hex = sha256.update(json).digest('hex');
-    return hex.substr(0, 24)
-}
-
-// Output logging
-function llog(window, msg) {
-    log.info(msg);
-
-    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    msg = msg.replace(/(?: )/g, '&nbsp;');
-    window.webContents.send('logMessage', msg);
-}
-
-
 
 // Function to show the Spectra2Species window
 function showS2SWindow(mainWindow, icon, params) {
