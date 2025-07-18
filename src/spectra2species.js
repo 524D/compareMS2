@@ -75,12 +75,25 @@ window.s2sAPI.updateChart((distanceMap, compareDir, mzFile1, s2sFile) => {
     myChart.setOption(option);
 })
 
-function elog(...args) {
-    // Log to the console if debug mode is enabled
-    if (window.s2sAPI.isDebugMode()) {
-        console.log(...args);
+// Handle log messages from the main process
+window.s2sAPI.onLogMessage((message) => {
+    message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    message = message.replace(/(?: )/g, '&nbsp;');
+    const outputDiv = document.getElementById('stdout');
+    if (outputDiv) {
+        outputDiv.innerHTML += message;
     }
-}
+});
+
+// Handle log error messages from the main process
+window.s2sAPI.onLogError((message) => {
+    message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    message = message.replace(/(?: )/g, '&nbsp;');
+    const outputDiv = document.getElementById('stdout');
+    if (outputDiv) {
+        outputDiv.innerHTML += `<span style="color: red;">${message}</span>`;
+    }
+});
 
 function getSelectedScale() {
     const selectElement = document.getElementById("qscale");
@@ -136,7 +149,6 @@ function getColorScale(cScale) {
             ];
             break;
         default:
-            elog("Unknown color scale:", cScale);
             colorScale = [
                 '#313695',
                 '#4575b4',

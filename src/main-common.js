@@ -10,18 +10,12 @@ const path = require('path');
 // Function to log messages to the web page and the Electron log
 function llog(window, msg) {
     log.info(msg);
-
-    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    msg = msg.replace(/(?: )/g, '&nbsp;');
     window.webContents.send('logMessage', msg);
 }
 
 // Function to log error messages to the web page and the Electron log
 function elog(window, msg) {
     log.error(msg);
-    msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    msg = msg.replace(/(?: )/g, '&nbsp;');
-    // msg = '<span class="warn>' + msg + '</span>';  // Commented out, somehow span doesn't display anything
     window.webContents.send('logError', msg);
 }
 
