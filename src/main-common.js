@@ -2,7 +2,7 @@
 // Copyright Rob Marissen.
 
 // This file contains common functions used by all parts of het main process.
-const { BrowserWindow, ipcMain } = require('electron');
+const { process } = require('electron');
 const log = require('electron-log');
 const crypto = require('crypto');
 const path = require('path');
@@ -64,9 +64,24 @@ function shortHashObj(obj) {
     return hex.substring(0, 24);
 }
 
+function getSystemMemoryInfo() {
+    const meminfo = process.getSystemMemoryInfo();
+    return {
+        // meminfo is in KB, convert to GB
+        total: meminfo.total / (1024 * 1024),
+        free: meminfo.free / (1024 * 1024)
+    };
+}
+
+function getCPUCount() {
+    return require('os').cpus().length;
+}
+
 exports.llog = llog;
 exports.elog = elog;
 exports.setActivity = setActivity;
 exports.buildCmdArgs = buildCmdArgs;
 exports.getHashName = getHashName;
 exports.shortHashObj = shortHashObj;
+exports.getSystemMemoryInfo = getSystemMemoryInfo;
+exports.getCPUCount = getCPUCount;

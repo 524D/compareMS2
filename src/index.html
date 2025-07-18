@@ -214,6 +214,11 @@
                 <label> Impute missing values</label>
             </div>
         </div>
+        <div><label class="input-label">Maximum number of CPUs to use</label>
+            <input class="input-value" type="number" id="maxCPUs" min="1" max="64" step="1"
+                title="Maximum number of CPU cores to use for parallel processing. Leave empty to use all available cores."
+                placeholder="Auto (use all)">
+        </div>
         <div><label class="input-label">Keep settings</label>
             <input type="checkbox" id="keepsetting" name="keepsetting" checked
                 title="Keep settings between runs of CompareMS2">

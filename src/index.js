@@ -2,6 +2,7 @@
 // Copyright Rob Marissen.
 const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
+const availableCPUs = searchParams.get('availableCPUs') || -1;
 
 const selectDirBtn = document.getElementById('select-directory');
 const selectFile1Btn = document.getElementById('select-file1');
@@ -60,6 +61,22 @@ function setOptions(options) {
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
     document.getElementById("keepsetting").value = options.keepSettings;
+    // Show empty field if using default number of CPUs (all available)
+    const maxCPUsInput = document.getElementById("maxCPUs");
+    // If numberOfCPUs is -1
+    if (options.numberOfCPUs === -1) {
+        maxCPUsInput.value = "";
+    } else {
+        maxCPUsInput.value = options.numberOfCPUs;
+    }
+    // Set the max attribute to a reasonable upper limit
+    maxCPUsInput.setAttribute("max", availableCPUs > 0 ? availableCPUs : 64);
+    // Update placeholder to show actual CPU count when available
+    if (availableCPUs > 0) {
+        maxCPUsInput.setAttribute("placeholder", `Auto (${availableCPUs})`);
+    } else {
+        maxCPUsInput.setAttribute("placeholder", "Auto (use all)");
+    }
 }
 
 // Get all values set by user
@@ -94,6 +111,7 @@ function getOptions() {
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
         keepSettings: document.getElementById("keepsetting").value,
+        numberOfCPUs: parseInt(document.getElementById("maxCPUs").value) || -1, // -1 means use all available CPUs
     };
     return options;
 }

@@ -7,6 +7,7 @@ const fs = require('fs');
 const { initPhylTree, showPhylTreeWindow } = require('./main-phyltree.js');
 const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
+const { getCPUCount } = require('./main-common.js');
 const homedir = require('os').homedir();
 
 const defaultOptions = {
@@ -39,6 +40,7 @@ const defaultOptions = {
     impMissing: false,
     compareOrder: "smallest-largest",
     keepSettings: true,
+    numberOfCPUs: getCPUCount(), // Default to the number of CPU cores
 }
 
 // The filename where options of the last run are stored
@@ -425,7 +427,8 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, '/index.html'),
         {
             query: {
-                "version": app.getVersion()
+                "version": app.getVersion(),
+                "availableCPUs": getCPUCount(), // Pass the number of CPUs to the renderer
             }
         });
 

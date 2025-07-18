@@ -5,7 +5,7 @@
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount } = require('./main-common.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
@@ -122,6 +122,18 @@ function showS2SWindow(mainWindow, icon, params) {
 
 // Start the spectra2species run
 async function runS2S(params, window) {
+    // Use numberOfCPUs from user settings, default to available CPU count
+    let maxParallel;
+    if (params.numberOfCPUs && params.numberOfCPUs > 0) {
+        maxParallel = params.numberOfCPUs;
+    } else {
+        maxParallel = getCPUCount(); // Use all available CPUs if not specified or -1
+    }
+    // Ensure we have at least 1 and at most a reasonable number
+    maxParallel = Math.max(1, Math.min(maxParallel, 32));
+
+    llog(window, `Using ${maxParallel} parallel processes for comparisons`);
+
     var errors = 0; // Count the number of errors
     // Create directory for compare results
     const compareDir = path.join(params.mgfDir, compareDirName);
@@ -135,11 +147,8 @@ async function runS2S(params, window) {
     const sample2Species = readSample2Species(params.s2sFile, sampleFiles);
 
     // Compare params.mzFile1 to all files in sampleFiles
-    // After each comparison compute the distances,
-    // and create a JSON
-    // data structure that can be used to create an eCharts bar chart
-    const cmpFilesJSON = [];
-    const compareResults = [];
+    // Filter out the reference file and prepare comparison tasks
+    const comparisonTasks = [];
     for (const sampleFile of sampleFiles) {
         const sampleFileFull = path.join(params.mgfDir, sampleFile);
         // Skip the mzFile1 file, it is the reference file
@@ -147,86 +156,153 @@ async function runS2S(params, window) {
             llog(window, 'No self-compare, skipping file: ' + sampleFileFull);
             continue;
         }
-        setActivity(window, 'Comparing ' + path.basename(sampleFileFull));
+        comparisonTasks.push({
+            sampleFile,
+            sampleFileFull
+        });
+    }
+
+    // Track results as they complete
+    const cmpFilesJSON = [];
+    const compareResults = [];
+    let completedTasks = 0;
+    const totalTasks = comparisonTasks.length;
+
+    // Function to execute a single comparison
+    async function executeComparison(task) {
+        const { sampleFile, sampleFileFull } = task;
+
+        setActivity(window, `Comparing ${path.basename(sampleFileFull)} (${completedTasks + 1}/${totalTasks})`);
+
         // Convert parameters to command line arguments for the comparems2 executable
         const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
         // Get the hash name and compare file
         const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
+
         // Check if the compare file already exists
         if (fs.existsSync(cmpFileJSON)) {
             llog(window, 'Compare file already exists: ' + cmpFileJSON);
+            return { success: true, cmpFileJSON, sampleFile };
         }
-        else {
 
-            // Temporary output filename of compare ms2
-            // used to avoid stale incomplete output after interrupt
-            const comparems2tmp = path.join(compareDir, hashName + "-" + s2sInstanceCount + ".tmp");
-            const comparems2tmpJSON = comparems2tmp + '.json';
-            // Append output filename, should not be part of hash
-            cmdArgs.push('-o', comparems2tmp, '-J', comparems2tmpJSON);
+        // Temporary output filename of compare ms2
+        // used to avoid stale incomplete output after interrupt
+        const comparems2tmp = path.join(compareDir, hashName + "-" + s2sInstanceCount + "-" + Date.now() + ".tmp");
+        const comparems2tmpJSON = comparems2tmp + '.json';
+        // Append output filename, should not be part of hash
+        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON];
 
-            const compareMS2exe = generalParams.compareMS2Exe;
-            let cmdStr = compareMS2exe + JSON.stringify(cmdArgs);
-            llog(window, 'Executing: ' + cmdStr + '\n');
+        const compareMS2exe = generalParams.compareMS2Exe;
+        let cmdStr = compareMS2exe + JSON.stringify(cmdArgsWithOutput);
+        llog(window, 'Executing: ' + cmdStr + '\n');
 
-            // If the compare file does not exist, run the compareMS2 executable
-            const spawn = require('child_process').spawn;
-            try {
-                await new Promise((resolve, reject) => {
-                    const child = spawn(compareMS2exe, cmdArgs, { windowsHide: true, stdio: 'inherit' });
+        // Run the compareMS2 executable
+        const spawn = require('child_process').spawn;
+        try {
+            await new Promise((resolve, reject) => {
+                const child = spawn(compareMS2exe, cmdArgsWithOutput, { windowsHide: true, stdio: 'inherit' });
 
-                    child.on('close', (code) => {
-                        if (code === 0) {
-                            llog(window, 'Compare file created: ' + cmpFile);
-                            resolve();
-                        } else {
-                            reject(new Error(`compareMS2 process exited with code ${code}`));
-                        }
-                    });
-
-                    child.on('error', (error) => {
-                        reject(error);
-                    });
+                child.on('close', (code) => {
+                    if (code === 0) {
+                        llog(window, 'Compare file created: ' + cmpFile);
+                        resolve();
+                    } else {
+                        reject(new Error(`compareMS2 process exited with code ${code}`));
+                    }
                 });
-            } catch (error) {
-                elog(window, 'Error running compareMS2:', error);
-                errors++; // Increment error count
-                continue; // Skip to the next sample file if there is an error
-            }
-            // Rename the output file to the final name
-            if (fs.existsSync(comparems2tmpJSON)) {
-                fs.renameSync(comparems2tmpJSON, cmpFileJSON);
-                fs.renameSync(comparems2tmp, cmpFile);
-                llog(window, 'Compare file created: ' + cmpFileJSON);
-            } else {
-                elog(window, 'Compare file not created: ' + cmpFileJSON);
-                errors++; // Increment error count
-                continue; // Skip to the next sample file if the compare file was not created
-            }
+
+                child.on('error', (error) => {
+                    reject(error);
+                });
+            });
+        } catch (error) {
+            elog(window, 'Error running compareMS2:', error);
+            return { success: false, error, sampleFile };
         }
-        // Add the compare file to the list of compare files
-        cmpFilesJSON.push(cmpFileJSON);
-        // Append the compare results
-        compareResults.push(parseCompareMS2JSON(cmpFileJSON));
-        // Create a distance map
-        const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window);
-        if (distanceMap.length === 0) {
-            llog(window, 'No distances found for sample: ' + sampleFile);
-            continue; // Skip to the next sample file if no distances were found
+
+        // Rename the output file to the final name
+        if (fs.existsSync(comparems2tmpJSON)) {
+            fs.renameSync(comparems2tmpJSON, cmpFileJSON);
+            fs.renameSync(comparems2tmp, cmpFile);
+            llog(window, 'Compare file created: ' + cmpFileJSON);
+            return { success: true, cmpFileJSON, sampleFile };
+        } else {
+            elog(window, 'Compare file not created: ' + cmpFileJSON);
+            return { success: false, error: 'Output file not created', sampleFile };
         }
-        // Convert distances to similarities
-        distanceMap.forEach(item => {
-            item.similarity = distance2Similarity(item.distance);
-        });
-        await sleep(200); // FIXME: Why is this needed? Without, precomputed files don't show up in the chart
-
-        window.webContents.send('updateChart', distanceMap,
-            path.basename(params.mgfDir),
-            path.basename(params.mzFile1),
-            params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
-
-
     }
+
+    // Function to process a completed comparison result
+    function processCompletedComparison(result) {
+        if (result.success) {
+            // Add the compare file to the list of compare files
+            cmpFilesJSON.push(result.cmpFileJSON);
+            // Append the compare results
+            compareResults.push(parseCompareMS2JSON(result.cmpFileJSON));
+
+            // Create a distance map
+            const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window);
+            if (distanceMap.length === 0) {
+                llog(window, 'No distances found for sample: ' + result.sampleFile);
+                return;
+            }
+
+            // Convert distances to similarities
+            distanceMap.forEach(item => {
+                item.similarity = distance2Similarity(item.distance);
+            });
+
+            // Update the chart with current results
+            window.webContents.send('updateChart', distanceMap,
+                path.basename(params.mgfDir),
+                path.basename(params.mzFile1),
+                params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+        } else {
+            errors++;
+        }
+        completedTasks++;
+    }
+
+    // Execute comparisons in parallel with controlled concurrency
+    let taskIndex = 0;
+
+    async function processNextBatch() {
+        const promises = [];
+
+        // Start up to maxParallel tasks
+        for (let i = 0; i < maxParallel && taskIndex < comparisonTasks.length; i++) {
+            const task = comparisonTasks[taskIndex++];
+            promises.push(executeComparison(task));
+        }
+
+        // Wait for all tasks in this batch to complete
+        if (promises.length > 0) {
+            const results = await Promise.allSettled(promises);
+
+            // Process all completed results
+            for (const result of results) {
+                if (result.status === 'fulfilled') {
+                    processCompletedComparison(result.value);
+                } else {
+                    elog(window, 'Comparison task failed:', result.reason);
+                    errors++;
+                    completedTasks++;
+                }
+
+                // Small delay between processing results
+                await sleep(50);
+            }
+        }
+
+        // Continue with next batch if there are more tasks
+        if (taskIndex < comparisonTasks.length) {
+            await processNextBatch();
+        }
+    }
+
+    // Start processing all tasks
+    await processNextBatch();
+
     // After all comparisons, send a message to the renderer process to indicate completion
     if (errors > 0) {
         setActivity(window, `Spectra2Species comparison completed with ${errors} errors. Check the logs for details.`);
