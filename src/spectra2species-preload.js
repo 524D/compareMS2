@@ -12,5 +12,6 @@ contextBridge.exposeInMainWorld(
         updateChart: (callback) => ipcRenderer.on('updateChart', (_event, distanceMap, compareDir, mzFile1, s2sFile) => callback(distanceMap, compareDir, mzFile1, s2sFile)),
         onLogMessage: (callback) => ipcRenderer.on('logMessage', (_event, message) => callback(message)),
         onLogError: (callback) => ipcRenderer.on('logError', (_event, message) => callback(message)),
+        onSetActivity: (callback) => ipcRenderer.on('setActivity', (_event, message) => callback(message)),
     }
 )

@@ -19,6 +19,11 @@ function elog(window, msg) {
     window.webContents.send('logError', msg);
 }
 
+// Function to send a message to the renderer process to set activity status
+function setActivity(window, msg) {
+    window.webContents.send('setActivity', msg);
+}
+
 // Function to build the command line arguments for the compareMS2 executable
 function buildCmdArgs(mgf1, mgf2, opts) {
     let cmdArgs =
@@ -61,6 +66,7 @@ function shortHashObj(obj) {
 
 exports.llog = llog;
 exports.elog = elog;
+exports.setActivity = setActivity;
 exports.buildCmdArgs = buildCmdArgs;
 exports.getHashName = getHashName;
 exports.shortHashObj = shortHashObj;

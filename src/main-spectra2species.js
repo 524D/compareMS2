@@ -5,7 +5,7 @@
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { llog, elog, buildCmdArgs, getHashName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-common.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
@@ -23,10 +23,10 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function readSampleFiles(mgfDir) {
+function readSampleFiles(mgfDir, window) {
     // Read all files in the mgfDir directory and return an array of sample files
     if (!fs.existsSync(mgfDir)) {
-        console.error('Directory does not exist: ' + mgfDir);
+        elog(window, 'Directory does not exist: ' + mgfDir);
         return [];
     }
     const files = fs.readdirSync(mgfDir);
@@ -122,13 +122,14 @@ function showS2SWindow(mainWindow, icon, params) {
 
 // Start the spectra2species run
 async function runS2S(params, window) {
+    var errors = 0; // Count the number of errors
     // Create directory for compare results
     const compareDir = path.join(params.mgfDir, compareDirName);
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
 
-    const sampleFiles = readSampleFiles(params.mgfDir);
+    const sampleFiles = readSampleFiles(params.mgfDir, window);
     if (sampleFiles.length === 0) {
-        console.error('No sample files found in directory: ' + params.mgfDir);
+        elog(window, 'No sample files found in directory: ' + params.mgfDir);
         return;
     }
     const sample2Species = readSample2Species(params.s2sFile, sampleFiles);
@@ -143,16 +144,17 @@ async function runS2S(params, window) {
         const sampleFileFull = path.join(params.mgfDir, sampleFile);
         // Skip the mzFile1 file, it is the reference file
         if (sampleFileFull == params.mzFile1) {
-            console.log('Skipping reference file: ' + sampleFileFull);
+            llog(window, 'No self-compare, skipping file: ' + sampleFileFull);
             continue;
         }
+        setActivity(window, 'Comparing ' + path.basename(sampleFileFull));
         // Convert parameters to command line arguments for the comparems2 executable
         const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
         // Get the hash name and compare file
         const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
         // Check if the compare file already exists
         if (fs.existsSync(cmpFileJSON)) {
-            console.log('Compare file already exists: ' + cmpFileJSON);
+            llog(window, 'Compare file already exists: ' + cmpFileJSON);
         }
         else {
 
@@ -175,7 +177,7 @@ async function runS2S(params, window) {
 
                     child.on('close', (code) => {
                         if (code === 0) {
-                            console.log('Compare file created: ' + cmpFile);
+                            llog(window, 'Compare file created: ' + cmpFile);
                             resolve();
                         } else {
                             reject(new Error(`compareMS2 process exited with code ${code}`));
@@ -187,7 +189,8 @@ async function runS2S(params, window) {
                     });
                 });
             } catch (error) {
-                console.error('Error running compareMS2:', error);
+                elog(window, 'Error running compareMS2:', error);
+                errors++; // Increment error count
                 continue; // Skip to the next sample file if there is an error
             }
             // Rename the output file to the final name
@@ -196,7 +199,8 @@ async function runS2S(params, window) {
                 fs.renameSync(comparems2tmp, cmpFile);
                 llog(window, 'Compare file created: ' + cmpFileJSON);
             } else {
-                llog(window, 'Compare file not created: ' + cmpFileJSON);
+                elog(window, 'Compare file not created: ' + cmpFileJSON);
+                errors++; // Increment error count
                 continue; // Skip to the next sample file if the compare file was not created
             }
         }
@@ -205,7 +209,7 @@ async function runS2S(params, window) {
         // Append the compare results
         compareResults.push(parseCompareMS2JSON(cmpFileJSON));
         // Create a distance map
-        const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species);
+        const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window);
         if (distanceMap.length === 0) {
             llog(window, 'No distances found for sample: ' + sampleFile);
             continue; // Skip to the next sample file if no distances were found
@@ -224,7 +228,11 @@ async function runS2S(params, window) {
 
     }
     // After all comparisons, send a message to the renderer process to indicate completion
-    llog(window, 'Spectra2Species comparison completed successfully.');
+    if (errors > 0) {
+        setActivity(window, `Spectra2Species comparison completed with ${errors} errors. Check the logs for details.`);
+    } else {
+        setActivity(window, 'Spectra2Species comparison completed successfully.');
+    }
 }
 
 // Convert distance to similarity
@@ -236,20 +244,20 @@ function distance2Similarity(distance) {
 
 // This function reads an array of results from comparisons and returns a maps of distances
 // for each specie in the sample2Species (as returned by readSample2Species).
-function comparisons2Distance(checkFileName, compareResults, sample2Species) {
+function comparisons2Distance(checkFileName, compareResults, sample2Species, window) {
     // Initialize an empty distance map
     const distanceMap = {};
 
     for (const compareResult of compareResults) {
         if ((checkFileName !== compareResult.sample1) && (checkFileName !== compareResult.sample2)) {
-            console.error(`Check file ${checkFileName} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
+            elog(window, `Check file ${checkFileName} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
             continue; // Skip this comparison if the check file does not match the sample names
         }
         const otherFile = (checkFileName === compareResult.sample1 ? compareResult.sample2 : compareResult.sample1);
         const otherFileBase = path.basename(otherFile);
         // Check if the sample names are in the sample2Species map
         if (!sample2Species.hasOwnProperty(otherFileBase)) {
-            console.error(`Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
+            elog(window, `Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
             continue; // Skip this comparison if the sample names are not found
         }
         const otherSpecie = sample2Species[otherFileBase];
