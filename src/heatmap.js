@@ -6,7 +6,7 @@ const log = nodeRequire('electron-log');
 const { spawn } = nodeRequire('child_process');
 
 const compareDirName = 'compareresult'
-var chartDom = document.getElementById('main');
+var chartDom = document.getElementById('main-chart');
 // var myChart = echarts.init(chartDom, null, { renderer: 'svg' }); // SVG is quite a bit slower than canvas
 var myChart = echarts.init(chartDom);
 
@@ -34,19 +34,19 @@ var data, xData, yData, realYMin, maxVal;
 var option = {
     title: [
         {
-        text: '', // Set in runCompare
-        left: 'center',
-        top: 2,
-        textStyle: {
+            text: '', // Set in runCompare
+            left: 'center',
+            top: 2,
+            textStyle: {
                 fontWeight: 'normal',
                 fontSize: 20,
-            rich: {
-                // (style "a" in text string)
-                a: {
-                    fontSize: 12,
-                    color: '#606060',
-                },
-            }
+                rich: {
+                    // (style "a" in text string)
+                    a: {
+                        fontSize: 12,
+                        color: '#606060',
+                    },
+                }
             }
         }
     ],
@@ -83,7 +83,7 @@ var option = {
             axisLabel: {
                 formatter: '{value}'
             },
-            
+
         },
         {
             show: false,
@@ -92,9 +92,9 @@ var option = {
         },
         {
             type: 'category',
-            data: function() {
+            data: function () {
                 let data = [];
-                const xRange = xMax-xMin;
+                const xRange = xMax - xMin;
                 const dataLen = 320; // FIXME: Hardcoded
                 // Initialize array with null values
                 for (let i = 0; i < dataLen; i++) {
@@ -103,7 +103,7 @@ var option = {
                 // Set values for fractions that we want to display
                 let fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
                 for (let i = 0; i < fractions.length; i++) {
-                    let dataIndex = Math.round(dataLen * ((eval(fractions[i])-xMin)/xRange));
+                    let dataIndex = Math.round(dataLen * ((eval(fractions[i]) - xMin) / xRange));
                     data[dataIndex] = fractions[i];
                 }
                 return data;
@@ -154,7 +154,7 @@ var option = {
         max: maxVal,
         right: 0,
         top: 'center',
-        formatter: function (value){ return Math.round(Math.E**value) },
+        formatter: function (value) { return Math.round(Math.E ** value) },
         inRange: {
             color: [
                 '#313695',
@@ -242,7 +242,7 @@ function convertResultToHeatmap(cmpFile) {
     // Read cmpFile into tabData
     let tabData = fs.readFileSync(cmpFile, 'utf8');
     [data, xData, yData, realYMin, maxVal] = convertData(tabData)
-    updateHeatmap(xMin, xMax, data, xData, yData, realYMin, maxVal) 
+    updateHeatmap(xMin, xMax, data, xData, yData, realYMin, maxVal)
     myChart.setOption(option);
 }
 
@@ -276,54 +276,54 @@ function updateQScale() {
 
 function getColorScale(cScale) {
     // Set the color scale based on the selected option
-    let colorScale=[];
+    let colorScale = [];
     switch (cScale) {
         case "gray":
-            colorScale=['#FFFFFF','#000000'];
+            colorScale = ['#FFFFFF', '#000000'];
             break;
         case "rgb":
-            colorScale=[
-                    '#0000FF',
-                    '#00FF00',
-                    '#FF0000'];
+            colorScale = [
+                '#0000FF',
+                '#00FF00',
+                '#FF0000'];
             break;
         case "ylgnbu":
-            colorScale=[
-                    '#2c7fb8',
-                    '#7fcdbb',
-                    '#edf8b1'
-                ];
+            colorScale = [
+                '#2c7fb8',
+                '#7fcdbb',
+                '#edf8b1'
+            ];
             break;
         case "rwb":
             // red white (sort-of...) blue
-            colorScale=[
-                    '#313695',
-                    '#4575b4',
-                    '#74add1',
-                    '#abd9e9',
-                    '#e0f3f8',
-                    '#ffffbf',
-                    '#fee090',
-                    '#fdae61',
-                    '#f46d43',
-                    '#d73027',
-                    '#a50026'
+            colorScale = [
+                '#313695',
+                '#4575b4',
+                '#74add1',
+                '#abd9e9',
+                '#e0f3f8',
+                '#ffffbf',
+                '#fee090',
+                '#fdae61',
+                '#f46d43',
+                '#d73027',
+                '#a50026'
             ];
             break;
         default:
             elog("Unknown color scale:", cScale);
-            colorScale=[
-                    '#313695',
-                    '#4575b4',
-                    '#74add1',
-                    '#abd9e9',
-                    '#e0f3f8',
-                    '#ffffbf',
-                    '#fee090',
-                    '#fdae61',
-                    '#f46d43',
-                    '#d73027',
-                    '#a50026'
+            colorScale = [
+                '#313695',
+                '#4575b4',
+                '#74add1',
+                '#abd9e9',
+                '#e0f3f8',
+                '#ffffbf',
+                '#fee090',
+                '#fdae61',
+                '#f46d43',
+                '#d73027',
+                '#a50026'
             ];
     }
     return colorScale;
@@ -336,8 +336,8 @@ function convertData(tabData) {
     let yData = [];
     let data = [];
     let lines = tabData.split('\n');
-    const yRange=yMax-yMin;
-    const xRange=xMax-xMin;
+    const yRange = yMax - yMin;
+    const xRange = xMax - xMin;
     // Remove empty lines
 
     lines = lines.filter(function (line) {
@@ -356,14 +356,14 @@ function convertData(tabData) {
         }
     }
 
-    const realYmin = (yRange*i)/il+yMin;
-    
+    const realYmin = (yRange * i) / il + yMin;
+
     // i is now the index of the first non-zero line
     // We use the first non-zero row to determine the number of columns
     let items = lines[i].split('\t');
     const jl = items.length;
     for (let j = 0; j < jl; j++) {
-        const x=(xRange*j)/jl+xMin;
+        const x = (xRange * j) / jl + xMin;
         xData.push(x);
     }
 
@@ -374,7 +374,7 @@ function convertData(tabData) {
         let line = lines[i];
         let items = line.split('\t');
         const jl = items.length;
-        
+
         // const y = (yRange*i)/il+yMin;
         yData.push(y);
 
@@ -382,14 +382,14 @@ function convertData(tabData) {
             let item = items[j];
             item = Math.log(item);
             maxVal = Math.max(maxVal, parseFloat(item));
-            const x=j; // x here is just the index, not the actual value
+            const x = j; // x here is just the index, not the actual value
             // const x=(xRange*j)/jl + xMin
-            data.push({ value: [x, y, parseFloat(item)]});
+            data.push({ value: [x, y, parseFloat(item)] });
         }
         y++;
-        
+
     }
-    return [data, xData, yData, realYmin, maxVal ];
+    return [data, xData, yData, realYmin, maxVal];
 }
 
 function runCompare(userparams, onFinishedFunc) {
@@ -421,7 +421,7 @@ function runCompare(userparams, onFinishedFunc) {
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(path.dirname(userparams.mzFile1));
     llog('Change default dir: "' + path.dirname(userparams.mzFile1) + '"\n');
-    
+
     // Create directory for compare results
     compareDir = path.join(path.dirname(userparams.mzFile1), compareDirName);
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
@@ -541,29 +541,29 @@ function createCanvas(width, height) {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-  
+}
+
 // Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
 // Parameters option contains the chart "option" object as defined by ECharts
 function saveAsPNG(option) {
     const canvas = createCanvas(1200, 1000);
     // ECharts can use the Canvas instance created by node-canvas as a container directly
     const chart = echarts.init(canvas);
-    
+
     chart.setOption(option);
-     //    chart.on('finished', () => {
-     // Sleep is a hack, eCharts doesn't seem to wait for the chart to be rendered
-     // before firing the 'finished' event (and before the 'rendered' event either)
-     sleep(500).then(() => {
-            canvas.toBlob(function(blob) {
-                blob.arrayBuffer().then(function(aBuffer) {
-                    // Convert to Node.js Buffer
-                    const buffer=Buffer.from(aBuffer);
-                    ipcRenderer.send('store-image', "png", buffer, 0);
-                });
+    //    chart.on('finished', () => {
+    // Sleep is a hack, eCharts doesn't seem to wait for the chart to be rendered
+    // before firing the 'finished' event (and before the 'rendered' event either)
+    sleep(500).then(() => {
+        canvas.toBlob(function (blob) {
+            blob.arrayBuffer().then(function (aBuffer) {
+                // Convert to Node.js Buffer
+                const buffer = Buffer.from(aBuffer);
+                ipcRenderer.send('store-image', "png", buffer, 0);
             });
-            chart.dispose();
         });
+        chart.dispose();
+    });
     return;
 }
 
@@ -594,7 +594,7 @@ document.addEventListener("keydown", event => {
 });
 
 // Set color scale when selection changes
-$("#qscale").change(function() {
+$("#qscale").change(function () {
     updateQScale();
 });
 
@@ -604,7 +604,7 @@ $("#store-image").on("click", function (e) {
     if (imgFmt == "svg") {
         imageData = renderSVG(option);
         ipcRenderer.send('store-image', imgFmt, imageData, instanceId);
-    }        
+    }
     else if (imgFmt == "png") {
         imageData = saveAsPNG(option);
     }
@@ -626,9 +626,9 @@ $("#details").on("click", function (e) {
     }
 });
 
-window.addEventListener('resize', function() {
+window.addEventListener('resize', function () {
     myChart.resize();
 });
 
-    // Start the comparison
+// Start the comparison
 run();
