@@ -263,45 +263,59 @@ async function runS2S(params, window) {
         completedTasks++;
     }
 
-    // Execute comparisons in parallel with controlled concurrency
+    // Execute comparisons in parallel with continuous task scheduling
     let taskIndex = 0;
+    const runningTasks = new Set();
 
-    async function processNextBatch() {
-        const promises = [];
-
-        // Start up to maxParallel tasks
-        for (let i = 0; i < maxParallel && taskIndex < comparisonTasks.length; i++) {
-            const task = comparisonTasks[taskIndex++];
-            promises.push(executeComparison(task));
+    async function scheduleNextTask() {
+        // If no more tasks or we've reached the parallel limit, return
+        if (taskIndex >= comparisonTasks.length || runningTasks.size >= maxParallel) {
+            return;
         }
 
-        // Wait for all tasks in this batch to complete
-        if (promises.length > 0) {
-            const results = await Promise.allSettled(promises);
+        const task = comparisonTasks[taskIndex++];
+        const taskPromise = executeComparison(task);
+        runningTasks.add(taskPromise);
 
-            // Process all completed results
-            for (const result of results) {
-                if (result.status === 'fulfilled') {
-                    processCompletedComparison(result.value);
-                } else {
-                    elog(window, 'Comparison task failed:', result.reason);
-                    errors++;
-                    completedTasks++;
-                }
+        // Handle task completion
+        taskPromise
+            .then((result) => {
+                processCompletedComparison(result);
+            })
+            .catch((error) => {
+                elog(window, 'Comparison task failed:', error);
+                errors++;
+                completedTasks++;
+            })
+            .finally(async () => {
+                runningTasks.delete(taskPromise);
 
-                // Small delay between processing results
-                await sleep(50);
-            }
-        }
+                // Small delay to prevent overwhelming the UI with updates
+                await sleep(100);
 
-        // Continue with next batch if there are more tasks
-        if (taskIndex < comparisonTasks.length) {
-            await processNextBatch();
+                // Schedule the next task immediately
+                await scheduleNextTask();
+            });
+
+        // If we still have capacity and more tasks, schedule another one
+        if (runningTasks.size < maxParallel && taskIndex < comparisonTasks.length) {
+            await scheduleNextTask();
         }
     }
 
-    // Start processing all tasks
-    await processNextBatch();
+    // Start initial batch of tasks up to maxParallel
+    const initialPromises = [];
+    for (let i = 0; i < Math.min(maxParallel, comparisonTasks.length); i++) {
+        initialPromises.push(scheduleNextTask());
+    }
+
+    // Wait for all initial tasks to be scheduled
+    await Promise.all(initialPromises);
+
+    // Wait for all running tasks to complete
+    while (runningTasks.size > 0 || completedTasks < totalTasks) {
+        await sleep(100); // Check every 100ms if all tasks are done
+    }
 
     // After all comparisons, send a message to the renderer process to indicate completion
     if (errors > 0) {
