@@ -184,8 +184,8 @@ function getColorScale(cScale) {
 // Function renderSVG is renders the chart to an SVG string
 // Parameters option contains the chart "option" object as defined by ECharts
 function renderSVG(option) {
-    // Get the width and height from the HTML element with id 'main'
-    const mainElement = document.getElementById('main');
+    // Get the width and height from the HTML element with id 'main-chart'
+    const mainElement = document.getElementById('main-chart');
     const width = mainElement.clientWidth || 1200; // Default to 1200
     const height = mainElement.clientHeight || 1000; // Default to 1000 
     // In SSR mode the first container parameter is not required
@@ -213,8 +213,8 @@ function sleep(ms) {
 // Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
 // Parameters option contains the chart "option" object as defined by ECharts
 function saveAsPNG(option, defaultName, imgFmt) {
-    // Get the width and height from the HTML element with id 'main'
-    const mainElement = document.getElementById('main');
+    // Get the width and height from the HTML element with id 'main-chart'
+    const mainElement = document.getElementById('main-chart');
     const width = mainElement.clientWidth || 1200;
     const height = mainElement.clientHeight || 1000; // Default to 10000 
 
