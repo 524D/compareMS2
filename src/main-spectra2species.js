@@ -3,8 +3,9 @@
 
 // This file contains the part of the main process that relates to the spectra2species functionality.
 const { BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount } = require('./main-common.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
@@ -110,7 +111,6 @@ function showS2SWindow(mainWindow, icon, params) {
                 "instanceId": s2sInstanceCount
             }
         });
-    require("@electron/remote/main").enable(s2sWindow.webContents);
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         // Open the DevTools.
         s2sWindow.webContents.openDevTools();
@@ -197,7 +197,6 @@ async function runS2S(params, window) {
         llog(window, 'Executing: ' + cmdStr + '\n');
 
         // Run the compareMS2 executable
-        const spawn = require('child_process').spawn;
         try {
             await new Promise((resolve, reject) => {
                 const child = spawn(compareMS2exe, cmdArgsWithOutput, { windowsHide: true, stdio: 'inherit' });
