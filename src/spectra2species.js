@@ -315,6 +315,14 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
     };
 }
 
+// Toggle full screen on F11
+document.addEventListener("keydown", event => {
+    var key = event.key;
+    if (key == "F11") {
+        window.s2sAPI.toggleFullscreen();
+    }
+});
+
 // Set color scale when selection changes
 document.getElementById("qscale").addEventListener("change", function () {
     updateQScale();
