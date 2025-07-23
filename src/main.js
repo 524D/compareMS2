@@ -275,9 +275,12 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     }
 });
 
-// Toggle full screen tree window. Doesn't work :(
-ipcMain.on('toggle-fullscreen', (event, instanceId) => {
-    treeWindows[instanceId].setFullScreen(!treeWindows[instanceId].isFullScreen());
+// Toggle full screen
+ipcMain.on('toggle-fullscreen', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window) {
+        window.setFullScreen(!window.isFullScreen());
+    }
 })
 
 ipcMain.on('store-image', handleStoreImage);
