@@ -1,5 +1,3 @@
-// import * as echarts from './assets/echarts.5.6.0.min.js';
-
 var chartDom = document.getElementById('main-chart');
 var myChart = echarts.init(chartDom);
 var option;

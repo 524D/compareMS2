@@ -10,10 +10,6 @@ const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount } = requ
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
-let s2sWindows = [];
-let s2sParams = [];
-let s2sInstanceCount = 0;
-
 var generalParams = null;
 
 function initS2S(genParams) {
@@ -97,20 +93,9 @@ function showS2SWindow(mainWindow, icon, params) {
         },
         icon: icon,
     });
-    s2sInstanceCount++;
-    s2sWindows[s2sInstanceCount] = s2sWindow;
-
-    s2sParams[s2sInstanceCount] = structuredClone(params); // Ensure params is a deep copy
-
     s2sWindow.on('close', () => { s2sWindow = null })
     s2sWindow.removeMenu();
-    s2sWindow.loadFile(path.join(__dirname, '/spectra2species.html'),
-        {
-            query: {
-                "userparams": JSON.stringify(params),
-                "instanceId": s2sInstanceCount
-            }
-        });
+    s2sWindow.loadFile(path.join(__dirname, '/spectra2species.html'));
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         // Open the DevTools.
         s2sWindow.webContents.openDevTools();
@@ -187,7 +172,7 @@ async function runS2S(params, window) {
 
         // Temporary output filename of compare ms2
         // used to avoid stale incomplete output after interrupt
-        const comparems2tmp = path.join(compareDir, hashName + "-" + s2sInstanceCount + "-" + Date.now() + ".tmp");
+        const comparems2tmp = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp");
         const comparems2tmpJSON = comparems2tmp + '.json';
         // Append output filename, should not be part of hash
         const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON];
