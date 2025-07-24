@@ -43,6 +43,10 @@ function buildCmdArgs(mgf1, mgf2, opts) {
             '-d', opts.metric,
             '-N', opts.topN,
         ]
+    // If opts.experimentalFeatures exists, add the experimental features flag
+    if (opts.experimentalFeatures) {
+        cmdArgs = cmdArgs.concat(['-x', opts.experimentalFeatures]);
+    }
     return cmdArgs
 }
 
