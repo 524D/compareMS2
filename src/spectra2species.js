@@ -31,22 +31,7 @@ option = {
         precision: 3,
         right: 0,
         top: 'center',
-        itemHeight: 300,
-        inRange: {
-            color: [
-                '#313695',
-                '#4575b4',
-                '#74add1',
-                '#abd9e9',
-                '#e0f3f8',
-                '#ffffbf',
-                '#fee090',
-                '#fdae61',
-                '#f46d43',
-                '#d73027',
-                '#a50026'
-            ]
-        }
+        itemHeight: 300
     },
     series: [
         {
@@ -57,6 +42,7 @@ option = {
 };
 
 option && myChart.setOption(option);
+updateQScale();
 // Show the "loading" animation
 myChart.showLoading({
     text: 'Working',
@@ -115,19 +101,27 @@ function getSelectedScale() {
 
 function updateQScale() {
     let cScale = getSelectedScale();
-    const colorScale = getColorScale(cScale);
+    const { colorScale, highlightColor } = getColorScale(cScale);
     myChart.setOption({
         visualMap: {
             inRange: {
                 color: colorScale
             }
-        }
+        },
+        series: [{
+            emphasis: {
+                itemStyle: {
+                    color: highlightColor // Change color on hover
+                }
+            }
+        }]
     });
 }
 
 function getColorScale(cScale) {
     // Set the color scale based on the selected option
     let colorScale = [];
+    let highlightColor = '#FF00FF'; // Default highlight color
     switch (cScale) {
         case "gray":
             colorScale = ['#FFFFFF', '#000000'];
@@ -176,7 +170,7 @@ function getColorScale(cScale) {
                 '#a50026'
             ];
     }
-    return colorScale;
+    return { colorScale, highlightColor };
 }
 
 // Function renderSVG is renders the chart to an SVG string
@@ -302,13 +296,7 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
             type: 'bar',
             data: distanceMap.map(item => ({
                 value: item.similarity,
-            })),
-            emphasis: {
-                focus: 'series',
-                itemStyle: {
-                    color: '#FF5722' // Change color on hover
-                }
-            }
+            }))
         }]
     };
 }
