@@ -127,3 +127,8 @@ details p {
     text-decoration: underline;
     cursor: pointer;
 }
+
+.file-path-input {
+    direction: rtl;
+    text-align: left;
+}
