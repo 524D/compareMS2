@@ -17,170 +17,6 @@ myChart.showLoading({
 
 var data, xData, yData, realYMin, maxVal;
 
-var option = {
-    title: [
-        {
-            text: '', // Set in runCompare
-            left: 'center',
-            top: 2,
-            textStyle: {
-                fontWeight: 'normal',
-                fontSize: 20,
-                rich: {
-                    // (style "a" in text string)
-                    a: {
-                        fontSize: 12,
-                        color: '#606060',
-                    },
-                }
-            }
-        }
-    ],
-    // NOTE: This plot uses a hack to work around what seems a bug in ECharts
-    // The problem is that the heatmap series doesn't work properly with a 'value' axis
-    // If used, the boxes in the heatmap have a size of 1 unit, which is not scaled
-    // by the axis. This makes them unusable.
-    // So we use a hidden 'category' axis to plot the heatmap and a 'value' axis
-    // just to show the axis
-    tooltip: {},
-    xAxis: [
-        {
-            type: 'value',
-            name: 'Precursor {a|m}/{a|z} difference',
-            nameLocation: 'middle',
-            nameGap: 30,
-            nameTextStyle: {
-                fontSize: 18,
-                rich: {
-                    // Italic font for m and z (style "a" in name string)
-                    a: {
-                        fontSize: 18,
-                        fontStyle: 'italic',
-                    },
-                }
-            },
-            axisLine: {
-                show: true,
-            },
-            min: xMin,
-            max: xMax,
-            position: 'bottom',
-            offset: 5,
-            axisLabel: {
-                formatter: '{value}'
-            },
-
-        },
-        {
-            show: false,
-            type: 'category',
-            data: xData
-        },
-        {
-            type: 'category',
-            data: function () {
-                let data = [];
-                const xRange = xMax - xMin;
-                const dataLen = 320; // FIXME: Hardcoded
-                // Initialize array with null values
-                for (let i = 0; i < dataLen; i++) {
-                    data[i] = '';
-                }
-                // Set values for fractions that we want to display
-                let fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
-                for (let i = 0; i < fractions.length; i++) {
-                    let dataIndex = Math.round(dataLen * ((eval(fractions[i]) - xMin) / xRange));
-                    data[dataIndex] = fractions[i];
-                }
-                return data;
-            }(),
-            alignWithLabel: true,
-            position: 'top',
-            offset: 2,
-            axisTick: {
-                length: 5,
-                interval: (index, value) => Boolean(value)  // Return true for non-empty values
-            },
-            axisLabel: {
-                interval: 0,
-                rotate: 30 //If the label names are too long you can manage this by rotating the label.
-            }
-        },
-    ],
-    yAxis: [
-        {
-            type: 'value',
-            name: '', // Set in runCompare
-            nameLocation: 'middle',
-            nameGap: 30,
-            nameTextStyle: {
-                fontSize: 18
-            },
-            min: 0.0,
-            max: 1.0,
-            position: 'left',
-            offset: 1,
-            axisLabel: {
-                formatter: '{value}'
-            },
-            axisLine: {
-                onZero: false
-            }
-        },
-        {
-            show: false,
-            type: 'category',
-            data: yData
-        },
-    ],
-    visualMap: {
-        calculable: true,
-        realtime: false,
-        min: 0,
-        max: maxVal,
-        right: 0,
-        top: 'center',
-        formatter: function (value) { return Math.round(Math.E ** value) },
-        inRange: {
-            color: [
-                '#313695',
-                '#4575b4',
-                '#74add1',
-                '#abd9e9',
-                '#e0f3f8',
-                '#ffffbf',
-                '#fee090',
-                '#fdae61',
-                '#f46d43',
-                '#d73027',
-                '#a50026'
-            ]
-        }
-    },
-    series: [
-        {
-            tooltip: {
-                show: false
-            },
-            // Make chart silent so that it doesn't respond to mouse events and pointer remains an arrow
-            silent: true,
-
-            name: '',
-            type: 'heatmap',
-            coordinateSystem: 'cartesian2d',
-            xAxisIndex: 1,
-            yAxisIndex: 1,
-            data: data,
-
-            // Number of items to draw in one "frame" (about 16 ms)
-            // Since this also appears to effect the charts rendered to SVG and maybe PNG,
-            // we set it to a very high value to avoid the parts of the chart being lost.
-            progressive: 1000000,
-            animation: false
-        }
-    ]
-};
-
 // ******************************* end of initialization ******************************************** //
 
 function escapeHtml(unsafe) {
@@ -396,6 +232,12 @@ function makeEChartsOption(chartContent) {
                 }
             }
         ],
+        // NOTE: This plot uses a hack to work around what seems a bug in ECharts
+        // The problem is that the heatmap series doesn't work properly with a 'value' axis
+        // If used, the boxes in the heatmap have a size of 1 unit, which is not scaled
+        // by the axis. This makes them unusable.
+        // So we use a hidden 'category' axis to plot the heatmap and a 'value' axis
+        // just to show the axis
         tooltip: {},
         xAxis: [
             {
@@ -406,6 +248,7 @@ function makeEChartsOption(chartContent) {
                 nameTextStyle: {
                     fontSize: 18,
                     rich: {
+                        // Italic font for m and z (style "a" in name string)
                         a: {
                             fontSize: 18,
                             fontStyle: 'italic',
@@ -430,17 +273,32 @@ function makeEChartsOption(chartContent) {
             },
             {
                 type: 'category',
-                data: chartContent.fractions || [],
+                data: function () {
+                    let data = [];
+                    const xRange = xMax - xMin;
+                    const dataLen = 320; // FIXME: Hardcoded
+                    // Initialize array with null values
+                    for (let i = 0; i < dataLen; i++) {
+                        data[i] = '';
+                    }
+                    // Set values for fractions that we want to display
+                    let fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
+                    for (let i = 0; i < fractions.length; i++) {
+                        let dataIndex = Math.round(dataLen * ((eval(fractions[i]) - xMin) / xRange));
+                        data[dataIndex] = fractions[i];
+                    }
+                    return data;
+                }(),
                 alignWithLabel: true,
                 position: 'top',
                 offset: 2,
                 axisTick: {
                     length: 5,
-                    interval: (index, value) => Boolean(value) // Return true for non-empty values
+                    interval: (index, value) => Boolean(value)  // Return true for non-empty values
                 },
                 axisLabel: {
                     interval: 0,
-                    rotate: 30 // If the label names are too long you can manage this by rotating the label.
+                    rotate: 30 //If the label names are too long you can manage this by rotating the label.
                 }
             },
         ],
@@ -464,23 +322,29 @@ function makeEChartsOption(chartContent) {
             {
                 show: false,
                 type: 'category',
-                data: chartContent
-
+                data: chartContent.yData || []
             }
         ],
 
-
-
         visualMap: {
-            min: 0,
-            max: 1,
             calculable: true,
+            realtime: false,
+            min: 0,
+            max: chartContent.maxVal || 1.0,
+            right: 0,
+            top: 'center',
+            formatter: function (value) { return Math.round(Math.E ** value) },
             inRange: {
-                color: ['#ffffff', '#ff0000']
+                color: []
             }
         },
         series: [
             {
+                tooltip: {
+                    show: false
+                },
+                // Make chart silent so that it doesn't respond to mouse events and pointer remains an arrow
+                silent: true,
                 name: chartContent.seriesName || '',
                 type: 'heatmap',
                 coordinateSystem: 'cartesian2d',
@@ -495,6 +359,7 @@ function makeEChartsOption(chartContent) {
             }
         ]
     };
+
     // Set the color scale based on the selected option
     const cScale = getSelectedScale();
     option.visualMap.inRange.color = getColorScale(cScale);
