@@ -538,6 +538,7 @@ function loadOptionsFromFile(fn, processOpts) {
             // Update the fileParams object with the options
             fileParams.file1 = options.mzFile1;
             fileParams.file2 = options.mzFile2;
+            fileParams.sampleToSpeciesFn = options.s2sFile;
             processOpts(options);
         }
     });
