@@ -132,3 +132,26 @@ details p {
     direction: rtl;
     text-align: left;
 }
+
+/* Dual button container for file 2 controls */
+.dual-button-container {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    width: auto;
+}
+
+/* Clear button styling */
+.clear-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+}
+
+/* Select button styling to match existing buttons */
+.select-button {
+    display: inline-flex;
+    flex: 1;
+}

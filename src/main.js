@@ -257,6 +257,11 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     saveOptionsToFile(fn, params)
     // Replace the file items in params with the info from fileParams
     params.file1 = fileParams.file1;
+    // We don't accept filenames from the renderer process, but if
+    // file 2 was erased, we do accept it and overwrite the fileParams.file2
+    if (params.mzFile2 === null || params.mzFile2 === "") {
+        fileParams.file2 = "";
+    }
     params.file2 = fileParams.file2;
     params.sampleDir = fileParams.sampleDir;
     params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
@@ -541,6 +546,11 @@ function loadOptionsFromFile(fn, processOpts) {
 function saveOptionsToFile(fn, options) {
     // Replace file names with stored paths
     options.mzFile1 = fileParams.file1;
+    // We don't accept filenames from the renderer process, but if
+    // file 2 was erased, we do accept it and overwrite the fileParams.file2
+    if (options.mzFile2 === null || options.mzFile2 === "") {
+        fileParams.file2 = "";
+    }
     options.mzFile2 = fileParams.file2;
     options.mgfDir = fileParams.sampleDir.dir;
     options.s2sFile = fileParams.sampleToSpeciesFn;

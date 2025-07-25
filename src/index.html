@@ -62,14 +62,14 @@
                 <label for="phyltree">Phylogenetic tree (N vs N)</label>
             </div>
             <div class="input-select">
-                <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
-                    title="Compare two files and mass difference heatmap">
-                <label for="heatmap">Heatmap (1 vs 1)</label>
-            </div>
-            <div class="input-select">
                 <input class="cmpmode" type="radio" id="spec-to-species" name="cmpmode" value="spec-to-species"
                     title="Compare one file to many files">
                 <label for="spec-to-species">Spectra to Species (1 vs N)</label>
+            </div>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
+                    title="Compare two files and mass difference heatmap">
+                <label for="heatmap">Heatmap (1 vs 1)</label>
             </div>
         </div>
         <div class="enable_in_mode phyltree spec-to-species">
@@ -95,8 +95,14 @@
             </div>
             <div><label class="input-label2">File 2:</label>
                 <input class="input-value file-path-input" type="text" id="file2" spellcheck="false" disabled>&nbsp;
-                <button type="button" id="select-file2">
-                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2</button>
+                <div class="dual-button-container">
+                    <button type="button" id="clear-file2" class="clear-button" title="Clear file 2">
+                        <i class="mi mi-Clear"></i>
+                    </button>
+                    <button type="button" id="select-file2" class="select-button">
+                        <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2
+                    </button>
+                </div>
             </div>
         </div>
     </div>

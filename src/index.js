@@ -266,3 +266,8 @@ $(document).tooltip({
 function openSourceCodeInBrowser() {
     window.electronAPI.openSourceCodeInBrowser();
 }
+
+// Clear file 2 input when clear button is clicked
+document.getElementById("clear-file2").addEventListener("click", function () {
+    document.getElementById("file2").value = "";
+});
