@@ -102,7 +102,10 @@ function showS2SWindow(mainWindow, icon, params) {
     }
 
     s2sWindow.show();
-    runS2S(params, s2sWindow);
+    // Wait for the window to be ready before running the comparison
+    s2sWindow.webContents.once('did-finish-load', () => {
+        runS2S(params, s2sWindow);
+    });
 }
 
 // Start the spectra2species run

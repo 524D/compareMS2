@@ -10,10 +10,6 @@ const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-c
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
-let heatmapWindows = [];
-let heatmapParams = [];
-let heatmapInstanceCount = 0;
-
 const xMin = -1.6;
 const xMax = +1.6;
 const yMin = 0.0;
@@ -41,32 +37,21 @@ function showHeatMapWindow(mainWindow, icon, params) {
         icon: icon,
     });
 
-    heatmapInstanceCount++;
-    heatmapWindows[heatmapInstanceCount] = heatmapWindow;
-    heatmapParams[heatmapInstanceCount] = params;
-
-    heatmapWindow.on('close', () => {
-        // FIXME: This is not handled properly
-        heatmapWindows[heatmapInstanceCount] = null;
-    });
-
     heatmapWindow.removeMenu();
-    heatmapWindow.loadFile(path.join(__dirname, '/heatmap.html'), {
-        query: {
-            "userparams": JSON.stringify(params),
-            "instanceId": heatmapInstanceCount
-        }
-    });
+    heatmapWindow.loadFile(path.join(__dirname, '/heatmap.html'));
 
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         heatmapWindow.webContents.openDevTools();
     }
 
     heatmapWindow.show();
-    runHeatMap(heatmapWindow, heatmapInstanceCount, params, convertResultToHeatmap);
+    // Wait for the window to be ready before running the comparison
+    heatmapWindow.webContents.once('did-finish-load', () => {
+        runHeatMap(heatmapWindow, params, convertResultToHeatmap);
+    });
 }
 
-function runHeatMap(window, instanceCount, userparams, onFinishedFunc) {
+function runHeatMap(window, userparams, onFinishedFunc) {
     let mzFile1 = userparams.mzFile1;
     let mzFile2;
     let title;
