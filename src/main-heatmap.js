@@ -112,10 +112,10 @@ function runHeatMap(window, userparams, onFinishedFunc) {
 
     // Temporary output filename of compare ms2
     // used to avoid stale incomplete output after interrupt
-    const comparems2tmp = path.join(compareDir, hashName + "-" + instanceCount + "-" + Date.now() + ".tmp");
+    const comparems2tmp = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp");
     const comparems2tmpJSON = comparems2tmp + '.json';
     // "Experimental features"=output heatmap data
-    const comparems2tmpX = path.join(compareDir, hashName + "-" + instanceCount + "-" + Date.now() + "-x.tmp");
+    const comparems2tmpX = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + "-x.tmp");
     // Append output filename, should not be part of hash
     const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-X', comparems2tmpX, '-J', comparems2tmpJSON,];
 
