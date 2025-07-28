@@ -60,7 +60,7 @@ function setOptions(options) {
     document.getElementById("outmega").checked = options.outMega;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
-    document.getElementById("keepsetting").value = options.keepSettings;
+    document.getElementById("keepsetting").checked = options.keepSettings;
     // Show empty field if using default number of CPUs (all available)
     const maxCPUsInput = document.getElementById("maxCPUs");
     // If numberOfCPUs is -1
@@ -110,7 +110,7 @@ function getOptions() {
         outMega: document.getElementById("outmega").checked,
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
-        keepSettings: document.getElementById("keepsetting").value,
+        keepSettings: document.getElementById("keepsetting").checked,
         numberOfCPUs: parseInt(document.getElementById("maxCPUs").value) || -1, // -1 means use all available CPUs
     };
     return options;

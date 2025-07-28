@@ -194,7 +194,7 @@ ipcMain.on('request-options', (event) => {
             updateOptionsToRenderer(defaultOptions);
         } else {
             // If the file exists, load the options from the file
-            loadOptionsFromFile(prevOptionsFn, (options) => {
+            loadOptionsFromFile(prevOptionsFn, true, (options) => {
                 // Update the options in the main window
                 updateOptionsToRenderer(options);
             });
@@ -329,8 +329,7 @@ let template = [{
                 properties: ['openFile']
             });
             if (files) {
-                //                focusedWindow.send('load-options', files);
-                loadOptionsFromFile(files[0], (options) => {
+                loadOptionsFromFile(files[0], false, (options) => {
                     // Update the options in the main window
                     updateOptionsToRenderer(options);
                 });
@@ -518,14 +517,20 @@ function getSampleDirFiles(dir) {
     };
 }
 
-function loadOptionsFromFile(fn, processOpts) {
+function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
     fs.readFile(fn, 'utf-8', (err, data) => {
         if (err) {
             alert("An error occurred reading the file :" + err.message);
             return;
         }
         else {
-            const options = JSON.parse(data);
+            let options = JSON.parse(data);
+            // If the Keep Settings option is not set, just set the default options
+            if (honorKeepSettings && (!options.keepSettings)) {
+                // Reset the options to the default options
+                options = defaultOptions;
+                options.keepSettings = false; // keepSettings should stay false
+            }
             // Check is all options in defaultOptions are present in options
             for (const key in defaultOptions) {
                 if (!options.hasOwnProperty(key)) {
