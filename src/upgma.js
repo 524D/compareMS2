@@ -206,4 +206,7 @@ function testUPGMA() {
     testExpectUPGMA(table, labels, expect);
 }
 
-testUPGMA();
+// testUPGMA();
+
+exports.UPGMA = UPGMA;
+exports.testUPGMA = testUPGMA;
