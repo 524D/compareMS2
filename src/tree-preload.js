@@ -28,7 +28,5 @@ contextBridge.exposeInMainWorld('treeAPI', {
     // Remove listeners
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 
-    // Get initial data
-    getInitialData: () => ipcRenderer.invoke('tree-get-initial-data')
 });
 
