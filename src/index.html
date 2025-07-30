@@ -5,13 +5,12 @@
 
 <head>
     <meta charset="utf-8">
-
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
     <link rel="stylesheet" href="assets/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/micon_nb.min.css">
     <link rel="stylesheet" href="assets/jquery-ui.min.css">
     <link rel="stylesheet" href="local.css">
     <link rel="stylesheet" href="index.css">
-
 </head>
 
 <body>
@@ -21,7 +20,7 @@
                 <div class="about-container">
                     <h2>About CompareMS2</h2>
                     <div id="versioninfo"></div>
-                    <p><a href="#" class="extern-link" onclick="openSourceCodeInBrowser()">Source code</a></p>
+                    <p><a href="#" class="extern-link">Source code</a></p>
                     <p>Copyright Rob Marissen and Magnus Palmblad</p>
                     <details>
                         <summary>MIT license</summary>
@@ -49,8 +48,8 @@
     </div>
 
     <div class="tab">
-        <button class="tablinks active" onclick="openTab(event, 'CompareMode')">Compare Mode</button>
-        <button class="tablinks" onclick="openTab(event, 'CompareSettings')">Settings</button>
+        <button class="tablinks active" id="compare-tab">Compare Mode</button>
+        <button class="tablinks" id="settings-tab">Settings</button>
     </div>
 
     <!-- Tab content -->

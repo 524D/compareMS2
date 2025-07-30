@@ -212,8 +212,24 @@ function saveAsPNG(option, defaultName, imgFmt) {
     return;
 }
 
+// Function fractionToFloat converts a fraction string to a float without using eval
+// This is used to convert the fractions in the heatmap to floats for the x-axis labels
+// Using eval requires 'unsafe-eval' in CSP, which causes security warnings
+function fractionToFloat(fraction) {
+    const parts = fraction.split('/');
+    if (parts.length === 1) {
+        return parseFloat(parts[0]);
+    }
+    return parseFloat(parts[0]) / parseFloat(parts[1]);
+}
+
 function makeEChartsOption(chartContent) {
     // Create the ECharts option object based on the chartContent
+
+    // Set values for fractions that we want to display
+    const fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
+    const fractionsAsFloat = fractions.map(f => fractionToFloat(f));
+
     const option = {
         title: [
             {
@@ -281,10 +297,8 @@ function makeEChartsOption(chartContent) {
                     for (let i = 0; i < dataLen; i++) {
                         data[i] = '';
                     }
-                    // Set values for fractions that we want to display
-                    let fractions = ['-3/2', '-1', '-2/3', '-1/2', '-1/3', '0', '2/3', '1/2', '1/3', '1', '3/2'];
                     for (let i = 0; i < fractions.length; i++) {
-                        let dataIndex = Math.round(dataLen * ((eval(fractions[i]) - xMin) / xRange));
+                        let dataIndex = Math.round(dataLen * ((fractionsAsFloat[i] - xMin) / xRange));
                         data[dataIndex] = fractions[i];
                     }
                     return data;

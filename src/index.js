@@ -271,3 +271,34 @@ function openSourceCodeInBrowser() {
 document.getElementById("clear-file2").addEventListener("click", function () {
     document.getElementById("file2").value = "";
 });
+
+// Move inline onclick handler to addEventListener
+document.addEventListener('DOMContentLoaded', function () {
+    // Request the options from the main process
+    window.electronAPI.requestOptions();
+
+    // Add event listener for source code link
+    const sourceCodeLink = document.querySelector('a.extern-link');
+    if (sourceCodeLink) {
+        sourceCodeLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            openSourceCodeInBrowser();
+        });
+    }
+
+    // Add event listeners for tab buttons using their IDs
+    const compareTabBtn = document.getElementById('compare-tab');
+    const settingsTabBtn = document.getElementById('settings-tab');
+
+    if (compareTabBtn) {
+        compareTabBtn.addEventListener('click', function (event) {
+            openTab(event, 'CompareMode');
+        });
+    }
+
+    if (settingsTabBtn) {
+        settingsTabBtn.addEventListener('click', function (event) {
+            openTab(event, 'CompareSettings');
+        });
+    }
+});
