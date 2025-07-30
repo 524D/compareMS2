@@ -77,7 +77,7 @@ function showPhylTreeWindow(mainWindow, icon, params) {
 
     // On window close, remove from maps
     phyltreeWindow.on('close', () => {
-        computationStates.delete(window.id);
+        computationStates.delete(phyltreeWindow.id);
     });
 
     phyltreeWindow.removeMenu();
@@ -134,7 +134,7 @@ function compareNext(window, instanceId, params) {
 
     if (state.file1Idx >= state.mgfFiles.length) {
         // Computation finished
-        finishComputation(windowinstanceId, params);
+        finishComputation(window, instanceId, params);
         return;
     }
 
