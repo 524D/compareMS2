@@ -214,11 +214,12 @@ function makeTree(window, instanceId, params) {
 
     setActivity(window, 'Creating tree');
 
-    const df = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.meg`;
+    const dfArg = path.join(params.mgfDir, params.outBasename) + `-${instanceId}`;
+    const df = dfArg + "_distance_matrix.meg";
 
     const cmdArgs = [
         '-i', state.compResultListFile,
-        '-o', df,
+        '-o', dfArg,
         '-c', params.cutoff,
         '-m'
     ];
@@ -240,14 +241,6 @@ function makeTree(window, instanceId, params) {
             elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
             setActivity(window, 'Error creating distance matrix');
         }
-        const state = computationStates.get(instanceId);
-        // Continue with next row
-        state.file2Idx = 0;
-        state.file1Idx++;
-        computationStates.set(instanceId, state);
-
-        // FIXME: Replace/remove timeout 
-        setTimeout(() => compareNext(window, instanceId, params), 1000);
     });
 }
 
@@ -278,12 +271,8 @@ function parseDistanceMatrix(window, instanceId, params, df) {
             const newick = UPGMA(distanceParse.matrix, distanceParse.labels);
             const topology = newick.replace(/:[-0-9.]+/g, "");
 
-            state.newick = newick;
-            state.topology = topology;
-            computationStates.set(instanceId, state);
-
             // Send tree data to renderer
-            window.webContents.send('tree-data', {
+            window.webContents.send('treeData', {
                 newick,
                 topology,
                 qualMap: Object.fromEntries(distanceParse.qualMap),
@@ -292,6 +281,15 @@ function parseDistanceMatrix(window, instanceId, params, df) {
                 qualAvg: distanceParse.qualN > 0 ? distanceParse.qualSum / distanceParse.qualN : 0
             });
 
+            state.newick = newick;
+            state.topology = topology;
+            // Continue with next row
+            state.file2Idx = 0;
+            state.file1Idx++;
+            computationStates.set(instanceId, state);
+
+            // FIXME: Replace/remove timeout 
+            setTimeout(() => compareNext(window, instanceId, params), 1000);
         }
     });
 }
