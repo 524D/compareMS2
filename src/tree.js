@@ -170,32 +170,32 @@
         }
 
         function addLegend() {
-            // // FIXME: Awful use of timer, to delay the resize of SVG until phylotree/d3 is done with it.
-            // clearTimeout(legendTimer);
-            // legendTimer = setTimeout(function () {
-            //     let svg = d3.select("svg");
-            //     svg.selectAll(".legend-container").remove();
+            // FIXME: Awful use of timer, to delay the resize of SVG until phylotree/d3 is done with it.
+            clearTimeout(legendTimer);
+            legendTimer = setTimeout(function () {
+                let svg = d3.select("svg");
+                svg.selectAll(".legend-container").remove();
 
-            //     if (getSelectedScale() != "black") {
-            //         // Make room for legend in svg
-            //         let h = parseInt(svg.attr("height"));
-            //         d3.select("svg").attr("height", h + 70);
-            //         let w = parseInt(svg.attr("width"));
-            //         if (w < legendWidth + 200) {  // + 200 to ensure enough room for tick text
-            //             d3.select("svg").attr("width", legendWidth + 200);
-            //         }
+                if (getSelectedScale() != "black") {
+                    // Make room for legend in svg
+                    let h = parseInt(svg.attr("height"));
+                    d3.select("svg").attr("height", h + 70);
+                    let w = parseInt(svg.attr("width"));
+                    if (w < legendWidth + 200) {  // + 200 to ensure enough room for tick text
+                        d3.select("svg").attr("width", legendWidth + 200);
+                    }
 
-            //         // Add container for legend, move to desired location
-            //         let y = h + 10;
-            //         let containerSvg = svg.append("g")
-            //             .attr("class", "legend-container")
-            //             .attr("transform", `translate(10,${y})`);
-            //         Legend(containerSvg, color_scale, {
-            //             title: "Quality",
-            //         });
-            //     }
-            // },
-            //     500);
+                    // Add container for legend, move to desired location
+                    let y = h + 10;
+                    let containerSvg = svg.append("g")
+                        .attr("class", "legend-container")
+                        .attr("transform", `translate(10,${y})`);
+                    Legend(containerSvg, color_scale, {
+                        title: "Quality",
+                    });
+                }
+            },
+                500);
         }
 
         // ******************************* Event Handlers ******************************************** //
