@@ -1,19 +1,20 @@
+# To run this workflow, go to https://github.com/524D/compareMS2-cmd/settings/actions and enable "Read and write permissions" before build (and disable afterwards)
 name: build-binaries
 on:
   workflow_dispatch:
     inputs:
       buildfor:
-        description: 'Build binaries for:'
+        description: "Build binaries for:"
         required: true
-        default: 'linux'
+        default: "linux"
         type: choice
         options:
-            - 'linux'
-            - 'windows'
-            - 'macos' 
+          - "linux"
+          - "windows"
+          - "macos"
 jobs:
   linux:
-    if:  inputs.buildfor == 'linux'
+    if: inputs.buildfor == 'linux'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,10 +30,12 @@ jobs:
           git add compareMS2 compareMS2_to_distance_matrices
           git commit -m "Update Linux amd64 binaries"
       - name: Push changes
-        run: |
-          git push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
   windows:
-    if:  inputs.buildfor == 'windows'
+    if: inputs.buildfor == 'windows'
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -48,15 +51,18 @@ jobs:
           git add compareMS2.exe compareMS2_to_distance_matrices.exe
           git commit -m "Update Windows binaries"
       - name: Push changes
-        run: |
-          git push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
   macos:
-    if:  inputs.buildfor == 'macos'
+    if: inputs.buildfor == 'macos'
     runs-on: "macos-latest"
     steps:
       - name: Checkout
         uses: actions/checkout@v1
-      - name: Build
+      - name:
+          Build
           # Git doesn't preserve file times, so make doesn't work as intended
           # Force rebuild by removing existing executables
         run: rm -f *_darwin && make -f Makefile-darwin && rm -f *_x86_64_darwin && rm -f *_arm_darwin
