@@ -56,9 +56,8 @@ function showPhylTreeWindow(mainWindow, icon, params) {
         parent: mainWindow,
         modal: false,
         webPreferences: {
-            nodeIntegration: false,
-            enableRemoteModule: false,
             contextIsolation: true,
+            sandbox: true,
             preload: path.join(__dirname, 'tree-preload.js')
         },
         icon: icon,
