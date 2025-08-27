@@ -288,7 +288,7 @@ function parseDistanceMatrix(window, instanceId, params, df) {
             computationStates.set(instanceId, state);
 
             // FIXME: Replace/remove timeout 
-            setTimeout(() => compareNext(window, instanceId, params), 1000);
+            setTimeout(() => compareNext(window, instanceId, params), 0);
         }
     });
 }
@@ -347,15 +347,18 @@ function finishComputation(window, instanceId, params) {
 }
 
 function pauseComputation(instanceId) {
-    if (computationStates.get(instanceId)) {
-        computationStates.get(instanceId).paused = true;
+    let state = computationStates.get(instanceId);
+    if (state) {
+        state.paused = true;
+        computationStates.set(instanceId, state);
     }
 }
 
 function resumeComputation(instanceId) {
-    if (computationStates.get(instanceId)) {
-        computationStates.get(instanceId).paused = false;
-        // Resume computation - you may need to pass params here
+    let state = computationStates.get(instanceId);
+    if (state) {
+        state.paused = false;
+        computationStates.set(instanceId, state);
     }
 }
 
