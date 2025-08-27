@@ -52,9 +52,6 @@ const prevOptionsFn = getUserDataFn();
 // and pass them to the different modules.
 const generalParams = getExe();
 
-// FIXME: Use IPC instead of remote for communication: https://www.electronjs.org/docs/latest/tutorial/ipc
-require('@electron/remote/main').initialize();
-
 // We don't accept filenames from the renderer process, but just use the data that was
 // selected in the dialog.
 // This is to prevent security issues with the renderer process.
@@ -438,8 +435,6 @@ const createWindow = () => {
                 "availableCPUs": getCPUCount(), // Pass the number of CPUs to the renderer
             }
         });
-
-    require("@electron/remote/main").enable(mainWindow.webContents);
 
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
         // Open the DevTools.
