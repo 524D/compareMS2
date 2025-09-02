@@ -8,6 +8,7 @@ const { initPhylTree, showPhylTreeWindow } = require('./main-phyltree.js');
 const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 const { getCPUCount } = require('./main-common.js');
+const { initializeParallelization } = require('./parallelization-manager.js');
 const homedir = require('os').homedir();
 
 const defaultOptions = {
@@ -230,6 +231,13 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
 })
 
 ipcMain.on('start-comparison', (event, mode, params) => {
+    // Initialize parallelization manager with user settings
+    if (params.numberOfCPUs && params.numberOfCPUs > 0) {
+        initializeParallelization(params.numberOfCPUs);
+    } else {
+        initializeParallelization(getCPUCount());
+    }
+
     // Save parameters for next time
     const fn = getUserDataFn();
     saveOptionsToFile(fn, params)

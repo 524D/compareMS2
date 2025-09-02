@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const lineReader = require('line-reader');
 const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-common.js');
 const { UPGMA } = require('./upgma.js');
+const { getParallelizationManager } = require('./parallelization-manager.js');
 
 const compareDirName = 'compareresult';
 
@@ -99,7 +100,6 @@ function runTreeComparison(window, instanceId, params) {
     if (!state || !window) return false;
 
     // Initialize computation state
-
     state.mgfFiles = params.sampleDir.mgfFilesFull || [];
     sortFiles(state.mgfFiles, params.compareOrder);
 
@@ -114,102 +114,139 @@ function runTreeComparison(window, instanceId, params) {
     fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
     computationStates.set(instanceId, state);
 
-    // Start comparison
-    compareNext(window, instanceId, params);
+    // Start comparison with parallel processing
+    runParallelTreeComparison(window, instanceId, params);
     return true;
 }
 
-function compareNext(window, instanceId, params) {
+async function runParallelTreeComparison(window, instanceId, params) {
     const state = computationStates.get(instanceId);
-    const compareMS2exe = generalParams.compareMS2Exe;
+    const parallelManager = getParallelizationManager();
 
+    if (!state || !window) return;
 
-    if (!state || !window || state.paused) return;
-
-    // Update progress
     const nMgf = state.mgfFiles.length;
-    const progress = ((state.file1Idx * (state.file1Idx - 1) / 2) + state.file2Idx) / (nMgf * (nMgf - 1) / 2);
-    window.webContents.send('progress-update', progress * 100);
+    llog(window, `Starting phylogenetic tree computation with ${parallelManager.getTotalSlots()} parallel processes (shared across all windows)`);
 
-    if (state.file1Idx >= state.mgfFiles.length) {
-        // Computation finished
-        finishComputation(window, instanceId, params);
-        return;
+    // Process each row of the comparison matrix
+    for (let file1Idx = 1; file1Idx < nMgf; file1Idx++) {
+        if (state.paused) {
+            // Wait for resume
+            while (state.paused) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        if (!window || !computationStates.has(instanceId)) {
+            // Window was closed
+            return;
+        }
+
+        // Create comparison tasks for this row
+        const rowTasks = [];
+        for (let file2Idx = 0; file2Idx < file1Idx; file2Idx++) {
+            rowTasks.push({
+                file1Idx,
+                file2Idx,
+                mgf1: state.mgfFiles[file1Idx],
+                mgf2: state.mgfFiles[file2Idx]
+            });
+        }
+
+        // Update progress
+        const progress = (file1Idx - 1) / (nMgf - 1);
+        window.webContents.send('progress-update', progress * 100);
+
+        // Execute all comparisons for this row in parallel
+        const rowResults = await Promise.all(
+            rowTasks.map(task => executeTreeComparison(task, window, instanceId, params))
+        );
+
+        // Add successful results to the comparison list
+        for (const result of rowResults) {
+            if (result.success) {
+                fs.appendFileSync(state.compResultListFile, result.cmpFile + "\n");
+            }
+        }
+
+        // After completing a row, create the tree with current results
+        await makeTree(window, instanceId, params);
     }
+
+    // Computation finished
+    finishComputation(window, instanceId, params);
+}
+
+async function executeTreeComparison(task, window, instanceId, params) {
+    const state = computationStates.get(instanceId);
+    const { mgf1, mgf2, file1Idx, file2Idx } = task;
 
     // Send activity update
-    const activity = `Comparing ${state.mgfFiles[state.file1Idx]} ${state.mgfFiles[state.file2Idx]}`;
+    const activity = `Comparing ${path.basename(mgf1)} vs ${path.basename(mgf2)}`;
     setActivity(window, activity);
 
-    let mgf1 = state.mgfFiles[state.file1Idx];
-    let mgf2 = state.mgfFiles[state.file2Idx];
-
     // Order alphabetically for consistent hashing
+    let orderedMgf1 = mgf1;
+    let orderedMgf2 = mgf2;
     if (mgf1 > mgf2) {
-        [mgf1, mgf2] = [mgf2, mgf1];
+        [orderedMgf1, orderedMgf2] = [mgf2, mgf1];
     }
 
-    const cmdArgs = buildCmdArgs(mgf1, mgf2, params);
+    const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
     const { cmpFile, hashName } = getHashName(cmdArgs, state.compareDir);
-    const comparems2tmp = path.join(state.compareDir, `${hashName}-${instanceId}.tmp`);
-
-    cmdArgs.push('-o', comparems2tmp);
 
     // Check if result already exists
     if (fs.existsSync(cmpFile)) {
-        compareFinished(window, instanceId, params, cmpFile);
-        return;
+        llog(window, 'Compare file already exists: ' + cmpFile);
+        return { success: true, cmpFile };
     }
 
-    // Run comparison
-    const cmp_ms2 = spawn(compareMS2exe, cmdArgs);
+    // Use the parallelization manager to control execution
+    return await getParallelizationManager().executeTask(async () => {
+        const comparems2tmp = path.join(state.compareDir, `${hashName}-${instanceId}.tmp`);
+        const compareMS2exe = generalParams.compareMS2Exe;
+        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp];
 
-    cmp_ms2.stdout.on('data', (data) => {
-        llog(window, data.toString());
-    });
+        try {
+            await new Promise((resolve, reject) => {
+                const cmp_ms2 = spawn(compareMS2exe, cmdArgsWithOutput);
 
-    cmp_ms2.stderr.on('data', (data) => {
-        elog(window, data.toString());
-    });
+                cmp_ms2.stdout.on('data', (data) => {
+                    llog(window, data.toString());
+                });
 
-    cmp_ms2.on('error', () => {
-        elog(window, 'Error running compareMS2');
-        setActivity(window, 'Error running compareMS2');
-    });
+                cmp_ms2.stderr.on('data', (data) => {
+                    elog(window, data.toString());
+                });
 
-    cmp_ms2.on('close', (code) => {
-        if (code === 0) {
-            fs.rename(comparems2tmp, cmpFile, (err) => {
-                if (err) throw err;
-                compareFinished(window, instanceId, params, cmpFile);
+                cmp_ms2.on('error', (error) => {
+                    reject(error);
+                });
+
+                cmp_ms2.on('close', (code) => {
+                    if (code === 0) {
+                        resolve();
+                    } else {
+                        reject(new Error(`compareMS2 exited with code ${code}`));
+                    }
+                });
             });
-        } else {
-            elog(window, `compareMS2 exited with code ${code}`);
+
+            // Rename temporary file to final name
+            fs.renameSync(comparems2tmp, cmpFile);
+            return { success: true, cmpFile };
+
+        } catch (error) {
+            elog(window, `Error running compareMS2: ${error.message}`);
+            return { success: false, error: error.message };
         }
     });
 }
 
-function compareFinished(window, instanceId, params, cmpFile) {
-    const state = computationStates.get(instanceId);
 
-    fs.appendFileSync(state.compResultListFile, cmpFile + "\n");
-    state.file2Idx++;
-    computationStates.set(instanceId, state);
-
-
-    if (state.file2Idx < state.file1Idx) {
-        // Continue with next comparison
-        setTimeout(() => compareNext(window, instanceId, params), 0);
-    } else {
-        // Row finished, create tree
-        makeTree(window, instanceId, params);
-    }
-}
-
-function makeTree(window, instanceId, params) {
+async function makeTree(window, instanceId, params) {
     const state = computationStates.get(instanceId);
     const compToDistExe = generalParams.compToDistExe;
-
 
     setActivity(window, 'Creating tree');
 
@@ -225,21 +262,31 @@ function makeTree(window, instanceId, params) {
     if (fs.existsSync(params.s2sFile)) {
         cmdArgs.push('-x', params.s2sFile);
     }
+
     llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
-    const c2d = spawn(compToDistExe, cmdArgs);
-    c2d.stdout.on('data', (data) => {
-        llog(window, data.toString());
-    });
-    c2d.stderr.on('data', (data) => {
-        elog(window, data.toString());
-    });
-    c2d.on('close', (code) => {
-        if (code === 0) {
-            parseDistanceMatrix(window, instanceId, params, df);
-        } else {
-            elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-            setActivity(window, 'Error creating distance matrix');
-        }
+
+    return new Promise((resolve, reject) => {
+        const c2d = spawn(compToDistExe, cmdArgs);
+        c2d.stdout.on('data', (data) => {
+            llog(window, data.toString());
+        });
+        c2d.stderr.on('data', (data) => {
+            elog(window, data.toString());
+        });
+        c2d.on('close', (code) => {
+            if (code === 0) {
+                parseDistanceMatrix(window, instanceId, params, df);
+                resolve();
+            } else {
+                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+                setActivity(window, 'Error creating distance matrix');
+                reject(new Error(`Distance matrix creation failed with code ${code}`));
+            }
+        });
+        c2d.on('error', (error) => {
+            elog(window, `Error running ${compToDistExe}: ${error.message}`);
+            reject(error);
+        });
     });
 }
 
@@ -282,13 +329,9 @@ function parseDistanceMatrix(window, instanceId, params, df) {
 
             state.newick = newick;
             state.topology = topology;
-            // Continue with next row
-            state.file2Idx = 0;
-            state.file1Idx++;
             computationStates.set(instanceId, state);
 
-            // FIXME: Replace/remove timeout 
-            setTimeout(() => compareNext(window, instanceId, params), 0);
+            // Tree data sent to renderer - row completed in parallel implementation
         }
     });
 }

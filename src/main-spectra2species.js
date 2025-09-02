@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount } = require('./main-common.js');
+const { getParallelizationManager } = require('./parallelization-manager.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
@@ -110,17 +111,10 @@ function showS2SWindow(mainWindow, icon, params) {
 
 // Start the spectra2species run
 async function runS2S(params, window) {
-    // Use numberOfCPUs from user settings, default to available CPU count
-    let maxParallel;
-    if (params.numberOfCPUs && params.numberOfCPUs > 0) {
-        maxParallel = params.numberOfCPUs;
-    } else {
-        maxParallel = getCPUCount(); // Use all available CPUs if not specified or -1
-    }
-    // Ensure we have at least 1 and at most a reasonable number
-    maxParallel = Math.max(1, Math.min(maxParallel, 32));
+    const parallelManager = getParallelizationManager();
+    const maxParallel = parallelManager.getTotalSlots();
 
-    llog(window, `Using ${maxParallel} parallel processes for comparisons`);
+    llog(window, `Using ${maxParallel} parallel processes for comparisons (shared across all windows)`);
 
     var errors = 0; // Count the number of errors
     // Create directory for compare results
@@ -184,39 +178,42 @@ async function runS2S(params, window) {
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgsWithOutput);
         llog(window, 'Executing: ' + cmdStr + '\n');
 
-        // Run the compareMS2 executable
-        try {
-            await new Promise((resolve, reject) => {
-                const child = spawn(compareMS2exe, cmdArgsWithOutput, { windowsHide: true, stdio: 'inherit' });
+        // Use the parallelization manager to control execution
+        return await parallelManager.executeTask(async () => {
+            // Run the compareMS2 executable
+            try {
+                await new Promise((resolve, reject) => {
+                    const child = spawn(compareMS2exe, cmdArgsWithOutput, { windowsHide: true, stdio: 'inherit' });
 
-                child.on('close', (code) => {
-                    if (code === 0) {
-                        llog(window, 'Compare file created: ' + cmpFile);
-                        resolve();
-                    } else {
-                        reject(new Error(`compareMS2 process exited with code ${code}`));
-                    }
+                    child.on('close', (code) => {
+                        if (code === 0) {
+                            llog(window, 'Compare file created: ' + cmpFile);
+                            resolve();
+                        } else {
+                            reject(new Error(`compareMS2 process exited with code ${code}`));
+                        }
+                    });
+
+                    child.on('error', (error) => {
+                        reject(error);
+                    });
                 });
+            } catch (error) {
+                elog(window, 'Error running compareMS2:', error);
+                return { success: false, error, sampleFile };
+            }
 
-                child.on('error', (error) => {
-                    reject(error);
-                });
-            });
-        } catch (error) {
-            elog(window, 'Error running compareMS2:', error);
-            return { success: false, error, sampleFile };
-        }
-
-        // Rename the output file to the final name
-        if (fs.existsSync(comparems2tmpJSON)) {
-            fs.renameSync(comparems2tmpJSON, cmpFileJSON);
-            fs.renameSync(comparems2tmp, cmpFile);
-            llog(window, 'Compare file created: ' + cmpFileJSON);
-            return { success: true, cmpFileJSON, sampleFile };
-        } else {
-            elog(window, 'Compare file not created: ' + cmpFileJSON);
-            return { success: false, error: 'Output file not created', sampleFile };
-        }
+            // Rename the output file to the final name
+            if (fs.existsSync(comparems2tmpJSON)) {
+                fs.renameSync(comparems2tmpJSON, cmpFileJSON);
+                fs.renameSync(comparems2tmp, cmpFile);
+                llog(window, 'Compare file created: ' + cmpFileJSON);
+                return { success: true, cmpFileJSON, sampleFile };
+            } else {
+                elog(window, 'Compare file not created: ' + cmpFileJSON);
+                return { success: false, error: 'Output file not created', sampleFile };
+            }
+        });
     }
 
     // Function to process a completed comparison result
@@ -250,59 +247,22 @@ async function runS2S(params, window) {
         completedTasks++;
     }
 
-    // Execute comparisons in parallel with continuous task scheduling
-    let taskIndex = 0;
-    const runningTasks = new Set();
-
-    async function scheduleNextTask() {
-        // If no more tasks or we've reached the parallel limit, return
-        if (taskIndex >= comparisonTasks.length || runningTasks.size >= maxParallel) {
-            return;
-        }
-
-        const task = comparisonTasks[taskIndex++];
-        const taskPromise = executeComparison(task);
-        runningTasks.add(taskPromise);
-
-        // Handle task completion
-        taskPromise
-            .then((result) => {
+    // Execute all comparisons in parallel using Promise.all
+    // The parallelization manager will handle the actual concurrency control
+    const allResults = await Promise.all(
+        comparisonTasks.map(async (task) => {
+            try {
+                const result = await executeComparison(task);
                 processCompletedComparison(result);
-            })
-            .catch((error) => {
+                return result;
+            } catch (error) {
                 elog(window, 'Comparison task failed:', error);
                 errors++;
                 completedTasks++;
-            })
-            .finally(async () => {
-                runningTasks.delete(taskPromise);
-
-                // Small delay to prevent overwhelming the UI with updates
-                await sleep(100);
-
-                // Schedule the next task immediately
-                await scheduleNextTask();
-            });
-
-        // If we still have capacity and more tasks, schedule another one
-        if (runningTasks.size < maxParallel && taskIndex < comparisonTasks.length) {
-            await scheduleNextTask();
-        }
-    }
-
-    // Start initial batch of tasks up to maxParallel
-    const initialPromises = [];
-    for (let i = 0; i < Math.min(maxParallel, comparisonTasks.length); i++) {
-        initialPromises.push(scheduleNextTask());
-    }
-
-    // Wait for all initial tasks to be scheduled
-    await Promise.all(initialPromises);
-
-    // Wait for all running tasks to complete
-    while (runningTasks.size > 0 || completedTasks < totalTasks) {
-        await sleep(100); // Check every 100ms if all tasks are done
-    }
+                return { success: false, error, sampleFile: task.sampleFile };
+            }
+        })
+    );
 
     // After all comparisons, send a message to the renderer process to indicate completion
     if (errors > 0) {
