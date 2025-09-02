@@ -58,10 +58,9 @@ App detects platform in multiple places (`src/main.js`, renderer scripts) for bi
 
 ### IPC Security Pattern
 
-**CRITICAL**: App is transitioning from `@electron/remote` to proper IPC:
+**CRITICAL**: Electron context isolation is used to separate the main and renderer processes:
 
-- Old pattern: Direct remote module access
-- New pattern: contextBridge + preload scripts (see `spectra2species-preload.js`)
+- Communication is setup in preload scripts (see `spectra2species-preload.js`)
 - Never accept file paths from renderer - use dialog selections stored in main process
 
 ### Data Flow Architecture
@@ -101,7 +100,7 @@ Uses flexbox with specific layout classes:
 - **ECharts**: All chart rendering (heatmaps, bar charts)
 - **D3 + phylotree**: Phylogenetic tree visualization
 - **electron-forge**: Build system
-- **@electron/remote**: IPC (being phased out)
+- **requireJS**: Module loading (only for phylogenetic tree GUI)
 
 ### Build Requirements
 
