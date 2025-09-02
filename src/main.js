@@ -126,25 +126,6 @@ function selectMGFfile(title) {
     return files;
 }
 
-function handleStoreImage(dummy, imgFmt, imageData, instanceId) {
-    const files = dialog.showSaveDialogSync(mainWindow, {
-        title: 'Save image',
-        defaultPath: 'heatmap.' + imgFmt,
-        filters: [
-            { name: imgFmt + ' file', extensions: [imgFmt] },
-            { name: 'All Files', extensions: ['*'] }
-        ],
-        properties: ['openFile']
-    });
-    if (files) {
-        fs.writeFile(files, imageData, function (err) {
-            if (err) {
-                return console.log(err);
-            }
-        });
-    }
-}
-
 function handleStoreImageV2(dummy, defaultName, imgFmt, imageData) {
     // Sanitize the defaultName to ensure it is a valid filename
     defaultName = defaultName.replace(/[^a-z0-9_\-\.]/gi, '_').toLowerCase();
@@ -284,8 +265,6 @@ ipcMain.on('toggle-fullscreen', (event) => {
         window.setFullScreen(!window.isFullScreen());
     }
 })
-
-ipcMain.on('store-image', handleStoreImage);
 
 ipcMain.on('store-image-v2', handleStoreImageV2);
 
