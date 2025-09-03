@@ -1,6 +1,7 @@
 // RequireJS configuration for tree.js dependencies
 requirejs.config({
     baseUrl: './assets',
+    waitSeconds: 60, // Avoid timeout
     paths: {
         'd3': 'd3.min',
         'phylotree': 'phylotree.min',
