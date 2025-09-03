@@ -461,6 +461,9 @@ function parseDistanceMatrixLine(line, distanceParse) {
 function finishComputation(window, instanceId, params) {
     const state = computationStates.get(instanceId);
 
+    // Ensure progress bar shows 100% completion
+    window.webContents.send('progress-update', 100);
+
     setActivity(window, 'Finished');
     window.webContents.send('tree-computation-finished');
 
