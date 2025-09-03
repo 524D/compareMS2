@@ -10,7 +10,9 @@ const path = require('path');
 // Function to log messages to the web page and the Electron log
 function llog(window, msg) {
     log.info(msg);
-    window.webContents.send('logMessage', msg);
+    // FIXME: Logging to the UI takes tremendous time, and is not very useful if here are no errors
+    // So for now, we only log to the console
+    //    window.webContents.send('logMessage', msg);
 }
 
 // Function to log error messages to the web page and the Electron log
