@@ -7,23 +7,52 @@ const log = require('electron-log');
 const crypto = require('crypto');
 const path = require('path');
 
+// Global process tracking - using window.id as key since it's globally unique
+let activeProcesses = new Map(); // Map<windowId, Set<childProcess>>
+
 // Function to log messages to the web page and the Electron log
 function llog(window, msg) {
     log.info(msg);
     // FIXME: Logging to the UI takes tremendous time, and is not very useful if here are no errors
     // So for now, we only log to the console
-    //    window.webContents.send('logMessage', msg);
+    //    safeWindowSend(window, 'logMessage', msg);
 }
 
 // Function to log error messages to the web page and the Electron log
 function elog(window, msg) {
     log.error(msg);
-    window.webContents.send('logError', msg);
+    safeWindowSend(window, 'logError', msg);
 }
 
 // Function to send a message to the renderer process to set activity status
 function setActivity(window, msg) {
-    window.webContents.send('setActivity', msg);
+    safeWindowSend(window, 'setActivity', msg);
+}
+
+/**
+ * Safely send a message to a window, checking if it still exists
+ */
+function safeWindowSend(window, channel, ...args) {
+    try {
+        if (window && !window.isDestroyed() && window.webContents && !window.webContents.isDestroyed()) {
+            window.webContents.send(channel, ...args);
+            return true;
+        }
+    } catch (error) {
+        console.log(`Failed to send message to window: ${error.message}`);
+    }
+    return false;
+}
+
+/**
+ * Check if a window is still valid and computation should continue
+ */
+function isWindowValid(window, instanceId = null) {
+    return window &&
+        !window.isDestroyed() &&
+        window.webContents &&
+        !window.webContents.isDestroyed() &&
+        (instanceId === null || true); // instanceId check can be added by calling modules if needed
 }
 
 // Function to build the command line arguments for the compareMS2 executable
@@ -83,11 +112,51 @@ function getCPUCount() {
     return require('os').cpus().length;
 }
 
+/**
+ * Clean up all resources associated with a window when it's closed
+ */
+function cleanupWindowResources(windowId) {
+    // Stop any running processes for this window
+    if (activeProcesses.has(windowId)) {
+        const processes = activeProcesses.get(windowId);
+        processes.forEach(process => {
+            if (process && !process.killed) {
+                process.kill('SIGTERM');
+            }
+        });
+        activeProcesses.delete(windowId);
+    }
+}
+
+/**
+ * Add a process to tracking for a specific window
+ */
+function addActiveProcess(windowId, process) {
+    if (!activeProcesses.has(windowId)) {
+        activeProcesses.set(windowId, new Set());
+    }
+    activeProcesses.get(windowId).add(process);
+}
+
+/**
+ * Remove a process from tracking for a specific window
+ */
+function removeActiveProcess(windowId, process) {
+    if (activeProcesses.has(windowId)) {
+        activeProcesses.get(windowId).delete(process);
+    }
+}
+
 exports.llog = llog;
 exports.elog = elog;
 exports.setActivity = setActivity;
+exports.safeWindowSend = safeWindowSend;
+exports.isWindowValid = isWindowValid;
 exports.buildCmdArgs = buildCmdArgs;
 exports.getHashName = getHashName;
 exports.shortHashObj = shortHashObj;
 exports.getSystemMemoryInfo = getSystemMemoryInfo;
 exports.getCPUCount = getCPUCount;
+exports.cleanupWindowResources = cleanupWindowResources;
+exports.addActiveProcess = addActiveProcess;
+exports.removeActiveProcess = removeActiveProcess;

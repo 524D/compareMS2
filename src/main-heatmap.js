@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess } = require('./main-common.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
@@ -35,6 +35,14 @@ function showHeatMapWindow(mainWindow, icon, params) {
             preload: path.join(__dirname, 'heatmap-preload.js')
         },
         icon: icon,
+    });
+
+    heatmapWindow.on('close', () => {
+        cleanupWindowResources(heatmapWindow.id);
+    });
+
+    heatmapWindow.on('closed', () => {
+        cleanupWindowResources(heatmapWindow.id);
     });
 
     heatmapWindow.removeMenu();
@@ -137,6 +145,9 @@ function runHeatMap(window, userparams, onFinishedFunc) {
 
     const cmp_ms2 = spawn(compareMS2exe, cmdArgsWithOutput);
 
+    // Track this process
+    addActiveProcess(window.id, cmp_ms2);
+
     cmp_ms2.stdout.on('data', (data) => {
         llog(window, data.toString());
     });
@@ -147,19 +158,33 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     });
 
     cmp_ms2.on('error', (data) => {
+        // Remove from tracking
+        removeActiveProcess(window.id, cmp_ms2);
         hideLoading(window);
         elog(window, 'Error running compareMS2');
         setActivity(window, 'Error running compareMS2');
     });
 
     cmp_ms2.stderr.on('exit', (code, signal) => {
+        // Remove from tracking
+        removeActiveProcess(window.id, cmp_ms2);
         hideLoading(window);
         elog(window, 'Error running compareMS2');
         setActivity(window, 'Error running compareMS2');
     });
 
     cmp_ms2.on('close', (code, signal) => {
-        hideLoading(window);
+        // Remove from tracking
+        removeActiveProcess(window.id, cmp_ms2);
+
+        if (isWindowValid(window)) {
+            hideLoading(window);
+        }
+
+        if (!isWindowValid(window)) {
+            return; // Don't continue if window is closed
+        }
+
         if (code == null) {
             elog(window, "Error: comparems2 command line executable crashed (signal 0x" + signal.toString(16) + ")\n")
             setActivity(window, "Error: comparems2 command line executable crashed (signal 0x" + signal.toString(16) + ")\n")
@@ -181,7 +206,9 @@ function runHeatMap(window, userparams, onFinishedFunc) {
                         });
                     });
                     // Call the onFinishedFunc with the results
-                    onFinishedFunc(window, cmpFileExpFeatures, title, yAxisLabel, userparams);
+                    if (isWindowValid(window)) {
+                        onFinishedFunc(window, cmpFileExpFeatures, title, yAxisLabel, userparams);
+                    }
                 });
             }
         }
@@ -268,13 +295,11 @@ function convertResultToHeatmap(window, cmpFile, title, yAxisLabel, params) {
         mzFile1: params.mzFile1,
         s2sFile: params.s2sFile
     }
-    window.webContents.send('updateChart', chartContent);
+    safeWindowSend(window, 'updateChart', chartContent);
 }
 
 function hideLoading(window) {
-    if (window) {
-        window.webContents.send('hideLoading');
-    }
+    safeWindowSend(window, 'hideLoading');
 }
 
 exports.showHeatMapWindow = showHeatMapWindow;

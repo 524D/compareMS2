@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const lineReader = require('line-reader');
-const { llog, elog, setActivity, buildCmdArgs, getHashName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess } = require('./main-common.js');
 const { UPGMA } = require('./upgma.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 
@@ -50,6 +50,17 @@ function initPhylTree(genParams) {
 
 }
 
+/**
+ * Clean up all resources associated with a window when it's closed
+ */
+function cleanupWindowResourcesPhyltree(windowId) {
+    // Use common process cleanup
+    cleanupWindowResources(windowId);
+
+    // Remove computation state (phyltree-specific)
+    computationStates.delete(windowId);
+}
+
 function showPhylTreeWindow(mainWindow, icon, params) {
     let phyltreeWindow = new BrowserWindow({
         width: 1200,
@@ -77,7 +88,11 @@ function showPhylTreeWindow(mainWindow, icon, params) {
 
     // On window close, remove from maps
     phyltreeWindow.on('close', () => {
-        computationStates.delete(phyltreeWindow.id);
+        cleanupWindowResourcesPhyltree(phyltreeWindow.id);
+    });
+
+    phyltreeWindow.on('closed', () => {
+        cleanupWindowResourcesPhyltree(phyltreeWindow.id);
     });
 
     phyltreeWindow.removeMenu();
@@ -212,7 +227,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
     const state = computationStates.get(instanceId);
     const parallelManager = getParallelizationManager();
 
-    if (!state || !window) return;
+    if (!state || !isWindowValid(window) || !computationStates.has(instanceId)) return;
 
     const nMgf = state.mgfFiles.length;
     llog(window, `Starting phylogenetic tree computation with ${parallelManager.getTotalSlots()} parallel processes (shared across all windows)`);
@@ -224,12 +239,12 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
     for (let file1Idx = startFromRow; file1Idx < nMgf; file1Idx++) {
         if (state.paused) {
             // Wait for resume
-            while (state.paused) {
+            while (state.paused && isWindowValid(window) && computationStates.has(instanceId)) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
 
-        if (!window || !computationStates.has(instanceId)) {
+        if (!isWindowValid(window) || !computationStates.has(instanceId)) {
             // Window was closed
             return;
         }
@@ -249,7 +264,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
         const totalRows = nMgf - 1;
         const completedRows = (file1Idx - 1);
         const progress = completedRows / totalRows;
-        window.webContents.send('progress-update', progress * 100);
+        safeWindowSend(window, 'progress-update', progress * 100);
 
         // Execute all comparisons for this row in parallel
         const rowResults = await Promise.all(
@@ -264,7 +279,14 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
         }
 
         // After completing a row, create the tree with current results
-        await makeTree(window, instanceId, params);
+        try {
+            await makeTree(window, instanceId, params);
+        } catch (error) {
+            if (isWindowValid(window) && computationStates.has(instanceId)) {
+                elog(window, `Error creating tree: ${error.message}`);
+            }
+            // If window is closed, ignore the error
+        }
     }
 
     // Computation finished
@@ -303,7 +325,16 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
         try {
             await new Promise((resolve, reject) => {
+                // Check if window is still valid before starting process
+                if (!isWindowValid(window, instanceId)) {
+                    reject(new Error('Window closed'));
+                    return;
+                }
+
                 const cmp_ms2 = spawn(compareMS2exe, cmdArgsWithOutput);
+
+                // Track this process
+                addActiveProcess(instanceId, cmp_ms2);
 
                 cmp_ms2.stdout.on('data', (data) => {
                     llog(window, data.toString());
@@ -314,10 +345,15 @@ async function executeTreeComparison(task, window, instanceId, params) {
                 });
 
                 cmp_ms2.on('error', (error) => {
+                    // Remove from tracking
+                    removeActiveProcess(instanceId, cmp_ms2);
                     reject(error);
                 });
 
                 cmp_ms2.on('close', (code) => {
+                    // Remove from tracking
+                    removeActiveProcess(instanceId, cmp_ms2);
+
                     if (code === 0) {
                         resolve();
                     } else {
@@ -339,7 +375,16 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
 
 async function makeTree(window, instanceId, params) {
+    // Check if window is still valid first
+    if (!isWindowValid(window) || !computationStates.has(instanceId)) {
+        throw new Error('Window closed or invalid state');
+    }
+
     const state = computationStates.get(instanceId);
+    if (!state) {
+        throw new Error('Window closed or invalid state');
+    }
+
     const compToDistExe = generalParams.compToDistExe;
 
     setActivity(window, 'Creating tree');
@@ -360,7 +405,17 @@ async function makeTree(window, instanceId, params) {
     llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
 
     return new Promise((resolve, reject) => {
+        // Check if window is still valid before starting process
+        if (!isWindowValid(window, instanceId)) {
+            reject(new Error('Window closed'));
+            return;
+        }
+
         const c2d = spawn(compToDistExe, cmdArgs);
+
+        // Track this process
+        addActiveProcess(instanceId, c2d);
+
         c2d.stdout.on('data', (data) => {
             llog(window, data.toString());
         });
@@ -368,6 +423,14 @@ async function makeTree(window, instanceId, params) {
             elog(window, data.toString());
         });
         c2d.on('close', (code) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
+
+            if (!isWindowValid(window, instanceId)) {
+                reject(new Error('Window closed'));
+                return;
+            }
+
             if (code === 0) {
                 parseDistanceMatrix(window, instanceId, params, df);
                 resolve();
@@ -378,6 +441,8 @@ async function makeTree(window, instanceId, params) {
             }
         });
         c2d.on('error', (error) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
             elog(window, `Error running ${compToDistExe}: ${error.message}`);
             reject(error);
         });
@@ -412,7 +477,7 @@ function parseDistanceMatrix(window, instanceId, params, df) {
             const topology = newick.replace(/:[-0-9.]+/g, "");
 
             // Send tree data to renderer
-            window.webContents.send('treeData', {
+            safeWindowSend(window, 'treeData', {
                 newick,
                 topology,
                 qualMap: Object.fromEntries(distanceParse.qualMap),
@@ -462,10 +527,10 @@ function finishComputation(window, instanceId, params) {
     const state = computationStates.get(instanceId);
 
     // Ensure progress bar shows 100% completion
-    window.webContents.send('progress-update', 100);
+    safeWindowSend(window, 'progress-update', 100);
 
     setActivity(window, 'Finished');
-    window.webContents.send('tree-computation-finished');
+    safeWindowSend(window, 'tree-computation-finished');
 
     // Move final files
     const tmpResultFn = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.meg`;

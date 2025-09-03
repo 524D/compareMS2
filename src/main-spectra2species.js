@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 
 const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
@@ -94,7 +94,13 @@ function showS2SWindow(mainWindow, icon, params) {
         },
         icon: icon,
     });
-    s2sWindow.on('close', () => { s2sWindow = null })
+    s2sWindow.on('close', () => {
+        cleanupWindowResources(s2sWindow.id);
+    });
+
+    s2sWindow.on('closed', () => {
+        cleanupWindowResources(s2sWindow.id);
+    });
     s2sWindow.removeMenu();
     s2sWindow.loadFile(path.join(__dirname, '/spectra2species.html'));
     if (typeof process.env.CPM_MS2_DEBUG !== 'undefined') {
@@ -180,12 +186,23 @@ async function runS2S(params, window) {
 
         // Use the parallelization manager to control execution
         return await parallelManager.executeTask(async () => {
+            // Check if window is still valid before starting process
+            if (!isWindowValid(window)) {
+                return { success: false, error: 'Window closed', sampleFile };
+            }
+
             // Run the compareMS2 executable
             try {
                 await new Promise((resolve, reject) => {
                     const child = spawn(compareMS2exe, cmdArgsWithOutput, { windowsHide: true, stdio: 'inherit' });
 
+                    // Track this process
+                    addActiveProcess(window.id, child);
+
                     child.on('close', (code) => {
+                        // Remove from tracking
+                        removeActiveProcess(window.id, child);
+
                         if (code === 0) {
                             llog(window, 'Compare file created: ' + cmpFile);
                             resolve();
@@ -195,6 +212,8 @@ async function runS2S(params, window) {
                     });
 
                     child.on('error', (error) => {
+                        // Remove from tracking
+                        removeActiveProcess(window.id, child);
                         reject(error);
                     });
                 });
@@ -237,7 +256,7 @@ async function runS2S(params, window) {
             });
 
             // Update the chart with current results
-            window.webContents.send('updateChart', distanceMap,
+            safeWindowSend(window, 'updateChart', distanceMap,
                 path.basename(params.mgfDir),
                 path.basename(params.mzFile1),
                 params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
