@@ -94,6 +94,63 @@ function showPhylTreeWindow(mainWindow, icon, params) {
     });
 }
 
+/**
+ * Finds the last complete row in the phylogenetic comparison matrix for which
+ * all cache files exist. This allows resuming computation from where it left off
+ * when the application is restarted, avoiding redundant comparisons.
+ * 
+ * @param {Array} mgfFiles - Array of MGF file paths
+ * @param {string} compareDir - Directory containing cache files
+ * @param {Object} params - Comparison parameters used for hashing
+ * @returns {Object} Object containing lastCompleteRow index and array of existing cache files
+ */
+function findLastCompleteRow(mgfFiles, compareDir, params) {
+    const nMgf = mgfFiles.length;
+    let lastCompleteRow = 0;
+    const existingCacheFiles = [];
+
+    // Check each row of the comparison matrix
+    for (let file1Idx = 1; file1Idx < nMgf; file1Idx++) {
+        let rowComplete = true;
+        const rowCacheFiles = [];
+
+        // Check if all cache files exist for this row
+        for (let file2Idx = 0; file2Idx < file1Idx; file2Idx++) {
+            const mgf1 = mgfFiles[file1Idx];
+            const mgf2 = mgfFiles[file2Idx];
+
+            // Order alphabetically for consistent hashing (same as in executeTreeComparison)
+            let orderedMgf1 = mgf1;
+            let orderedMgf2 = mgf2;
+            if (mgf1 > mgf2) {
+                [orderedMgf1, orderedMgf2] = [mgf2, mgf1];
+            }
+
+            const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
+            const { cmpFile } = getHashName(cmdArgs, compareDir);
+
+            if (fs.existsSync(cmpFile)) {
+                rowCacheFiles.push(cmpFile);
+            } else {
+                rowComplete = false;
+                break; // This row is incomplete, no need to check remaining files
+            }
+        }
+
+        if (rowComplete) {
+            lastCompleteRow = file1Idx;
+            existingCacheFiles.push(...rowCacheFiles);
+        } else {
+            break; // Found an incomplete row, stop checking
+        }
+    }
+
+    return {
+        lastCompleteRow,
+        existingCacheFiles
+    };
+}
+
 function runTreeComparison(window, instanceId, params) {
     const state = computationStates.get(instanceId);
 
@@ -114,12 +171,44 @@ function runTreeComparison(window, instanceId, params) {
     fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
     computationStates.set(instanceId, state);
 
-    // Start comparison with parallel processing
-    runParallelTreeComparison(window, instanceId, params);
+    // Check for existing cache files and determine starting point
+    const resumeInfo = findLastCompleteRow(state.mgfFiles, state.compareDir, params);
+    if (resumeInfo.lastCompleteRow > 0) {
+        const totalComparisons = ((state.mgfFiles.length - 1) * (state.mgfFiles.length)) / 2;
+        const cachedComparisons = resumeInfo.existingCacheFiles.length;
+        const percentageCached = Math.round((cachedComparisons / totalComparisons) * 100);
+
+        llog(window, `Found ${cachedComparisons} cached comparison results (${percentageCached}% of total)`);
+        llog(window, `Resuming computation from row ${resumeInfo.lastCompleteRow + 1} of ${state.mgfFiles.length - 1}`);
+
+        // Populate comparison list file with existing cache files
+        for (const cmpFile of resumeInfo.existingCacheFiles) {
+            fs.appendFileSync(state.compResultListFile, cmpFile + "\n");
+        }
+
+        // Generate intermediate tree with existing data if we have a substantial amount cached
+        if (resumeInfo.lastCompleteRow >= 2) {
+            makeTree(window, instanceId, params).then(() => {
+                // Start comparison with parallel processing from the resume point
+                runParallelTreeComparison(window, instanceId, params, resumeInfo.lastCompleteRow + 1);
+            }).catch(() => {
+                // If tree generation fails, start from the beginning
+                llog(window, "Failed to generate tree from cached data, starting fresh computation");
+                runParallelTreeComparison(window, instanceId, params);
+            });
+        } else {
+            // Not enough cached data for meaningful tree, start from resume point
+            runParallelTreeComparison(window, instanceId, params, resumeInfo.lastCompleteRow + 1);
+        }
+    } else {
+        llog(window, "No cached comparison results found, starting fresh computation");
+        // Start comparison with parallel processing from the beginning
+        runParallelTreeComparison(window, instanceId, params);
+    }
     return true;
 }
 
-async function runParallelTreeComparison(window, instanceId, params) {
+async function runParallelTreeComparison(window, instanceId, params, startFromRow = 1) {
     const state = computationStates.get(instanceId);
     const parallelManager = getParallelizationManager();
 
@@ -128,8 +217,11 @@ async function runParallelTreeComparison(window, instanceId, params) {
     const nMgf = state.mgfFiles.length;
     llog(window, `Starting phylogenetic tree computation with ${parallelManager.getTotalSlots()} parallel processes (shared across all windows)`);
 
-    // Process each row of the comparison matrix
-    for (let file1Idx = 1; file1Idx < nMgf; file1Idx++) {
+    if (startFromRow > 1) {
+        const skippedComparisons = ((startFromRow - 1) * startFromRow) / 2;
+        llog(window, `Resuming from row ${startFromRow} (${skippedComparisons} comparisons already cached)`);
+    }    // Process each row of the comparison matrix, starting from the specified row
+    for (let file1Idx = startFromRow; file1Idx < nMgf; file1Idx++) {
         if (state.paused) {
             // Wait for resume
             while (state.paused) {
@@ -153,8 +245,10 @@ async function runParallelTreeComparison(window, instanceId, params) {
             });
         }
 
-        // Update progress
-        const progress = (file1Idx - 1) / (nMgf - 1);
+        // Update progress (account for the starting row)
+        const totalRows = nMgf - 1;
+        const completedRows = (file1Idx - 1);
+        const progress = completedRows / totalRows;
         window.webContents.send('progress-update', progress * 100);
 
         // Execute all comparisons for this row in parallel
