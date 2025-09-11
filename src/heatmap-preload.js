@@ -3,8 +3,6 @@
 
 const { contextBridge, ipcRenderer } = require('electron')
 
-// These are used to communicate with the main process from the Spectra2Species BrowserWindow.
-// E.g. Use window.s2sAPI.stop() to send a 'stop' message to the main process.
 contextBridge.exposeInMainWorld(
     'heatmapAPI',
     {

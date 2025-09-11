@@ -247,7 +247,7 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
 
     return {
         title: {
-            text: 'Spectra2Species Comparison for ' + mzFile1,
+            text: 'spectra2species comparison for ' + mzFile1,
             subtext: subText,
             left: 'center'
         },

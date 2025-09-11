@@ -78,7 +78,7 @@ function readSample2Species(fn, sampleFiles) {
     return sample2Species;
 }
 
-// Function to show the Spectra2Species window
+// Function to show the spectra2species window
 function showS2SWindow(mainWindow, icon, params) {
     let s2sWindow = new BrowserWindow({
         width: 1200,
@@ -285,9 +285,9 @@ async function runS2S(params, window) {
 
     // After all comparisons, send a message to the renderer process to indicate completion
     if (errors > 0) {
-        setActivity(window, `Spectra2Species comparison completed with ${errors} errors. Check the logs for details.`);
+        setActivity(window, `spectra2species comparison completed with ${errors} errors. Check the logs for details.`);
     } else {
-        setActivity(window, 'Spectra2Species comparison completed successfully.');
+        setActivity(window, 'spectra2species comparison completed successfully.');
     }
 }
 
