@@ -260,10 +260,10 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
             });
         }
 
-        // Update progress (account for the starting row)
-        const totalRows = nMgf - 1;
-        const completedRows = (file1Idx - 1);
-        const progress = completedRows / totalRows;
+        // Update progress based on completed file comparisons
+        const totalComparisons = (nMgf * (nMgf - 1)) / 2;
+        const completedComparisons = ((file1Idx - 1) * file1Idx) / 2;
+        const progress = completedComparisons / totalComparisons;
         safeWindowSend(window, 'progress-update', progress * 100);
 
         // Execute all comparisons for this row in parallel
