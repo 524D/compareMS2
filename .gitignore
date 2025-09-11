@@ -1,5 +1,7 @@
 node_modules
 out
+temp
+releases
 src/assets/default.min.css
 src/assets/highlight.min.js
 src/assets/jquery-3.5.1.min.map
