@@ -94,6 +94,14 @@ window.s2sAPI.onSetActivity((message) => {
     }
 });
 
+// Handle progress updates from the main process
+window.s2sAPI.onProgressUpdate((progress) => {
+    const progressBar = document.getElementById('progress');
+    if (progressBar) {
+        progressBar.value = progress;
+    }
+});
+
 function getSelectedScale() {
     const selectElement = document.getElementById("qscale");
     return selectElement.value;

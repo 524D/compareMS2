@@ -122,6 +122,9 @@ async function runS2S(params, window) {
 
     llog(window, `Using ${maxParallel} parallel processes for comparisons (shared across all windows)`);
 
+    // Initialize progress bar
+    safeWindowSend(window, 'progress-update', 0);
+
     var errors = 0; // Count the number of errors
     // Create directory for compare results
     const compareDir = path.join(params.mgfDir, compareDirName);
@@ -160,7 +163,7 @@ async function runS2S(params, window) {
     async function executeComparison(task) {
         const { sampleFile, sampleFileFull } = task;
 
-        setActivity(window, `Comparing ${path.basename(sampleFileFull)} (${completedTasks + 1}/${totalTasks})`);
+        setActivity(window, `Comparing ${path.basename(sampleFileFull)}`);
 
         // Convert parameters to command line arguments for the comparems2 executable
         const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
@@ -264,6 +267,10 @@ async function runS2S(params, window) {
             errors++;
         }
         completedTasks++;
+
+        // Update progress bar
+        const progress = (completedTasks / totalTasks) * 100;
+        safeWindowSend(window, 'progress-update', progress);
     }
 
     // Execute all comparisons in parallel using Promise.all
@@ -278,12 +285,19 @@ async function runS2S(params, window) {
                 elog(window, 'Comparison task failed:', error);
                 errors++;
                 completedTasks++;
+
+                // Update progress bar even for errors
+                const progress = (completedTasks / totalTasks) * 100;
+                safeWindowSend(window, 'progress-update', progress);
+
                 return { success: false, error, sampleFile: task.sampleFile };
             }
         })
     );
 
     // After all comparisons, send a message to the renderer process to indicate completion
+    safeWindowSend(window, 'progress-update', 100);
+
     if (errors > 0) {
         setActivity(window, `spectra2species comparison completed with ${errors} errors. Check the logs for details.`);
     } else {
