@@ -467,6 +467,18 @@ app.on('activate', () => {
 });
 
 function getSampleDirFiles(dir) {
+    // Read the directory contents
+    if (!fs.existsSync(dir)) {
+        // Directory does not exist, set files to empty array
+        fileParams.sampleDir = {
+            dir: dir,
+            files: [],
+            mgfFiles: [],
+            mgfFilesFull: [],
+            mgfFilesShort: [],
+        };
+        return;
+    }
     const filesAndDirs = fs.readdirSync(dir);
     const files = filesAndDirs.filter(file => {
         const filePath = path.join(dir, file);
