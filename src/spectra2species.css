@@ -79,6 +79,10 @@
     flex: 0 1 auto;
 }
 
+#progress {
+    width: 100%;
+}
+
 .info-activity {
     font-weight: bolder;
     overflow: hidden;
