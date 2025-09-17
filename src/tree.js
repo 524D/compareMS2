@@ -260,11 +260,6 @@
             }
         });
 
-        document.getElementById("pause").addEventListener("click", function (e) {
-            alert("Paused");
-            window.treeAPI.pauseComputation();
-        });
-
         document.getElementById("qscale").addEventListener("change", function (e) {
             getColorScale();
             rendered_tree.update(true);
