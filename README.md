@@ -1,5 +1,5 @@
 [![Latest release](https://img.shields.io/github/release/524D/compareMS2.svg)](https://github.com/524D/compareMS2/releases/latest) [![GitHub](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/524D/compareMS2)
-[![GitHub](https://img.shields.io/github/license/524D/compareMS2)](https://github.com/524D/compareMS2/blob/main/LICENSE.txt) [![RSD](https://img.shields.io/badge/rsd-compareMS2-00a3e3.svg)](https://research-software.nl/software/comparems2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14990300.svg)](https://doi.org/10.5281/zenodo.14990300) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10480/badge)](https://www.bestpractices.dev/projects/10480) [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu)[![bio.tools](https://img.shields.io/badge/bio.tools-compareMS2-005472)](https://bio.tools/compareMS2)
+[![GitHub](https://img.shields.io/github/license/524D/compareMS2)](https://github.com/524D/compareMS2/blob/main/LICENSE.txt) [![RSD](https://img.shields.io/badge/rsd-compareMS2-00a3e3.svg)](https://research-software.nl/software/comparems2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14990300.svg)](https://doi.org/10.5281/zenodo.14990300) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10480/badge)](https://www.bestpractices.dev/projects/10480) [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu) [![bio.tools](https://img.shields.io/badge/bio.tools-compareMS2-005472)](https://bio.tools/compareMS2)
 
 
 # compareMS2
@@ -122,7 +122,58 @@ For example, the resulting Windows installer can than be found (relative to the 
 
 ## 3. Using compareMS2
 
-compareMS2 can be used both from the command-line interface (CLI) and through the compareMS2 GUI. Every compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
+compareMS2 can be used both from the command-line interface (CLI) and through the compareMS2 Graphical User Interface (GUI). This section describes the use of the GUI.
+
+From the GUI, 3 different visualizations can be produced from MS2 data.
+
+1) Phylogenetic tree: A set of MS2 data files are compared, and the distances between them are combined into a phylogenetic tree.
+2) spectra2species: One MS2 data file is compared to a set of other files. The distance is represented as a bar graph, and is an indication of how close the respective samples are.
+3) Heatmap: An MS2 data file is compared to itself or to another. The distribution of the inner products of the spectra is represented in a heatmap. This gives an overview of many properties of the MS2 spectra, such as charge stated, mass accuracy, and similarity (in case two different files are compared).
+
+### 3.1. Main screen
+
+The visualization and input data are selected on the main screen
+
+![compareMS2 main screen](./pictures/main-screen.png)
+
+In "settings" tab, instrument specific settings, output format and related items can be set.
+
+![compareMS2 main screen](./pictures/settings-tab.png)
+
+#### 3.1.1. Sample to species file
+
+One setting that deserves special attention is the "Sample to species file". This file
+maps file names to species names. If this file is present, the GUI will display the
+name of the species instead of the name of the sample file. Furthermore, it allows multiple
+sample files for the same species. In the comparisons, the results of all samples files for the same species are then averaged.
+
+The content of the "Sample to species file" must a plain text file. Each line should contain a filename
+and a species name, separated by a TAB character. If the directory with samples contains
+a file with the exact name "spectra_to_species.txt", that file is automatically selected.
+CompareMS also works without "spectra_to_species.txt file". Also, not all species or files that are listed have to be present in the data set.
+
+### 3.2. Phylogenetic tree
+
+Selecting "phylogenetic tree" and pressing "start" results in a phylogenetic tree being generated.
+
+![compareMS2 main screen](./pictures/phylotree.png)
+
+The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix.
+
+#### 3.2.1. Details
+
+
+### spectra2species
+
+Selecting "phylogenetic tree" and pressing "start" results in a spectra2species bar chart being generated.
+
+### Heatmap
+
+Selecting "phylogenetic tree" and pressing "start" results in a heatmap being generated.
+
+
+
+ Every compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
 
 ![compareMS2 on primate datasets](./pictures/primates_circular.png)  
 Figure 1. Phylogenetic tree based on sample primate [sera datasets](https://osf.io/sg796/) of 1,000 tandem mass spectra, as displayed during a compareMS2 run. This is a good test dataset for compareMS2.
