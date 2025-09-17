@@ -17,24 +17,38 @@ ORIG_DIR=$(pwd)
 # Get the latest version from GitHub, and put it in a separate directory
 # Create temp dir with unique name
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-TEMP_DIR="$(pwd)/temp/build_dir_$TIMESTAMP"
+TEMP_DIR=$(mktemp -d -t "compareMS2_build_${TIMESTAMP}_XXXXXX")
 
-echo "Cloning repository to temporary directory: $TEMP_DIR"
-# Remove temp dir if it exists, then create it
-rm -rf "${TEMP_DIR}"
-mkdir -p "${TEMP_DIR}"
-cd "${TEMP_DIR}" || exit 1
-git clone "https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}.git" .
+# Ask the user to clone from GitHub or use the local directory
+echo "This script will build the Electron application for distribution."
+echo "You can choose to clone the latest version from GitHub, or use the current local directory."
+read -r -p "Do you want to clone the latest version from GitHub? (y/n) " response
+if [[ "$response" == "y" || "$response" == "Y" ]]; then
+    echo "Cloning repository from GitHub to temporary directory: $TEMP_DIR"
+    # Remove temp dir if it exists, then create it
+    rm -rf "${TEMP_DIR}"
+    mkdir -p "${TEMP_DIR}"
+    cd "${TEMP_DIR}" || exit 1
+    git clone "https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}.git" .
 
-# Get a list of Git branches, and ask the user to select one
-# Uncomment the following lines if you want to select a branch
-echo "Available branches:"
-git branch -r | grep -v '\->' | sed 's/  origin\///' | nl
-read -r -p "Enter the number of the branch you want to build (default is 1): " branch_number
-branch_number=${branch_number:-1}
-selected_branch=$(git branch -r | grep -v '\->' | sed 's/  origin\///' | sed -n "${branch_number}p")
-echo "Checking out branch: $selected_branch"
-git checkout "$selected_branch" || exit 1
+    # Get a list of Git branches, and ask the user to select one
+    # Uncomment the following lines if you want to select a branch
+    echo "Available branches:"
+    git branch -r | grep -v '\->' | sed 's/  origin\///' | nl
+    read -r -p "Enter the number of the branch you want to build (default is 1): " branch_number
+    branch_number=${branch_number:-1}
+    selected_branch=$(git branch -r | grep -v '\->' | sed 's/  origin\///' | sed -n "${branch_number}p")
+    echo "Checking out branch: $selected_branch"
+    git checkout "$selected_branch" || exit 1
+else
+    echo "Using local directory..."
+    # Copy the current directory to the temp dir
+    echo "Copying current directory to temporary directory: $TEMP_DIR"
+    rm -rf "${TEMP_DIR}"
+    mkdir -p "${TEMP_DIR}"
+    cp -r ./* "${TEMP_DIR}"
+    cd "${TEMP_DIR}" || exit 1
+fi
 
 sed -i.bak "s/build-unknown/build-$TIMESTAMP/" package.json
 rm package.json.bak
