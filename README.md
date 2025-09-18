@@ -195,6 +195,10 @@ The developers wish to thank Dr. Michael Dondrup at the University of Bergen for
 
 compareMS2 and related applications have been described or used in a number of papers:
 
+Shotgun Proteomics Protocol for Insects, Varunjikar MS, Belghit I, Oveland E, Palmblad M and Rasinger JD, *Methods Mol. Biol.* **2884**:81-98, 2025, [doi.org/10.1007/978-1-0716-4298-6_7](https://doi.org/10.1007/978-1-0716-4298-6_7)
+
+Fish species authentication in commercial fish products using mass spectrometry and spectral library matching approach, Varunjikar MS, Pineda-Pampliega J, Belghit I, Palmblad M, Einar Grøsvik B, Meier S, Asgeir Olsvik P, Lie KK and Rasinger JD, *Food Res. Int.* **192**:114785, 2024, [doi.org/10.1016/j.foodres.2024.114785](https://doi.org/10.1016/j.foodres.2024.114785)
+
 compareMS2 2.0: An Improved Software for Comparing Tandem Mass Spectrometry Datasets, Marissen M, Varunjikar MS, Laros JFJ, Rasinger JD, Neely BA and Palmblad M, *J. Proteome Res.*  **22(2)**:514–519, 2023, [doi.org/10.1021/acs.jproteome.2c00457](https://doi.org/10.1021/acs.jproteome.2c00457)
 
 Shotgun proteomics approaches for authentication, biological analyses, and allergen detection in feed and food-grade insect species, Varunjikar MS, Belghit I, Gjerde J, Palmblad M, Oveland E and Rasinger JD, *Food Control* **131**, 2022, [doi.org/10.1016/j.foodcont.2022.108888](https://doi.org/10.1016/j.foodcont.2022.108888)
