@@ -7,10 +7,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('treeAPI', {
 
-    // Pause/resume computation
-    pauseComputation: () => ipcRenderer.send('tree-pause-computation'),
-    resumeComputation: () => ipcRenderer.send('tree-resume-computation'),
-
     // Toggle fullscreen
     toggleFullscreen: () => ipcRenderer.send('tree-toggle-fullscreen'),
 
