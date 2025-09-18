@@ -47,6 +47,10 @@ else
     rm -rf "${TEMP_DIR}"
     mkdir -p "${TEMP_DIR}"
     cp -r ./* "${TEMP_DIR}"
+    rm -rf "${TEMP_DIR}/.git"  # Remove .git directory if it exists
+    rm -rf "${TEMP_DIR}/releases"  # Remove releases directory if it exists
+    rm -rf "${TEMP_DIR}/node_modules"  # Remove node_modules directory if it exists
+    rm -rf "${TEMP_DIR}/out"  # Remove out directory if it exists
     cd "${TEMP_DIR}" || exit 1
 fi
 
@@ -91,11 +95,6 @@ mkdir -p releases
 mv "${TEMP_DIR}/${INSTALLER_DIR}/${INSTALLER_NAME}" "releases/${INSTALLER_NAME}"
 echo "Installer is located at directory releases/${INSTALLER_NAME}"
 
-# Ask if the user wants to delete the temporary build directory
-read -r -p "Do you want to delete the temporary build directory $TEMP_DIR? (y/n) " response
-if [[ "$response" == "y" || "$response" == "Y" ]]; then
-    rm -rf "${TEMP_DIR}"
-    echo "Temporary build directory deleted."
-else
-    echo "Temporary build directory retained at $TEMP_DIR."
-fi
+# Delete the temporary build directory
+rm -rf "${TEMP_DIR}"
+echo "Temporary build directory deleted."
