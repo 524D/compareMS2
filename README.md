@@ -20,8 +20,9 @@ compareMS2 calculates the global similarity between tandem mass spectrometry dat
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Molecular phylogenetics](#34-Molecular-phylogenetics)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Data quality control](#35-Data-quality-control)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Experimental features](#36-Experimental-features)  
-[4. Acknowledgements ](#4-Acknowledgements)  
-[5. Further reading](#5-Further-reading)  
+[4. compareMS2_tutorial](#4-compareMS2-tutorial)  
+[5. Acknowledgements ](#5-Acknowledgements)  
+[6. Further reading](#6-Further-reading)  
 
 ## 1. Introduction
 
@@ -182,11 +183,15 @@ Starting in version 2.0, we have begun to include experimental features in compa
 ![Experimental feature](./pictures/experimental_features.png)  
 Figure 2. Similarity (spectral angle from 0 to 1) of tandem mass spectra plotted against precursor *m*/*z* difference, revealing isotope errors up to at least 2 (corresponding to bands at *m*/*z* difference 2/3 and 2/5) and charge states up to 6 (corresponding to the band at *m*/*z* difference 1/6).
 
-## 4. Acknowledgements
+## 4. compareMS2 tutorial
+
+A compareMS2 workshop was held at the [EuBIC Winter School in Winterberg, Germany, January 15-19 2024](https://eubic-ms.org/events/2024-winter-school/). Some of the slides from this workshops can be found [here](https://osf.io/8qjwz), along with a tutorial [here](https://osf.io/e5j7q). All data for the tutorial are also available on [OSF](https://osf.io/sjtrm/).
+
+## 5. Acknowledgements
 
 The developers wish to thank Dr. Michael Dondrup at the University of Bergen for providing changes and additions to make compareMS2 work under macOS. All users and beta testers are also acknowledged for their valuable feedback that helped to improve compareMS2.
 
-## 5. Further reading
+## 6. Further reading
 
 compareMS2 and related applications have been described or used in a number of papers:
 
