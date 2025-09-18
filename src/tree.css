@@ -18,19 +18,21 @@
 .tvert-main {
     flex: 1 1 auto;
     width: 100%;
-    height: 100%;
+    min-height: 0;  /* flexbox fix to prevent overflow */
 }
 
 .tvert-activity  {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     width: 100%;
+    min-height: 30px;
     background-color: lightgrey;
     border-top: 1px solid rgb(0, 0, 0);
 }
 
 .tvert-details {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     width: 100%;
+    min-height: 0;  /* flexbox fix to prevent overflow */
     background-color: lightgrey;
     border-top: 1px solid rgb(128, 128, 128);
     visibility: hidden;
@@ -40,6 +42,7 @@
     display: flex;
     flex-direction: row;
     height: 100%;
+    min-height: 0;  /* flexbox fix to prevent overflow */
 }
 
 #main-chart {
