@@ -20,7 +20,7 @@ compareMS2 calculates the global similarity between tandem mass spectrometry dat
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Molecular phylogenetics](#34-Molecular-phylogenetics)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Data quality control](#35-Data-quality-control)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Experimental features](#36-Experimental-features)  
-[4. compareMS2_tutorial](#4-compareMS2-tutorial)  
+[4. compareMS2 tutorial](#4-compareMS2-tutorial)  
 [5. Acknowledgements ](#5-Acknowledgements)  
 [6. Further reading](#6-Further-reading)  
 
