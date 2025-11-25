@@ -15,9 +15,9 @@
 #define MAX_PATH ((MAX_LINE) - 20) // Maximum length of path names
 #define MAX_SAMPLE_NAME 256
 #define MAX_SHORT_SAMPLE_NAME 256
-#define MAX_SAMPLES 120
-#define MAX_SPECIES 120
-#define MAX_COMP_BETWEEN_SPECIES 120
+#define MAX_SAMPLES 4096
+#define MAX_SPECIES 4096
+#define MAX_COMP_BETWEEN_SPECIES 4096
 
 typedef struct {
 	char** sample_names; // Array of sample names
