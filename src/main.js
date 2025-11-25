@@ -38,6 +38,7 @@ const defaultOptions = {
     outNexus: false,
     outNewick: false,
     outMega: true,
+    outMega12: false,
     impMissing: false,
     compareOrder: "smallest-largest",
     keepSettings: true,

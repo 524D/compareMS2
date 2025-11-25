@@ -58,6 +58,7 @@ function setOptions(options) {
     document.getElementById("outnexus").checked = options.outNexus;
     document.getElementById("outnewick").checked = options.outNewick;
     document.getElementById("outmega").checked = options.outMega;
+    document.getElementById("outmega12").checked = options.outMega12;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
     document.getElementById("keepsetting").checked = options.keepSettings;
@@ -108,6 +109,7 @@ function getOptions() {
         outNexus: document.getElementById("outnexus").checked,
         outNewick: document.getElementById("outnewick").checked,
         outMega: document.getElementById("outmega").checked,
+        outMega12: document.getElementById("outmega12").checked,
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
         keepSettings: document.getElementById("keepsetting").checked,

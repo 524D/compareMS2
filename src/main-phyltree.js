@@ -526,12 +526,6 @@ function parseDistanceMatrixLine(line, distanceParse) {
 function finishComputation(window, instanceId, params) {
     const state = computationStates.get(instanceId);
 
-    // Ensure progress bar shows 100% completion
-    safeWindowSend(window, 'progress-update', 100);
-
-    setActivity(window, 'Finished');
-    safeWindowSend(window, 'tree-computation-finished');
-
     // Move final files
     const tmpResultFn = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.meg`;
     const resultFn = path.join(params.mgfDir, params.outBasename + '_distance_matrix.meg');
@@ -549,6 +543,116 @@ function finishComputation(window, instanceId, params) {
         const newickFn = path.join(params.mgfDir, params.outBasename) + ".nwk";
         fs.writeFileSync(newickFn, state.newick + ";");
     }
+
+    if (params.outMega12) {
+        generateMega12Output(window, instanceId, params, state);
+    }
+
+    if (params.outNexus) {
+        generateNexusOutput(window, instanceId, params, state);
+    }
+
+    // Ensure progress bar shows 100% completion
+    safeWindowSend(window, 'progress-update', 100);
+
+    setActivity(window, 'Finished');
+    safeWindowSend(window, 'tree-computation-finished');
+}
+
+function generateMega12Output(window, instanceId, params, state) {
+    const compToDistExe = generalParams.compToDistExe;
+
+    setActivity(window, 'Generating MEGA12 output');
+
+    const dfArg = path.join(params.mgfDir, params.outBasename);
+    const cmdArgs = [
+        '-i', state.compResultListFile,
+        '-o', dfArg,
+        '-c', params.cutoff,
+        '-m2'
+    ];
+    if (fs.existsSync(params.s2sFile)) {
+        cmdArgs.push('-x', params.s2sFile);
+    }
+
+    llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
+
+    const c2d = spawn(compToDistExe, cmdArgs);
+
+    // Track this process
+    addActiveProcess(instanceId, c2d);
+
+    c2d.stdout.on('data', (data) => {
+        llog(window, data.toString());
+    });
+    c2d.stderr.on('data', (data) => {
+        elog(window, data.toString());
+    });
+    c2d.on('close', (code) => {
+        // Remove from tracking
+        removeActiveProcess(instanceId, c2d);
+
+        if (code === 0) {
+            llog(window, 'MEGA12 output generated successfully');
+            setActivity(window, 'Finished');
+        } else {
+            elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+            setActivity(window, 'Error creating MEGA12 output');
+        }
+    });
+    c2d.on('error', (error) => {
+        // Remove from tracking
+        removeActiveProcess(instanceId, c2d);
+        elog(window, `Error running ${compToDistExe} for MEGA12 output: ${error.message}`);
+    });
+}
+
+function generateNexusOutput(window, instanceId, params, state) {
+    const compToDistExe = generalParams.compToDistExe;
+
+    setActivity(window, 'Generating NEXUS output');
+
+    const dfArg = path.join(params.mgfDir, params.outBasename);
+    const cmdArgs = [
+        '-i', state.compResultListFile,
+        '-o', dfArg,
+        '-c', params.cutoff,
+        '-n'
+    ];
+    if (fs.existsSync(params.s2sFile)) {
+        cmdArgs.push('-x', params.s2sFile);
+    }
+
+    llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
+
+    const c2d = spawn(compToDistExe, cmdArgs);
+
+    // Track this process
+    addActiveProcess(instanceId, c2d);
+
+    c2d.stdout.on('data', (data) => {
+        llog(window, data.toString());
+    });
+    c2d.stderr.on('data', (data) => {
+        elog(window, data.toString());
+    });
+    c2d.on('close', (code) => {
+        // Remove from tracking
+        removeActiveProcess(instanceId, c2d);
+
+        if (code === 0) {
+            llog(window, 'NEXUS output generated successfully');
+            setActivity(window, 'Finished');
+        } else {
+            elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+            setActivity(window, 'Error creating NEXUS output');
+        }
+    });
+    c2d.on('error', (error) => {
+        // Remove from tracking
+        removeActiveProcess(instanceId, c2d);
+        elog(window, `Error running ${compToDistExe} for NEXUS output: ${error.message}`);
+    });
 }
 
 function pauseComputation(instanceId) {
