@@ -290,7 +290,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
     }
 
     // Computation finished
-    finishComputation(window, instanceId, params);
+    await finishComputation(window, instanceId, params);
 }
 
 async function executeTreeComparison(task, window, instanceId, params) {
@@ -523,8 +523,24 @@ function parseDistanceMatrixLine(line, distanceParse) {
     }
 }
 
-function finishComputation(window, instanceId, params) {
+async function finishComputation(window, instanceId, params) {
     const state = computationStates.get(instanceId);
+
+    // Generate other output file formats as requested
+    const outputPromises = [];
+
+    if (params.outMega12) {
+        outputPromises.push(generateMega12Output(window, instanceId, params, state));
+    }
+
+    if (params.outNexus) {
+        outputPromises.push(generateNexusOutput(window, instanceId, params, state));
+    }
+
+    // Wait for all output generation to complete
+    if (outputPromises.length > 0) {
+        await Promise.all(outputPromises);
+    }
 
     // Move final files
     const tmpResultFn = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.meg`;
@@ -542,14 +558,6 @@ function finishComputation(window, instanceId, params) {
     if (params.outNewick) {
         const newickFn = path.join(params.mgfDir, params.outBasename) + ".nwk";
         fs.writeFileSync(newickFn, state.newick + ";");
-    }
-
-    if (params.outMega12) {
-        generateMega12Output(window, instanceId, params, state);
-    }
-
-    if (params.outNexus) {
-        generateNexusOutput(window, instanceId, params, state);
     }
 
     // Ensure progress bar shows 100% completion
@@ -577,33 +585,36 @@ function generateMega12Output(window, instanceId, params, state) {
 
     llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
 
-    const c2d = spawn(compToDistExe, cmdArgs);
+    return new Promise((resolve, reject) => {
+        const c2d = spawn(compToDistExe, cmdArgs);
 
-    // Track this process
-    addActiveProcess(instanceId, c2d);
+        // Track this process
+        addActiveProcess(instanceId, c2d);
 
-    c2d.stdout.on('data', (data) => {
-        llog(window, data.toString());
-    });
-    c2d.stderr.on('data', (data) => {
-        elog(window, data.toString());
-    });
-    c2d.on('close', (code) => {
-        // Remove from tracking
-        removeActiveProcess(instanceId, c2d);
+        c2d.stdout.on('data', (data) => {
+            llog(window, data.toString());
+        });
+        c2d.stderr.on('data', (data) => {
+            elog(window, data.toString());
+        });
+        c2d.on('close', (code) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
 
-        if (code === 0) {
-            llog(window, 'MEGA12 output generated successfully');
-            setActivity(window, 'Finished');
-        } else {
-            elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-            setActivity(window, 'Error creating MEGA12 output');
-        }
-    });
-    c2d.on('error', (error) => {
-        // Remove from tracking
-        removeActiveProcess(instanceId, c2d);
-        elog(window, `Error running ${compToDistExe} for MEGA12 output: ${error.message}`);
+            if (code === 0) {
+                llog(window, 'MEGA12 output generated successfully');
+                resolve();
+            } else {
+                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+                reject(new Error(`MEGA12 output generation failed with code ${code}`));
+            }
+        });
+        c2d.on('error', (error) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
+            elog(window, `Error running ${compToDistExe} for MEGA12 output: ${error.message}`);
+            reject(error);
+        });
     });
 }
 
@@ -625,33 +636,36 @@ function generateNexusOutput(window, instanceId, params, state) {
 
     llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
 
-    const c2d = spawn(compToDistExe, cmdArgs);
+    return new Promise((resolve, reject) => {
+        const c2d = spawn(compToDistExe, cmdArgs);
 
-    // Track this process
-    addActiveProcess(instanceId, c2d);
+        // Track this process
+        addActiveProcess(instanceId, c2d);
 
-    c2d.stdout.on('data', (data) => {
-        llog(window, data.toString());
-    });
-    c2d.stderr.on('data', (data) => {
-        elog(window, data.toString());
-    });
-    c2d.on('close', (code) => {
-        // Remove from tracking
-        removeActiveProcess(instanceId, c2d);
+        c2d.stdout.on('data', (data) => {
+            llog(window, data.toString());
+        });
+        c2d.stderr.on('data', (data) => {
+            elog(window, data.toString());
+        });
+        c2d.on('close', (code) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
 
-        if (code === 0) {
-            llog(window, 'NEXUS output generated successfully');
-            setActivity(window, 'Finished');
-        } else {
-            elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-            setActivity(window, 'Error creating NEXUS output');
-        }
-    });
-    c2d.on('error', (error) => {
-        // Remove from tracking
-        removeActiveProcess(instanceId, c2d);
-        elog(window, `Error running ${compToDistExe} for NEXUS output: ${error.message}`);
+            if (code === 0) {
+                llog(window, 'NEXUS output generated successfully');
+                resolve();
+            } else {
+                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+                reject(new Error(`NEXUS output generation failed with code ${code}`));
+            }
+        });
+        c2d.on('error', (error) => {
+            // Remove from tracking
+            removeActiveProcess(instanceId, c2d);
+            elog(window, `Error running ${compToDistExe} for NEXUS output: ${error.message}`);
+            reject(error);
+        });
     });
 }
 
