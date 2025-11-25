@@ -385,68 +385,23 @@ async function makeTree(window, instanceId, params) {
         throw new Error('Window closed or invalid state');
     }
 
-    const compToDistExe = generalParams.compToDistExe;
+    const outputBasename = params.outBasename + `-${instanceId}`;
 
-    setActivity(window, 'Creating tree');
-
-    const dfArg = path.join(params.mgfDir, params.outBasename) + `-${instanceId}`;
-    const df = dfArg + "_distance_matrix.meg";
-
-    const cmdArgs = [
-        '-i', state.compResultListFile,
-        '-o', dfArg,
-        '-c', params.cutoff,
-        '-m'
-    ];
-    if (fs.existsSync(params.s2sFile)) {
-        cmdArgs.push('-x', params.s2sFile);
-    }
-
-    llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
-
-    return new Promise((resolve, reject) => {
-        // Check if window is still valid before starting process
-        if (!isWindowValid(window, instanceId)) {
-            reject(new Error('Window closed'));
-            return;
+    return runCompToDistExe(
+        window,
+        instanceId,
+        params,
+        state,
+        '-m',
+        outputBasename,
+        'Creating tree',
+        'Distance matrix created successfully',
+        'creating distance matrix',
+        (window, instanceId, params, dfArg) => {
+            const df = dfArg + "_distance_matrix.meg";
+            parseDistanceMatrix(window, instanceId, params, df);
         }
-
-        const c2d = spawn(compToDistExe, cmdArgs);
-
-        // Track this process
-        addActiveProcess(instanceId, c2d);
-
-        c2d.stdout.on('data', (data) => {
-            llog(window, data.toString());
-        });
-        c2d.stderr.on('data', (data) => {
-            elog(window, data.toString());
-        });
-        c2d.on('close', (code) => {
-            // Remove from tracking
-            removeActiveProcess(instanceId, c2d);
-
-            if (!isWindowValid(window, instanceId)) {
-                reject(new Error('Window closed'));
-                return;
-            }
-
-            if (code === 0) {
-                parseDistanceMatrix(window, instanceId, params, df);
-                resolve();
-            } else {
-                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-                setActivity(window, 'Error creating distance matrix');
-                reject(new Error(`Distance matrix creation failed with code ${code}`));
-            }
-        });
-        c2d.on('error', (error) => {
-            // Remove from tracking
-            removeActiveProcess(instanceId, c2d);
-            elog(window, `Error running ${compToDistExe}: ${error.message}`);
-            reject(error);
-        });
-    });
+    );
 }
 
 function parseDistanceMatrix(window, instanceId, params, df) {
@@ -567,17 +522,31 @@ async function finishComputation(window, instanceId, params) {
     safeWindowSend(window, 'tree-computation-finished');
 }
 
-function generateMega12Output(window, instanceId, params, state) {
+/**
+ * Generic function to run compareMS2_to_distance_matrices with specified format option
+ * @param {BrowserWindow} window - The window to send updates to
+ * @param {number} instanceId - The instance ID for tracking
+ * @param {Object} params - Comparison parameters
+ * @param {Object} state - Computation state
+ * @param {string} formatFlag - Format flag ('-m', '-m2', '-n')
+ * @param {string} outputBasename - Output file basename (can include instanceId suffix)
+ * @param {string} activityMsg - Activity message to display
+ * @param {string} successMsg - Success log message
+ * @param {string} errorContext - Error context description
+ * @param {Function} onSuccess - Optional callback function called on success with (window, instanceId, params, outputFile)
+ * @returns {Promise} Promise that resolves when the process completes
+ */
+function runCompToDistExe(window, instanceId, params, state, formatFlag, outputBasename, activityMsg, successMsg, errorContext, onSuccess = null) {
     const compToDistExe = generalParams.compToDistExe;
 
-    setActivity(window, 'Generating MEGA12 output');
+    setActivity(window, activityMsg);
 
-    const dfArg = path.join(params.mgfDir, params.outBasename);
+    const dfArg = path.join(params.mgfDir, outputBasename);
     const cmdArgs = [
         '-i', state.compResultListFile,
         '-o', dfArg,
         '-c', params.cutoff,
-        '-m2'
+        formatFlag
     ];
     if (fs.existsSync(params.s2sFile)) {
         cmdArgs.push('-x', params.s2sFile);
@@ -586,6 +555,12 @@ function generateMega12Output(window, instanceId, params, state) {
     llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
 
     return new Promise((resolve, reject) => {
+        // Check if window is still valid before starting process
+        if (onSuccess && !isWindowValid(window, instanceId)) {
+            reject(new Error('Window closed'));
+            return;
+        }
+
         const c2d = spawn(compToDistExe, cmdArgs);
 
         // Track this process
@@ -601,72 +576,61 @@ function generateMega12Output(window, instanceId, params, state) {
             // Remove from tracking
             removeActiveProcess(instanceId, c2d);
 
+            // Check if window is still valid after process completes (for makeTree callback)
+            if (onSuccess && !isWindowValid(window, instanceId)) {
+                reject(new Error('Window closed'));
+                return;
+            }
+
             if (code === 0) {
-                llog(window, 'MEGA12 output generated successfully');
+                llog(window, successMsg);
+                if (onSuccess) {
+                    onSuccess(window, instanceId, params, dfArg);
+                }
                 resolve();
             } else {
                 elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-                reject(new Error(`MEGA12 output generation failed with code ${code}`));
+                if (onSuccess) {
+                    setActivity(window, `Error ${errorContext}`);
+                }
+                reject(new Error(`${errorContext} failed with code ${code}`));
             }
         });
         c2d.on('error', (error) => {
             // Remove from tracking
             removeActiveProcess(instanceId, c2d);
-            elog(window, `Error running ${compToDistExe} for MEGA12 output: ${error.message}`);
+            elog(window, `Error running ${compToDistExe} for ${errorContext}: ${error.message}`);
             reject(error);
         });
     });
 }
 
+function generateMega12Output(window, instanceId, params, state) {
+    return runCompToDistExe(
+        window,
+        instanceId,
+        params,
+        state,
+        '-m2',
+        params.outBasename,
+        'Generating MEGA12 output',
+        'MEGA12 output generated successfully',
+        'MEGA12 output generation'
+    );
+}
+
 function generateNexusOutput(window, instanceId, params, state) {
-    const compToDistExe = generalParams.compToDistExe;
-
-    setActivity(window, 'Generating NEXUS output');
-
-    const dfArg = path.join(params.mgfDir, params.outBasename);
-    const cmdArgs = [
-        '-i', state.compResultListFile,
-        '-o', dfArg,
-        '-c', params.cutoff,
-        '-n'
-    ];
-    if (fs.existsSync(params.s2sFile)) {
-        cmdArgs.push('-x', params.s2sFile);
-    }
-
-    llog(window, `Running ${compToDistExe} with args: ${cmdArgs.join(' ')}`);
-
-    return new Promise((resolve, reject) => {
-        const c2d = spawn(compToDistExe, cmdArgs);
-
-        // Track this process
-        addActiveProcess(instanceId, c2d);
-
-        c2d.stdout.on('data', (data) => {
-            llog(window, data.toString());
-        });
-        c2d.stderr.on('data', (data) => {
-            elog(window, data.toString());
-        });
-        c2d.on('close', (code) => {
-            // Remove from tracking
-            removeActiveProcess(instanceId, c2d);
-
-            if (code === 0) {
-                llog(window, 'NEXUS output generated successfully');
-                resolve();
-            } else {
-                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
-                reject(new Error(`NEXUS output generation failed with code ${code}`));
-            }
-        });
-        c2d.on('error', (error) => {
-            // Remove from tracking
-            removeActiveProcess(instanceId, c2d);
-            elog(window, `Error running ${compToDistExe} for NEXUS output: ${error.message}`);
-            reject(error);
-        });
-    });
+    return runCompToDistExe(
+        window,
+        instanceId,
+        params,
+        state,
+        '-n',
+        params.outBasename,
+        'Generating NEXUS output',
+        'NEXUS output generated successfully',
+        'NEXUS output generation'
+    );
 }
 
 function pauseComputation(instanceId) {
