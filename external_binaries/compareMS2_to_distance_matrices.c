@@ -226,7 +226,7 @@ static int get_n_species(species_t* species)
 	int n_species = 0;
 
 	for (i = 0; i < species->nr_species; i++) {
-		if (species->s2s->species_used != 0) {
+		if (species->s2s[i].species_used != 0) {
 			n_species++;
 		}
 	}
@@ -248,7 +248,7 @@ static int create_nexus(char* output_filename_stem, double* distance, species_t*
 	FILE* output_file;
 	long n_species = get_n_species(species);
 
-	printf("writing distance matrix in NEXUS format...");
+	printf("writing distance matrix in NEXUS format...\n");
 
 	strcpy(output_filename, output_filename_stem);
 	strcat(output_filename, "_distance_matrix.nexus");
@@ -370,6 +370,131 @@ static int create_mega(char* output_filename_stem, double* distance, species_t* 
 	return 0;
 }
 
+// Helper function to write JSON-escaped string to file
+// Escapes: " \ / \b \f \n \r \t and control characters
+static void write_json_string(FILE* file, const char* str)
+{
+	const char* p = str;
+	while (*p) {
+		switch (*p) {
+		case '"':
+			fprintf(file, "\\\"");
+			break;
+		case '\\':
+			fprintf(file, "\\\\");
+			break;
+		case '/':
+			fprintf(file, "\\/");
+			break;
+		case '\b':
+			fprintf(file, "\\b");
+			break;
+		case '\f':
+			fprintf(file, "\\f");
+			break;
+		case '\n':
+			fprintf(file, "\\n");
+			break;
+		case '\r':
+			fprintf(file, "\\r");
+			break;
+		case '\t':
+			fprintf(file, "\\t");
+			break;
+		default:
+			if ((unsigned char)*p < 0x20) {
+				// Control characters
+				fprintf(file, "\\u%04x", (unsigned char)*p);
+			} else {
+				fputc(*p, file);
+			}
+			break;
+		}
+		p++;
+	}
+}
+
+static int create_json(char* output_filename_stem, double* distance, species_t* species,
+	double cutoff, double* qc_value, int* qc_samples)
+{
+	long i, x, y;
+	char output_filename[MAX_PATH];
+	FILE* output_file;
+	int first_species, first_distance;
+
+	printf("writing distance matrix in JSON format...\n");
+
+	/* output distance matrix file in JSON format */
+	strcpy(output_filename, output_filename_stem);
+	strcat(output_filename, "_distance_matrix.json");
+	if ((output_file = fopen(output_filename, "w")) == NULL) {
+		printf("error opening output file %s for writing", output_filename);
+		return -1;
+	}
+
+	fprintf(output_file, "{\n");
+	fprintf(output_file, "  \"distanceMatrix\": {\n");
+	fprintf(output_file, "    \"title\": \"");
+	write_json_string(output_file, output_filename_stem);
+	fprintf(output_file, "\",\n");
+	fprintf(output_file, "    \"cutoff\": %.4f,\n", cutoff);
+
+	// Output species and QC values
+	fprintf(output_file, "    \"species\": [\n");
+	first_species = 1;
+	for (i = 0; i < species->nr_species; i++) {
+		if (species->s2s[i].species_used) {
+			if (!first_species) {
+				fprintf(output_file, ",\n");
+			}
+			fprintf(output_file, "      {\n");
+			fprintf(output_file, "        \"name\": \"");
+			write_json_string(output_file, species->s2s[i].species_name);
+			fprintf(output_file, "\",\n");
+			fprintf(output_file, "        \"qc\": %.3f\n", qc_value[i] / (double)qc_samples[i]);
+			fprintf(output_file, "      }");
+			first_species = 0;
+		}
+	}
+	fprintf(output_file, "\n    ],\n");
+
+	// Output distance matrix
+	fprintf(output_file, "    \"distances\": [\n");
+	first_species = 1;
+	for (y = 1; y < species->nr_species; y++) {
+		if (species->s2s[y].species_used) {
+			int any_out = 0;
+			if (!first_species) {
+				fprintf(output_file, ",\n");
+			}
+			first_distance = 1;
+			for (x = 0; x < y; x++) {
+				if (species->s2s[x].species_used) {
+					if (first_distance) {
+						fprintf(output_file, "      [");
+					} else {
+						fprintf(output_file, ", ");
+					}
+					fprintf(output_file, "%.5f", distance[distance_index(x, y)]);
+					any_out = 1;
+					first_distance = 0;
+				}
+			}
+			if (any_out) {
+				fprintf(output_file, "]");
+				first_species = 0;
+			}
+		}
+	}
+	fprintf(output_file, "\n    ]\n");
+
+	fprintf(output_file, "  }\n");
+	fprintf(output_file, "}\n");
+
+	fclose(output_file);
+	return 0;
+}
+
 // Fix the Taxonomy name for MEGA
 // From the MEGA manual:
 // Taxa labels must start with alphanumeric characters (0-9, a-z, and A-Z) or a special character:
@@ -403,7 +528,7 @@ static int create_mega12(char* output_filename_stem, double* distance, species_t
 
 	/* output distance matrix file with inverted means (of fraction_gt_cutoff) in MEGA format */
 	strcpy(output_filename, output_filename_stem);
-	strcat(output_filename, "_distance_matrix_12.meg");
+	strcat(output_filename, "_distance_matrix.meg");
 	if ((output_file = fopen(output_filename, "w")) == NULL) {
 		printf("error opening output file %s for writing", output_filename);
 		return -1;
@@ -433,7 +558,7 @@ static int create_mega12(char* output_filename_stem, double* distance, species_t
 	species_idx = 1;
 	for (i = 0; i < species->nr_species; i++) {
 		if (species->s2s[i].species_used) {
-			fprintf(output_file, "%9ld", species_idx);
+			fprintf(output_file, "%9ld ", species_idx);
 			species_idx++;
 		}
 	}
@@ -449,10 +574,10 @@ static int create_mega12(char* output_filename_stem, double* distance, species_t
 				if (species->s2s[x].species_used) {
 					if (x < y) {
 						// Lower triangular part - output distance
-						fprintf(output_file, "%9.5f", distance[distance_index(x, y)]);
+						fprintf(output_file, "%9.5f ", distance[distance_index(x, y)]);
 					} else if (x == y) {
 						// Diagonal - leave empty (just spaces)
-						fprintf(output_file, "         ");
+						fprintf(output_file, "          ");
 					} else {
 						// Upper triangular part - leave empty
 					}
@@ -478,12 +603,15 @@ static void usage()
 	printf("Optional arguments:\n");
 	printf("  -x <file>    Sample to species mapping file\n");
 	printf("  -c <value>   Score cutoff (default: 0.80)\n");
-	printf("  -n           Output in NEXUS format (default)\n");
+	printf("  -n           Output in NEXUS format (default if no format specified)\n");
 	printf("  -m           Output in MEGA format (version < 12)\n");
 	printf("  -m2          Output in MEGA format (version 12+)\n");
+	printf("  -J           Output in JSON format\n");
 	printf("  -h, --help   Display this help message\n\n");
-	printf("Example:\n");
-	printf("  compareMS2_to_distance_matrices -i filelist.txt -o results -x mapping.txt -c 0.85 -m2\n");
+	printf("Note: Multiple format flags can be combined to generate multiple outputs.\n\n");
+	printf("Examples:\n");
+	printf("  compareMS2_to_distance_matrices -i filelist.txt -o results -m2\n");
+	printf("  compareMS2_to_distance_matrices -i filelist.txt -o results -m2 -J\n");
 }
 
 /* main starts here */
@@ -516,7 +644,7 @@ int main(int argc, char* argv[])
 
 	/* read and replace parameter values */
 	cutoff = 0.80;
-	format = 0; /* 0=NEXUS, 1=MEGA */
+	format = 0; /* bitmask: 1=NEXUS, 2=MEGA, 4=MEGA12, 8=JSON */
 	for (i = 1; i < argc; i++) {
 		if ((argv[i][0] == '-') && (argv[i][1] == 'i'))
 			strcpy(input_filename, &argv[strlen(argv[i]) > 2 ? i : i + 1][strlen(argv[i]) > 2 ? 2 : 0]);
@@ -527,16 +655,24 @@ int main(int argc, char* argv[])
 			use_mapping = 1;
 		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'n')) {
-			format = 0;
-		} /* NEXUS = default */
+			format |= 1; /* NEXUS */
+		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'm')) {
 			if ((strlen(argv[i]) > 1) && (argv[i][2] == '2'))
-				format = 2; /* MEGA version 12+ */
+				format |= 4; /* MEGA version 12+ */
 			else
-				format = 1; /* MEGA version <12 */
+				format |= 2; /* MEGA version <12 */
+		}
+		if ((argv[i][0] == '-') && (argv[i][1] == 'J')) {
+			format |= 8; /* JSON */
 		}
 		if ((argv[i][0] == '-') && (argv[i][1] == 'c'))
 			cutoff = atof(&argv[strlen(argv[i]) > 2 ? i : i + 1][strlen(argv[i]) > 2 ? 2 : 0]);
+	}
+
+	/* If no format specified, default to NEXUS */
+	if (format == 0) {
+		format = 1;
 	}
 
 	printf("reading list of compareMS2 results files...");
@@ -663,20 +799,30 @@ int main(int argc, char* argv[])
 			distance[i] /= (double)distance_samples[i];
 		}
 	}
-	switch (format) {
-	case 0: /* NEXUS format (default) */
-		rv = create_nexus(output_filename_stem, distance, &species, metric);
-		break;
-	case 1: /* MEGA format */
-		rv = create_mega(output_filename_stem, distance, &species, cutoff, qc_value, qc_samples);
-		break;
-	case 2: /* MEGA format version 12+ */
-		rv = create_mega12(output_filename_stem, distance, &species, cutoff);
-		break;
-	default:
-		fprintf(stderr, "Unknown output format: %d\n", format);
-		rv = -1;
-		break;
+	/* Generate output in requested formats */
+	if (format & 1) { /* NEXUS format */
+		int result = create_nexus(output_filename_stem, distance, &species, metric);
+		if (result != 0) rv = result;
+	}
+	if (format & 2) { /* MEGA format */
+		int result = create_mega(output_filename_stem, distance, &species, cutoff, qc_value, qc_samples);
+		if (result != 0) rv = result;
+	}
+	if (format & 4) { /* MEGA format version 12+ */
+		/* When both MEGA and MEGA12 are requested, add "_MEGA_12_" to the output filename stem */
+		char* output_filename_stem12 = output_filename_stem;
+		char output_filename_stem12_buf[MAX_PATH + 9];
+		if (format & 2) {
+			strcpy(output_filename_stem12_buf, output_filename_stem);
+			strcat(output_filename_stem12_buf, "_MEGA_12_");
+			output_filename_stem12 = output_filename_stem12_buf;
+		}
+		int result = create_mega12(output_filename_stem12, distance, &species, cutoff);
+		if (result != 0) rv = result;
+	}
+	if (format & 8) { /* JSON format */
+		int result = create_json(output_filename_stem, distance, &species, cutoff, qc_value, qc_samples);
+		if (result != 0) rv = result;
 	}
 	/* return from main */
 
