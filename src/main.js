@@ -37,7 +37,7 @@ const defaultOptions = {
     avgSpecie: true,
     outNexus: false,
     outNewick: false,
-    outMega: true,
+    outMega: false,
     outMega12: false,
     impMissing: false,
     compareOrder: "smallest-largest",

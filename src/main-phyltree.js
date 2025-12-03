@@ -392,13 +392,13 @@ async function makeTree(window, instanceId, params) {
         instanceId,
         params,
         state,
-        '-m',
+        ['-J'],
         outputBasename,
         'Creating tree',
         'Distance matrix created successfully',
         'creating distance matrix',
         (window, instanceId, params, dfArg) => {
-            const df = dfArg + "_distance_matrix.meg";
+            const df = dfArg + "_distance_matrix.json";
             parseDistanceMatrix(window, instanceId, params, df);
         }
     );
@@ -409,73 +409,58 @@ function parseDistanceMatrix(window, instanceId, params, df) {
 
     setActivity(window, 'Computing tree');
 
-    const distanceParse = {
-        parseState: 'init',
-        reSpecies: /^QC\s+(.+)\s+([0-9\.]+)$/,
-        reMatrix: /^[0-9. \t]+$/,
-        reMatrixCapt: /([0-9\.]+)/g,
-        labels: [],
-        qualMin: Number.MAX_VALUE,
-        qualMax: Number.MIN_VALUE,
-        qualSum: 0,
-        qualN: 0,
-        matrix: [[]], // First element must be empty
-        qualMap: new Map()
-    };
+    // Read and parse JSON file
+    const jsonContent = fs.readFileSync(df, 'utf8');
+    const data = JSON.parse(jsonContent);
+    const distanceMatrix = data.distanceMatrix;
 
-    lineReader.eachLine(df, (line, last) => {
-        parseDistanceMatrixLine(line, distanceParse);
+    // Extract species information
+    const labels = [];
+    const qualMap = new Map();
+    let qualMin = Number.MAX_VALUE;
+    let qualMax = Number.MIN_VALUE;
+    let qualSum = 0;
+    let qualN = 0;
 
-        if (last) {
-            // Generate Newick tree using UPGMA
-            const newick = UPGMA(distanceParse.matrix, distanceParse.labels);
-            const topology = newick.replace(/:[-0-9.]+/g, "");
+    for (const species of distanceMatrix.species) {
+        // Sanitize species name (replace invalid characters)
+        const sanitizedName = species.name.replace(/[ :;,()\[\]]/g, "_");
+        labels.push(sanitizedName);
 
-            // Send tree data to renderer
-            safeWindowSend(window, 'treeData', {
-                newick,
-                topology,
-                qualMap: Object.fromEntries(distanceParse.qualMap),
-                qualMin: distanceParse.qualMin,
-                qualMax: distanceParse.qualMax,
-                qualAvg: distanceParse.qualN > 0 ? distanceParse.qualSum / distanceParse.qualN : 0
-            });
+        const qc = species.qc;
+        qualMap.set(sanitizedName, qc);
+        qualMin = Math.min(qc, qualMin);
+        qualMax = Math.max(qc, qualMax);
+        qualSum += qc;
+        qualN++;
+    }
 
-            state.newick = newick;
-            state.topology = topology;
-            computationStates.set(instanceId, state);
+    // Build full distance matrix for UPGMA
+    // The JSON contains lower triangular matrix, convert to format expected by UPGMA
+    const matrix = [[]]; // First element must be empty
+    const distances = distanceMatrix.distances;
 
-            // Tree data sent to renderer - row completed in parallel implementation
-        }
+    for (let i = 0; i < distances.length; i++) {
+        matrix.push(distances[i]);
+    }
+
+    // Generate Newick tree using UPGMA
+    const newick = UPGMA(matrix, labels);
+    const topology = newick.replace(/:[-0-9.]+/g, "");
+
+    // Send tree data to renderer
+    safeWindowSend(window, 'treeData', {
+        newick,
+        topology,
+        qualMap: Object.fromEntries(qualMap),
+        qualMin: qualMin,
+        qualMax: qualMax,
+        qualAvg: qualN > 0 ? qualSum / qualN : 0
     });
-}
 
-function parseDistanceMatrixLine(line, distanceParse) {
-    if ((distanceParse.parseState == 'init') || (distanceParse.parseState == 'labels')) {
-        let s = line.match(distanceParse.reSpecies);
-        if ((s) && (s.length != 0)) {
-            distanceParse.parseState = 'labels';
-            let specie = s[1].replace(/[ :;,()\[\]]/g, "_");
-            distanceParse.labels.push(specie);
-
-            let q = parseFloat(s[2]);
-            distanceParse.qualMap.set(specie, q);
-            distanceParse.qualMin = Math.min(q, distanceParse.qualMin);
-            distanceParse.qualMax = Math.max(q, distanceParse.qualMax);
-            distanceParse.qualSum += q;
-            distanceParse.qualN++;
-        } else if (distanceParse.parseState == 'labels') {
-            distanceParse.parseState = 'matrix';
-        }
-    }
-
-    if (distanceParse.parseState == 'matrix') {
-        if (distanceParse.reMatrix.test(line)) {
-            let row = line.match(distanceParse.reMatrixCapt);
-            row = row.map(x => +x);
-            distanceParse.matrix.push(row);
-        }
-    }
+    state.newick = newick;
+    state.topology = topology;
+    computationStates.set(instanceId, state);
 }
 
 async function finishComputation(window, instanceId, params) {
@@ -484,13 +469,31 @@ async function finishComputation(window, instanceId, params) {
     // Generate other output file formats as requested
     const outputPromises = [];
 
+    var outputFormats = ["-J"]; // Always generate JSON format
+
+    if (params.outMega) {
+        outputFormats.push('-m');
+    }
+
     if (params.outMega12) {
-        outputPromises.push(generateMega12Output(window, instanceId, params, state));
+        outputFormats.push('-m2');
     }
 
     if (params.outNexus) {
-        outputPromises.push(generateNexusOutput(window, instanceId, params, state));
+        outputFormats.push('-n');
     }
+
+    outputPromises.push(runCompToDistExe(
+        window,
+        instanceId,
+        params,
+        state,
+        outputFormats,
+        params.outBasename,
+        'Generating requested output formats',
+        'Output formats generated successfully',
+        'output format generation'
+    ));
 
     // Wait for all output generation to complete
     if (outputPromises.length > 0) {
@@ -523,12 +526,12 @@ async function finishComputation(window, instanceId, params) {
 }
 
 /**
- * Generic function to run compareMS2_to_distance_matrices with specified format option
+ * Generic function to run compareMS2_to_distance_matrices with specified format options
  * @param {BrowserWindow} window - The window to send updates to
  * @param {number} instanceId - The instance ID for tracking
  * @param {Object} params - Comparison parameters
  * @param {Object} state - Computation state
- * @param {string} formatFlag - Format flag ('-m', '-m2', '-n')
+ * @param {Array<string>} formatFlags - Array of format flags (e.g., ['-m', '-m2', '-n'])
  * @param {string} outputBasename - Output file basename (can include instanceId suffix)
  * @param {string} activityMsg - Activity message to display
  * @param {string} successMsg - Success log message
@@ -536,7 +539,7 @@ async function finishComputation(window, instanceId, params) {
  * @param {Function} onSuccess - Optional callback function called on success with (window, instanceId, params, outputFile)
  * @returns {Promise} Promise that resolves when the process completes
  */
-function runCompToDistExe(window, instanceId, params, state, formatFlag, outputBasename, activityMsg, successMsg, errorContext, onSuccess = null) {
+function runCompToDistExe(window, instanceId, params, state, formatFlags, outputBasename, activityMsg, successMsg, errorContext, onSuccess = null) {
     const compToDistExe = generalParams.compToDistExe;
 
     setActivity(window, activityMsg);
@@ -546,7 +549,7 @@ function runCompToDistExe(window, instanceId, params, state, formatFlag, outputB
         '-i', state.compResultListFile,
         '-o', dfArg,
         '-c', params.cutoff,
-        formatFlag
+        ...formatFlags
     ];
     if (fs.existsSync(params.s2sFile)) {
         cmdArgs.push('-x', params.s2sFile);
@@ -603,34 +606,6 @@ function runCompToDistExe(window, instanceId, params, state, formatFlag, outputB
             reject(error);
         });
     });
-}
-
-function generateMega12Output(window, instanceId, params, state) {
-    return runCompToDistExe(
-        window,
-        instanceId,
-        params,
-        state,
-        '-m2',
-        params.outBasename,
-        'Generating MEGA12 output',
-        'MEGA12 output generated successfully',
-        'MEGA12 output generation'
-    );
-}
-
-function generateNexusOutput(window, instanceId, params, state) {
-    return runCompToDistExe(
-        window,
-        instanceId,
-        params,
-        state,
-        '-n',
-        params.outBasename,
-        'Generating NEXUS output',
-        'NEXUS output generated successfully',
-        'NEXUS output generation'
-    );
 }
 
 function pauseComputation(instanceId) {
