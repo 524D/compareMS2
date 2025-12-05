@@ -500,19 +500,19 @@ async function finishComputation(window, instanceId, params) {
         await Promise.all(outputPromises);
     }
 
-    // Move final files
-    const tmpResultFn = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.meg`;
-    const resultFn = path.join(params.mgfDir, params.outBasename + '_distance_matrix.meg');
-
-    if (fs.existsSync(tmpResultFn)) {
-        fs.renameSync(tmpResultFn, resultFn);
+    // Delete temporary json file
+    const outBasenameTmp = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.json`;
+    if (fs.existsSync(outBasenameTmp)) {
+        fs.unlinkSync(outBasenameTmp);
     }
 
+    // Rename comparison list file to final name
     const listFn = path.join(params.mgfDir, "cmp_list.txt");
     if (fs.existsSync(state.compResultListFile)) {
         fs.renameSync(state.compResultListFile, listFn);
     }
 
+    // Write Newick file if requested
     if (params.outNewick) {
         const newickFn = path.join(params.mgfDir, params.outBasename) + ".nwk";
         fs.writeFileSync(newickFn, state.newick + ";");
