@@ -104,9 +104,14 @@ function showPhylTreeWindow(mainWindow, icon, params) {
 
     phyltreeWindow.show();
     // Wait for the window to be ready before running the comparison
-    phyltreeWindow.webContents.once('did-finish-load', () => {
-        runTreeComparison(phyltreeWindow, phyltreeWindow.id, params);
-    });
+    // and wait 1 second extra to ensure the phylotree renderer is ready
+    phyltreeWindow.webContents.once('did-finish-load',
+        () => {
+            setTimeout(() => {
+                runTreeComparison(phyltreeWindow, phyltreeWindow.id, params);
+            }, 1000);
+        }
+    );
 }
 
 /**
