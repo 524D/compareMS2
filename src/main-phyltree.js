@@ -278,7 +278,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
                 rowTasks.map(task => executeTreeComparison(task, window, instanceId, params))
             );
         } catch (error) {
-            safeWindowSend(window, 'tree-error', 'compareMS2 failed. Try running with fewer threads.');
+            safeWindowSend(window, 'tree-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
             return;
         }
 
