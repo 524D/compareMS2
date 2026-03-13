@@ -274,6 +274,11 @@ document.getElementById("clear-file2").addEventListener("click", function () {
     document.getElementById("file2").value = "";
 });
 
+// Clear species file input when clear button is clicked
+document.getElementById("clear-speciesfile").addEventListener("click", function () {
+    document.getElementById("s2sfile").value = "";
+});
+
 // Move inline onclick handler to addEventListener
 document.addEventListener('DOMContentLoaded', function () {
     // Request the options from the main process

@@ -182,12 +182,15 @@
             </div>
             <div><label class="input-label">Sample to species file</label>
                 <input class="input-value file-path-input" type="text" id="s2sfile" spellcheck="false" disabled
-                    title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
-                &nbsp;
-                <button type="button" id="select-speciesfile" title="">
-                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>
-                    &nbsp;Select file
-                </button>
+                    title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">&nbsp;
+                <div class="dual-button-container">
+                    <button type="button" id="clear-speciesfile" class="clear-button" title="Clear species file">
+                        <i class="mi mi-Clear"></i>
+                    </button>
+                    <button type="button" id="select-speciesfile" class="select-button" title="">
+                        <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file
+                    </button>
+                </div>
             </div>
             <div><label class="input-label">Output filename root</label>
                 <input class="input-value" type="text" id="outbasename" title="Root filename for output file">

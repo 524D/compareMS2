@@ -70,7 +70,7 @@ function getDefaultFileParams() {
             mgfFilesFull: [],
             mgfFilesShort: []
         },
-        sampleToSpeciesFn: null,
+        s2sFile: null,
         sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
     };
 }
@@ -225,9 +225,9 @@ ipcMain.on('open-speciesfile-dialog', (event) => {
         properties: ['openFile']
     });
     if (files) {
-        fileParams.sampleToSpeciesFn = files[0];
+        fileParams.s2sFile = files[0];
         fileParams.sampleToSpeciesManuallySet = true;
-        mainWindow.send('selected-speciesfile', fileParams.sampleToSpeciesFn)
+        mainWindow.send('selected-speciesfile', fileParams.s2sFile)
     }
 })
 
@@ -241,17 +241,22 @@ ipcMain.on('start-comparison', (event, mode, params) => {
 
     // Save parameters for next time
     const fn = getUserDataFn();
-    saveOptionsToFile(fn, params)
     // Replace the file items in params with the info from fileParams
     params.file1 = fileParams.file1;
     // We don't accept filenames from the renderer process, but if
     // file 2 was erased, we do accept it and overwrite the fileParams.file2
-    if (params.mzFile2 === null || params.mzFile2 === "") {
+    if (params.file2 === null || params.file2 === "") {
         fileParams.file2 = "";
     }
     params.file2 = fileParams.file2;
+    // Similar for s2sFile
+    if (params.s2sFile === null || params.s2sFile === "") {
+        fileParams.s2sFile = null;
+    }
+    params.s2sFile = fileParams.s2sFile;
+    params.mgfDir = fileParams.sampleDir.dir;
+    saveOptionsToFile(fn, params)
     params.sampleDir = fileParams.sampleDir;
-    params.sampleToSpeciesFn = fileParams.sampleToSpeciesFn;
 
     const icon = path.join(iconPath, 'tree.png'); // Default icon for the windows
     switch (mode) {
@@ -496,8 +501,8 @@ function getSampleDirFiles(dir) {
             // No sample_to_species.txt file found
         } else {
             if (!fileParams.sampleToSpeciesManuallySet) {
-                // If the file exists and we don't have a sampleToSpeciesFn yet, set it
-                fileParams.sampleToSpeciesFn = s2sFn;
+                // If the file exists and we don't have a s2sFile yet, set it
+                fileParams.s2sFile = s2sFn;
             }
         }
     });
@@ -538,7 +543,7 @@ function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
             // Update the fileParams object with the options
             fileParams.file1 = options.mzFile1;
             fileParams.file2 = options.mzFile2;
-            fileParams.sampleToSpeciesFn = options.s2sFile;
+            fileParams.s2sFile = options.s2sFile;
             processOpts(options);
         }
     });
@@ -553,8 +558,14 @@ function saveOptionsToFile(fn, options) {
         fileParams.file2 = "";
     }
     options.mzFile2 = fileParams.file2;
+    // Similar for s2sFile
+    if (options.s2sFile === null || options.s2sFile === "") {
+        fileParams.s2sFile = null;
+    }
+    options.s2sFile = fileParams.s2sFile;
     options.mgfDir = fileParams.sampleDir.dir;
-    options.s2sFile = fileParams.sampleToSpeciesFn;
+    options.s2sFile = fileParams.s2sFile;
+
     try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
     catch (e) { alert('Failed to save options file'); }
 }
@@ -564,7 +575,7 @@ function updateOptionsToRenderer(options) {
     options.mgfDir = fileParams.sampleDir.dir;
     options.mzFile1 = fileParams.file1;
     options.mzFile2 = fileParams.file2;
-    options.s2sFile = fileParams.sampleToSpeciesFn;
+    options.s2sFile = fileParams.s2sFile;
     mainWindow.webContents.send('update-options', options);
 
     // Update the main window items based on the options
