@@ -272,9 +272,15 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
         safeWindowSend(window, 'progress-update', progress * 100);
 
         // Execute all comparisons for this row in parallel
-        const rowResults = await Promise.all(
-            rowTasks.map(task => executeTreeComparison(task, window, instanceId, params))
-        );
+        let rowResults;
+        try {
+            rowResults = await Promise.all(
+                rowTasks.map(task => executeTreeComparison(task, window, instanceId, params))
+            );
+        } catch (error) {
+            safeWindowSend(window, 'tree-error', 'compareMS2 failed. Try running with fewer threads.');
+            return;
+        }
 
         // Add successful results to the comparison list
         for (const result of rowResults) {
@@ -373,7 +379,7 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
         } catch (error) {
             elog(window, `Error running compareMS2: ${error.message}`);
-            return { success: false, error: error.message };
+            throw error;
         }
     });
 }

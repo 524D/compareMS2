@@ -227,6 +227,10 @@
             document.querySelector(".info-details").style.height = "1px";
         });
 
+        window.treeAPI.onError((event, message) => {
+            alert(message);
+        });
+
         // UI Event Handlers
         document.getElementById("layout").addEventListener("change", function (e) {
             rendered_tree.radial(e.target.checked).update(true);
