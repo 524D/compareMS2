@@ -207,7 +207,6 @@ async function runS2S(params, window) {
                         removeActiveProcess(window.id, child);
 
                         if (code === 0) {
-                            llog(window, 'Compare file created: ' + cmpFile);
                             resolve();
                         } else {
                             reject(new Error(`compareMS2 process exited with code ${code}`));
