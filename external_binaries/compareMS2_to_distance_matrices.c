@@ -594,6 +594,144 @@ static int create_mega12(char* output_filename_stem, double* distance, species_t
 	return 0;
 }
 
+static void parse_comparison_json(FILE* input_file, long comp_idx, species_t* species,
+	double* distance, int* distance_samples,
+	double* qc_value, int* qc_samples)
+{
+	char line[MAX_LINE];
+	char* p;
+	long a = 0, b = 0, x = 0, y = 0;
+
+	printf("\nreading pairwise comparison %li (%s)", comp_idx, "JSON");
+	// For JSON input, we need to parse the file to extract the relevant data
+	// This is a very simple and fragile JSON parser that only works for the specific format output by compareMS2
+	// It does not handle all valid JSON and will fail if the format changes
+	while (fgets(line, MAX_LINE, input_file) != NULL) {
+		if (strstr(line, "\"datasetA\":") != NULL) {
+			p = strchr(line, ':');
+			if (p != NULL) {
+				p++;
+				while (*p == ' ' || *p == '\"')
+					p++;
+				char* end = strrchr(p, '\"');
+				if (end != NULL) {
+					*end = '\0';
+					a = sample_name_to_species_index(p, species);
+					printf("\nread pairwise comparison %li (%s and ", comp_idx, p);
+				}
+			}
+		} else if (strstr(line, "\"datasetB\":") != NULL) {
+			p = strchr(line, ':');
+			if (p != NULL) {
+				p++;
+				while (*p == ' ' || *p == '\"')
+					p++;
+				char* end = strrchr(p, '\"');
+				if (end != NULL) {
+					*end = '\0';
+					b = sample_name_to_species_index(p, species);
+					// (x,y) are the coordinates in the distance matrix
+					// The distance matrix is (supposed to be) symmetric and we
+					// will only compute the lower left triangle, e.g. y>x
+					// Swap coordinates if comparison is for upper right (x>y)
+					if (a < b) {
+						x = a;
+						y = b;
+					} else {
+						x = b;
+						y = a;
+					}
+					printf("%s)", p);
+				}
+			}
+		} else if (strstr(line, "\"setDistance\":") != NULL) {
+			p = strchr(line, ':');
+			if (p != NULL) {
+				p++;
+				while (*p == ' ')
+					p++;
+				double d = atof(p);
+				long di = distance_index(x, y);
+				distance[di] += d;
+				distance_samples[di]++;
+			}
+		} else if (strstr(line, "\"datasetAQC\":") != NULL) {
+			p = strchr(line, ':');
+			if (p != NULL) {
+				p++;
+				while (*p == ' ')
+					p++;
+				double qc = atof(p);
+				qc_value[a] += qc;
+				qc_samples[a]++;
+			}
+		} else if (strstr(line, "\"datasetBQC\":") != NULL) {
+			p = strchr(line, ':');
+			if (p != NULL) {
+				p++;
+				while (*p == ' ')
+					p++;
+				double qc = atof(p);
+				qc_value[b] += qc;
+				qc_samples[b]++;
+			}
+		}
+	}
+}
+
+static void parse_comparison_txt(FILE* input_file, long comp_idx, species_t* species,
+	double* distance, int* distance_samples,
+	double* qc_value, int* qc_samples)
+{
+	char line[MAX_LINE];
+	char* p;
+	long a = 0, b = 0, x = 0, y = 0;
+
+	while (fgets(line, MAX_LINE, input_file) != NULL) {
+		if (strcmp(line, "\n") == 0)
+			continue;
+
+		p = strtok(line, "\t"); /* read in field name */
+
+		if (strcmp(p, "dataset_A") == 0) {
+			p = strtok(NULL, "\t\n");
+			a = sample_name_to_species_index(p, species);
+			printf("\nread pairwise comparison %li (%s and ", comp_idx, p);
+		} else if (strcmp(p, "dataset_B") == 0) {
+			p = strtok(NULL, "\t\n");
+			b = sample_name_to_species_index(p, species);
+			// (x,y) are the coordinates in the distance matrix
+			// The distance matrix is (supposed to be) symmetric and we
+			// will only compute the lower left triangle, e.g. y>x
+			// Swap coordinates if comparison is for upper right (x>y)
+			if (a < b) {
+				x = a;
+				y = b;
+			} else {
+				x = b;
+				y = a;
+			}
+			printf("%s)", p);
+		} else if (strcmp(p, "set_distance") == 0) {
+			p = strtok(NULL, "\t");
+			double d = atof(p);
+			long di = distance_index(x, y);
+			distance[di] += d;
+			distance_samples[di]++;
+		} else if (strcmp(p, "dataset_A_QC") == 0) {
+			p = strtok(NULL, "\t");
+			double qc = atof(p);
+			qc_value[a] += qc;
+			qc_samples[a]++;
+		} else if (strcmp(p, "dataset_B_QC") == 0) {
+			p = strtok(NULL, "\t");
+			double qc = atof(p);
+			qc_value[b] += qc;
+			qc_samples[b]++;
+		}
+	}
+}
+
 static void usage()
 {
 	printf("usage: compareMS2_to_distance_matrices -i <input file> -o <output stem> [options]\n\n");
@@ -618,8 +756,8 @@ static void usage()
 int main(int argc, char* argv[])
 {
 	FILE* input_file;
-	char input_filename[MAX_PATH], output_filename_stem[MAX_PATH], sample_species_mapping_filename[MAX_PATH], format, *p, line[MAX_LINE], **comparison, **X, **Y, **sample_name, **species_name, use_mapping = 0, metric = 0;
-	long i, a, b, x, y, n_comparisons;
+	char input_filename[MAX_PATH], output_filename_stem[MAX_PATH], sample_species_mapping_filename[MAX_PATH], format, **comparison, **X, **Y, **sample_name, **species_name, use_mapping = 0, metric = 0;
+	long i, n_comparisons;
 	double cutoff;
 
 	int rv = 0; // Return value
@@ -737,56 +875,13 @@ int main(int argc, char* argv[])
 			printf("error opening MS2compare results file %s for reading", input_filename);
 			return -1;
 		}
-		a = 0;
-		b = 0;
-		x = 0;
-		y = 0;
-		while (fgets(line, 512, input_file) != NULL) {
-			if (strcmp(line, "\n") == 0)
-				continue;
-
-			p = strtok(line, "\t"); /* read in field name */
-
-			if (strcmp(p, "dataset_A") == 0) {
-				p = strtok(NULL, "\t\n");
-				a = sample_name_to_species_index(p, &species);
-				printf("\nread pairwise comparison %li (%s and ", i + 1, p);
-			} else if (strcmp(p, "dataset_B") == 0) {
-				p = strtok(NULL, "\t\n");
-				b = sample_name_to_species_index(p, &species);
-				// (x,y) are the coordinates in the distance matrix
-				// The distance matrix is (supposed to be) symmetric and we
-				// will only compute the lower left triangle, e.g. y>x
-				// Swap coordinates if comparison is for upper right (x>y)
-				if (a < b) {
-					x = a;
-					y = b;
-				} else {
-					x = b;
-					y = a;
-				}
-				printf("%s)", p);
-			} else if (strcmp(p, "set_distance") == 0) {
-				p = strtok(NULL, "\t");
-				double d = atof(p);
-				long di = distance_index(x, y);
-				distance[di] += d;
-				distance_samples[di]++;
-				// p=strtok(NULL,"\t");
-				// fraction_gt_cutoff[i]=atof(p);
-			} else if (strcmp(p, "dataset_A_QC") == 0) {
-				p = strtok(NULL, "\t");
-				double qc = atof(p);
-				qc_value[a] += qc;
-				qc_samples[a]++;
-			} else if (strcmp(p, "dataset_B_QC") == 0) {
-				p = strtok(NULL, "\t");
-				double qc = atof(p);
-				qc_value[b] += qc;
-				qc_samples[b]++;
-			}
+		// Check if input file is JSON format (by checking if filename ends with .json)
+		int is_JSON = strncmp(input_filename + strlen(input_filename) - 5, ".json", 5) == 0;
+		if (is_JSON) {
+			parse_comparison_json(input_file, i + 1, &species, distance, distance_samples, qc_value, qc_samples);
+		} else {
+			parse_comparison_txt(input_file, i + 1, &species, distance, distance_samples, qc_value, qc_samples);
 		}
-
 		fclose(input_file);
 		// if(n_compared_spectra[i]<=0) fraction_gt_cutoff[i]=-1;
 		// printf("fraction_gt_cutoff[%li] = %f, n_compared_spectra = %li\n",i,fraction_gt_cutoff[i],n_compared_spectra[i]);
