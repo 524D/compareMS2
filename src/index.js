@@ -4,11 +4,6 @@ const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
 const availableCPUs = searchParams.get('availableCPUs') || -1;
 
-const selectDirBtn = document.getElementById('select-directory');
-const selectFile1Btn = document.getElementById('select-file1');
-const selectFile2Btn = document.getElementById('select-file2');
-const selectSpeciesfileBtn = document.getElementById('select-speciesfile');
-
 // Info on number of comparisons and Submit button state
 // for each compare mode
 // The first element is a string with the info text,
@@ -177,20 +172,30 @@ function openTab(evt, tabName) {
 // *******************************start of initialization ******************************************** //
 
 // Handle browse buttons
-selectDirBtn.addEventListener('click', (event) => {
-    window.electronAPI.openDirDialog();
+document.getElementById('select-directory').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-dir');
 });
 
-selectFile1Btn.addEventListener('click', (event) => {
-    window.electronAPI.openFile1Dialog();
+document.getElementById('select-file1').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-file1');
 });
 
-selectFile2Btn.addEventListener('click', (event) => {
-    window.electronAPI.openFile2Dialog();
+document.getElementById('select-file2').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-file2');
 });
 
-selectSpeciesfileBtn.addEventListener('click', (event) => {
-    window.electronAPI.openSpeciesfileDialog();
+document.getElementById('select-speciesfile').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-speciesfile');
+});
+
+// Clear file 2 input when clear button is clicked
+document.getElementById("clear-file2").addEventListener("click", function () {
+    window.electronAPI.mainGuiAction('clear-file2');
+});
+
+// Clear species file input when clear button is clicked
+document.getElementById("clear-speciesfile").addEventListener("click", function () {
+    window.electronAPI.mainGuiAction('clear-speciesfile');
 });
 
 // Handle compare mode selection
@@ -218,6 +223,11 @@ document.getElementById('topAll').addEventListener('change', function () {
 // Handle closing the "about" overlay
 document.getElementById("about-close").addEventListener('click', function () {
     document.getElementById('about').style.display = 'none';
+});
+
+// Handle closing the alert modal
+document.getElementById("alert-modal-close").addEventListener('click', function () {
+    document.getElementById('alert-modal').style.display = 'none';
 });
 
 // This function handles the request for options from the main process
@@ -268,16 +278,6 @@ $(document).tooltip({
 function openSourceCodeInBrowser() {
     window.electronAPI.openSourceCodeInBrowser();
 }
-
-// Clear file 2 input when clear button is clicked
-document.getElementById("clear-file2").addEventListener("click", function () {
-    document.getElementById("file2").value = "";
-});
-
-// Clear species file input when clear button is clicked
-document.getElementById("clear-speciesfile").addEventListener("click", function () {
-    document.getElementById("s2sfile").value = "";
-});
 
 // Move inline onclick handler to addEventListener
 document.addEventListener('DOMContentLoaded', function () {

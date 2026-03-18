@@ -32,7 +32,7 @@ const defaultOptions = {
     metric: 2,
     qc: 0,
     topN: -1,
-    s2sFile: homedir,
+    s2sFile: "",
     outBasename: "comp",
     avgSpecie: true,
     outNexus: false,
@@ -61,8 +61,8 @@ var fileParams = getDefaultFileParams();
 
 function getDefaultFileParams() {
     return {
-        file1: null,
-        file2: null,
+        file1: "",
+        file2: "",
         sampleDir: {
             dir: homedir,
             files: [],
@@ -70,7 +70,7 @@ function getDefaultFileParams() {
             mgfFilesFull: [],
             mgfFilesShort: []
         },
-        s2sFile: null,
+        s2sFile: "",
         sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
     };
 }
@@ -182,52 +182,72 @@ ipcMain.on('request-options', (event) => {
     });
 })
 
-ipcMain.on('open-dir-dialog', (event) => {
-    const dir = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Select sample directory',
-        properties: ['openDirectory']
-    });
-    if (dir && dir[0]) {
-        getSampleDirFiles(dir[0]);
-        mainWindow.send('selected-directory', fileParams.sampleDir);
-        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
-        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
-    }
-})
-
-ipcMain.on('open-file1-dialog', (event) => {
-    const files = selectMGFfile('First sample file');
-    if (files) {
-        fileParams.file1 = files[0];
-        mainWindow.send('selected-file1', fileParams.file1)
-        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
-        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
-    }
-})
-
-ipcMain.on('open-file2-dialog', (event) => {
-    const files = selectMGFfile('Second sample file');
-    if (files) {
-        fileParams.file2 = files[0];
-        mainWindow.send('selected-file2', fileParams.file2)
-        const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
-        mainWindow.send('update-main-window-items', mainWindowsComputedItems);
-    }
-})
-
-ipcMain.on('open-speciesfile-dialog', (event) => {
-    const files = dialog.showOpenDialogSync(mainWindow, {
-        title: 'Open sample-to-species file',
-        filters: [
-            { name: 'Text file', extensions: ['txt'] },
-            { name: 'All Files', extensions: ['*'] }
-        ],
-        properties: ['openFile']
-    });
-    if (files) {
-        fileParams.s2sFile = files[0];
-        fileParams.sampleToSpeciesManuallySet = true;
-        mainWindow.send('selected-speciesfile', fileParams.s2sFile)
+ipcMain.on('main-gui-action', (event, action) => {
+    switch (action) {
+        case 'select-dir': {
+            const dirs = dialog.showOpenDialogSync(mainWindow, {
+                title: 'Select sample directory',
+                properties: ['openDirectory']
+            });
+            if (dirs && dirs[0]) {
+                const dir = dirs[0];
+                // Read the directory contents and update fileParams
+                getSampleDirFiles(dir);
+                const s2sFile = updateSampleToSpeciesFile(dir, fileParams);
+                fileParams.s2sFile = s2sFile;
+                mainWindow.send('selected-directory', fileParams.sampleDir);
+                const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
+                mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+                // Send new s2s file in case it was updated
+                mainWindow.send('selected-speciesfile', s2sFile);
+            }
+            break;
+        }
+        case 'select-file1': {
+            const files = selectMGFfile('First sample file');
+            if (files && files[0]) {
+                fileParams.file1 = files[0];
+                mainWindow.send('selected-file1', fileParams.file1);
+                const mainWindowsComputedItems = getMainWindowCompItems(fileParams.sampleDir, fileParams.file1);
+                mainWindow.send('update-main-window-items', mainWindowsComputedItems);
+            }
+            break;
+        }
+        case 'select-file2': {
+            const files = selectMGFfile('Second sample file');
+            if (files && files[0]) {
+                fileParams.file2 = files[0];
+                mainWindow.send('selected-file2', fileParams.file2);
+            }
+            break;
+        }
+        case 'select-speciesfile': {
+            const files = dialog.showOpenDialogSync(mainWindow, {
+                title: 'Open sample-to-species file',
+                filters: [
+                    { name: 'Text file', extensions: ['txt'] },
+                    { name: 'All Files', extensions: ['*'] }
+                ],
+                properties: ['openFile']
+            });
+            if (files && files[0]) {
+                fileParams.s2sFile = files[0];
+                fileParams.sampleToSpeciesManuallySet = true;
+                mainWindow.send('selected-speciesfile', fileParams.s2sFile);
+            }
+            break;
+        }
+        case 'clear-file2': {
+            fileParams.file2 = null;
+            mainWindow.send('selected-file2', '');
+            break;
+        }
+        case 'clear-speciesfile': {
+            fileParams.s2sFile = null;
+            fileParams.sampleToSpeciesManuallySet = false;
+            mainWindow.send('selected-speciesfile', '');
+            break;
+        }
     }
 })
 
@@ -242,21 +262,12 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     // Save parameters for next time
     const fn = getUserDataFn();
     // Replace the file items in params with the info from fileParams
-    params.file1 = fileParams.file1;
-    // We don't accept filenames from the renderer process, but if
-    // file 2 was erased, we do accept it and overwrite the fileParams.file2
-    if (params.file2 === null || params.file2 === "") {
-        fileParams.file2 = "";
-    }
-    params.file2 = fileParams.file2;
-    // Similar for s2sFile
-    if (params.s2sFile === null || params.s2sFile === "") {
-        fileParams.s2sFile = null;
-    }
+    params.mzFile1 = fileParams.file1;
+    params.mzFile2 = fileParams.file2;
     params.s2sFile = fileParams.s2sFile;
     params.mgfDir = fileParams.sampleDir.dir;
     saveOptionsToFile(fn, params)
-    params.sampleDir = fileParams.sampleDir;
+    params.sampleDir = fileParams.sampleDir; // Add the sampleDir info to the params that are passed to the compare windows
 
     const icon = path.join(iconPath, 'tree.png'); // Default icon for the windows
     switch (mode) {
@@ -494,18 +505,6 @@ function getSampleDirFiles(dir) {
     const mgfFiles = files.filter(file => file.endsWith('.mgf'));
     const mgfFilesFull = mgfFiles.map(file => path.join(dir, file));
     const mgfFilesShort = mgfFiles.map(file => path.basename(file));
-    const s2sFn = path.join(dir, "sample_to_species.txt");
-    // Check if sample_to_species.txt exists
-    fs.access(s2sFn, fs.F_OK, (err) => {
-        if (err) {
-            // No sample_to_species.txt file found
-        } else {
-            if (!fileParams.sampleToSpeciesManuallySet) {
-                // If the file exists and we don't have a s2sFile yet, set it
-                fileParams.s2sFile = s2sFn;
-            }
-        }
-    });
 
     // Store the parameters in the fileParams object
     fileParams.sampleDir = {
@@ -520,11 +519,20 @@ function getSampleDirFiles(dir) {
 function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
     fs.readFile(fn, 'utf-8', (err, data) => {
         if (err) {
-            alert("An error occurred reading the file :" + err.message);
+            mainWindow.webContents.send('show-alert', 'error', "An error occurred reading the file " + fn + " :" + err.message);
+            saveOptionsToFile(fn, options);
             return;
         }
         else {
-            let options = JSON.parse(data);
+            let options = null;
+            try {
+                options = JSON.parse(data);
+            } catch (e) {
+                mainWindow.webContents.send('show-alert', 'error', "An error occurred parsing the options file " + fn + ". The file might be corrupted or not in the correct format.");
+                options = defaultOptions;
+                saveOptionsToFile(fn, options);
+                return;
+            }
             // If the Keep Settings option is not set, just set the default options
             if (honorKeepSettings && (!options.keepSettings)) {
                 // Reset the options to the default options
@@ -551,19 +559,9 @@ function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
 
 function saveOptionsToFile(fn, options) {
     // Replace file names with stored paths
-    options.mzFile1 = fileParams.file1;
-    // We don't accept filenames from the renderer process, but if
-    // file 2 was erased, we do accept it and overwrite the fileParams.file2
-    if (options.mzFile2 === null || options.mzFile2 === "") {
-        fileParams.file2 = "";
-    }
-    options.mzFile2 = fileParams.file2;
-    // Similar for s2sFile
-    if (options.s2sFile === null || options.s2sFile === "") {
-        fileParams.s2sFile = null;
-    }
-    options.s2sFile = fileParams.s2sFile;
     options.mgfDir = fileParams.sampleDir.dir;
+    options.mzFile1 = fileParams.file1;
+    options.mzFile2 = fileParams.file2;
     options.s2sFile = fileParams.s2sFile;
 
     try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
@@ -612,3 +610,20 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
         'spec-to-species': [spectra2SpeciesMsg, spectra2SpeciesSubmitEnabled]
     };
 }
+
+function updateSampleToSpeciesFile(dir, fileParams) {
+    const s2sFnCheck = path.join(dir, "sample_to_species.txt");
+    var s2sFn = fileParams.s2sFile;
+    // Check if sample_to_species.txt exists
+    try {
+        fs.accessSync(s2sFnCheck, fs.F_OK);
+        if (!fileParams.sampleToSpeciesManuallySet) {
+            // If the file exists and we don't have a s2sFile yet, set it
+            s2sFn = s2sFnCheck;
+        }
+    }
+    catch (err) {        // File does not exist, do nothing
+    };
+    return s2sFn;
+}
+

@@ -14,10 +14,22 @@
 </head>
 
 <body>
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <div class="container">
+                <div class="popup-container">
+                    <h2 id="alert-modal-title"></h2>
+                    <p id="alert-modal-text"></p>
+                    <button id="alert-modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="about" class="modal">
         <div class="modal-content">
             <div class="container">
-                <div class="about-container">
+                <div class="popup-container">
                     <h2>About CompareMS2</h2>
                     <div id="versioninfo"></div>
                     <p><a href="#" class="extern-link">Source code</a></p>
@@ -118,7 +130,8 @@
                 title="Comparison score for spectra to be considered similar">
         </div>
         <div><label class="input-label">Spectrum metric</label>
-            <select id="specMetric" name="specMetric" title="Choose spectral angle to stretch out the high end of the score cutoff">
+            <select id="specMetric" name="specMetric"
+                title="Choose spectral angle to stretch out the high end of the score cutoff">
                 <option value="0" selected="selected">Dot product</option>
                 <option value="1">Spectral angle</option>
             </select>
@@ -243,4 +256,5 @@
     <script src="assets/jquery-ui.min.js"></script>
     <script src="index.js"></script>
 </body>
+
 </html>
