@@ -147,10 +147,10 @@ function findLastCompleteRow(mgfFiles, compareDir, params) {
             }
 
             const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
-            const { cmpFile } = getHashName(cmdArgs, compareDir);
+            const { cmpFile, cmpFileJSON } = getHashName(cmdArgs, compareDir);
 
-            if (fs.existsSync(cmpFile)) {
-                rowCacheFiles.push(cmpFile);
+            if (fs.existsSync(cmpFileJSON)) {
+                rowCacheFiles.push(cmpFileJSON);
             } else {
                 rowComplete = false;
                 break; // This row is incomplete, no need to check remaining files
@@ -202,8 +202,8 @@ function runTreeComparison(window, instanceId, params) {
         llog(window, `Resuming computation from row ${resumeInfo.lastCompleteRow + 1} of ${state.mgfFiles.length - 1}`);
 
         // Populate comparison list file with existing cache files
-        for (const cmpFile of resumeInfo.existingCacheFiles) {
-            fs.appendFileSync(state.compResultListFile, cmpFile + "\n");
+        for (const cmpFileJSON of resumeInfo.existingCacheFiles) {
+            fs.appendFileSync(state.compResultListFile, cmpFileJSON + "\n");
         }
 
         // Generate intermediate tree with existing data if we have a substantial amount cached
@@ -285,7 +285,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
         // Add successful results to the comparison list
         for (const result of rowResults) {
             if (result.success) {
-                fs.appendFileSync(state.compResultListFile, result.cmpFile + "\n");
+                fs.appendFileSync(state.compResultListFile, result.cmpFileJSON + "\n");
             }
         }
 
@@ -320,19 +320,20 @@ async function executeTreeComparison(task, window, instanceId, params) {
     }
 
     const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
-    const { cmpFile, hashName } = getHashName(cmdArgs, state.compareDir);
+    const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, state.compareDir);
 
     // Check if result already exists
-    if (fs.existsSync(cmpFile)) {
-        llog(window, 'Compare file already exists: ' + cmpFile);
-        return { success: true, cmpFile };
+    if (fs.existsSync(cmpFileJSON)) {
+        llog(window, 'Compare file already exists: ' + cmpFileJSON);
+        return { success: true, cmpFileJSON };
     }
 
     // Use the parallelization manager to control execution
     return await getParallelizationManager().executeTask(async () => {
         const comparems2tmp = path.join(state.compareDir, `${hashName}-${instanceId}.tmp`);
+        const comparems2tmpJSON = comparems2tmp + '.json';
         const compareMS2exe = generalParams.compareMS2Exe;
-        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp];
+        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON];
 
         try {
             await new Promise((resolve, reject) => {
@@ -374,8 +375,10 @@ async function executeTreeComparison(task, window, instanceId, params) {
             });
 
             // Rename temporary file to final name
+            fs.renameSync(comparems2tmpJSON, cmpFileJSON);
             fs.renameSync(comparems2tmp, cmpFile);
-            return { success: true, cmpFile };
+            llog(window, 'Compare file created: ' + cmpFileJSON);
+            return { success: true, cmpFileJSON };
 
         } catch (error) {
             elog(window, `Error running compareMS2: ${error.message}`);
