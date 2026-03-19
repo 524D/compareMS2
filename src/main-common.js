@@ -6,6 +6,7 @@ const { process } = require('electron');
 const log = require('electron-log');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 
 // Global process tracking - using window.id as key since it's globally unique
 let activeProcesses = new Map(); // Map<windowId, Set<childProcess>>
@@ -129,6 +130,99 @@ function cleanupWindowResources(windowId) {
 }
 
 /**
+ * Convert a compareMS2 txt output file to JSON format and write it to disk.
+ * The txt file uses tab-separated key/value pairs; histogram lines encode the
+ * dot-product distribution. Fields that have no equivalent in the txt format
+ * (commandLine) are set to an empty string.
+ * @param {string} txtFilePath  - Path to the input .txt file
+ * @param {string} jsonFilePath - Path to write the output .json file
+ * @returns {object} The parsed result object
+ */
+function convertTxtToJson(txtFilePath, jsonFilePath) {
+    const content = fs.readFileSync(txtFilePath, 'utf8');
+    const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+
+    const result = {
+        commandLine: '',
+        convertedFromTxt: true,
+        datasetA: '',
+        datasetB: '',
+        setDistance: 0,
+        setMetric: 0,
+        scanRange: [0, 0],
+        maxScanDiff: 0,
+        maxMzDiff: 0,
+        scalingPower: 0,
+        noiseThreshold: 0,
+        minBasepeakIntensity: 0,
+        minTotalIonCurrent: 0,
+        datasetAQC: 0,
+        datasetBQC: 0,
+        nrGtCutoff: 0,
+        nrComparisons: 0,
+        minPeaks: 0,
+        maxPeaks: 0,
+        mzRange: [0, 0],
+        mzBinSize: 0,
+        nrMzBins: 0,
+        dotProdHistogram: {
+            nrBins: 0,
+            dotProdRange: [0, 0],
+            count: []
+        }
+    };
+
+    const histogramEntries = [];
+
+    for (const line of lines) {
+        const parts = line.split('\t');
+        const key = parts[0];
+        switch (key) {
+            case 'dataset_A': result.datasetA = parts[1]; break;
+            case 'dataset_B': result.datasetB = parts[1]; break;
+            case 'set_distance': result.setDistance = parseFloat(parts[1]); break;
+            case 'set_metric': result.setMetric = parseInt(parts[1]); break;
+            case 'scan_range': result.scanRange = [parseInt(parts[1]), parseInt(parts[2])]; break;
+            case 'max_scan_diff': result.maxScanDiff = parseFloat(parts[1]); break;
+            case 'max_m/z_diff': result.maxMzDiff = parseFloat(parts[1]); break;
+            case 'scaling_power': result.scalingPower = parseFloat(parts[1]); break;
+            case 'noise_threshold': result.noiseThreshold = parseFloat(parts[1]); break;
+            case 'min_basepeak_intensity': result.minBasepeakIntensity = parseFloat(parts[1]); break;
+            case 'min_total_ion_current': result.minTotalIonCurrent = parseFloat(parts[1]); break;
+            case 'dataset_A_QC': result.datasetAQC = parseFloat(parts[1]); break;
+            case 'dataset_B_QC': result.datasetBQC = parseFloat(parts[1]); break;
+            case 'n_gt_cutoff': result.nrGtCutoff = parseInt(parts[1]); break;
+            case 'n_comparisons': result.nrComparisons = parseInt(parts[1]); break;
+            case 'min_peaks': result.minPeaks = parseInt(parts[1]); break;
+            case 'max_peaks': result.maxPeaks = parseInt(parts[1]); break;
+            case 'm/z_range': result.mzRange = [parseFloat(parts[1]), parseFloat(parts[2])]; break;
+            case 'm/z_bin_size': result.mzBinSize = parseFloat(parts[1]); break;
+            case 'n_m/z_bins': result.nrMzBins = parseInt(parts[1]); break;
+            case 'histogram':
+                // Format: histogram\tlo\thi\tmid\tcount\t[second_count]
+                histogramEntries.push({
+                    lo: parseFloat(parts[1]),
+                    hi: parseFloat(parts[2]),
+                    count: parseInt(parts[4])
+                });
+                break;
+        }
+    }
+
+    if (histogramEntries.length > 0) {
+        result.dotProdHistogram.nrBins = histogramEntries.length;
+        result.dotProdHistogram.dotProdRange = [
+            histogramEntries[0].lo,
+            histogramEntries[histogramEntries.length - 1].hi
+        ];
+        result.dotProdHistogram.count = histogramEntries.map(e => e.count);
+    }
+
+    fs.writeFileSync(jsonFilePath, JSON.stringify(result, null, '\t'));
+    return result;
+}
+
+/**
  * Add a process to tracking for a specific window
  */
 function addActiveProcess(windowId, process) {
@@ -160,3 +254,4 @@ exports.getCPUCount = getCPUCount;
 exports.cleanupWindowResources = cleanupWindowResources;
 exports.addActiveProcess = addActiveProcess;
 exports.removeActiveProcess = removeActiveProcess;
+exports.convertTxtToJson = convertTxtToJson;
