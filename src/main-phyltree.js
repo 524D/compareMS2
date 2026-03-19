@@ -265,11 +265,7 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
             });
         }
 
-        // Update progress based on completed file comparisons
-        const totalComparisons = (nMgf * (nMgf - 1)) / 2;
-        const completedComparisons = ((file1Idx - 1) * file1Idx) / 2;
-        const progress = completedComparisons / totalComparisons;
-        safeWindowSend(window, 'progress-update', progress * 100);
+        updateProgress(window, nMgf, file1Idx - 1, 0); // Update progress before starting the row
 
         // Execute all comparisons for this row in parallel
         let rowResults;
@@ -378,6 +374,7 @@ async function executeTreeComparison(task, window, instanceId, params) {
             fs.renameSync(comparems2tmpJSON, cmpFileJSON);
             fs.renameSync(comparems2tmp, cmpFile);
             llog(window, 'Compare file created: ' + cmpFileJSON);
+            updateProgress(window, state.mgfFiles.length, file1Idx, file2Idx);
             return { success: true, cmpFileJSON };
 
         } catch (error) {
@@ -387,6 +384,12 @@ async function executeTreeComparison(task, window, instanceId, params) {
     });
 }
 
+function updateProgress(window, nMgfFiles, file1Idx, file2Idx) {
+    const totalComparisons = (nMgfFiles * (nMgfFiles - 1)) / 2;
+    const completedComparisons = ((file1Idx - 1) * file1Idx) / 2 + file2Idx + 1;
+    const progress = completedComparisons / totalComparisons;
+    safeWindowSend(window, 'progress-update', progress * 100);
+}
 
 async function makeTree(window, instanceId, params) {
     // Check if window is still valid first
