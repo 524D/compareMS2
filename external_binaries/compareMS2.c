@@ -779,18 +779,21 @@ static int writeJSON(ParametersType *par, DatasetType *datasetA, DatasetType *da
 		}
 	}
 	fprintf(output, "\t\"setMetric\": %i,\n", par->metric);
-	fprintf(output,
-			"\t\"scanRange\": [%ld, %ld],\n\t\"maxScanDiff\": %1.2f,\n\t\"maxMzDiff\": %1.4f,\n\t\"scalingPower\": %1.2f,\n\t\"noiseThreshold\": %1.1f,\n\t\"minBasepeakIntensity\": %1.2f,\n\t\"minTotalIonCurrent\": %1.2f,\n",
-			par->startScan, par->endScan, par->maxScanNumberDifference, par->maxPrecursorDifference,
-			par->scaling, par->noise, par->minBasepeakIntensity, par->minTotalIonCurrent);
+	fprintf(output, "\t\"scanRange\": [%ld, %ld],\n", par->startScan, par->endScan);
+	fprintf(output, "\t\"maxScanDiff\": %.5f,\n", par->maxScanNumberDifference);
+	fprintf(output, "\t\"maxMzDiff\": %.5f,\n", par->maxPrecursorDifference);
+	fprintf(output, "\t\"scalingPower\": %.5f,\n", par->scaling);
+	fprintf(output, "\t\"noiseThreshold\": %.5f,\n", par->noise);
+	fprintf(output, "\t\"minBasepeakIntensity\": %1.2f,\n", par->minBasepeakIntensity);
+	fprintf(output, "\t\"minTotalIonCurrent\": %1.2f,\n", par->minTotalIonCurrent);
 	if (par->qc == 0)
 		fprintf(output, "\t\"datasetAQC\": %ld,\n", datasetA->Size);
 	if (par->qc == 0)
 		fprintf(output, "\t\"datasetBQC\": %ld,\n", datasetB->Size);
 	fprintf(output, "\t\"nrGtCutoff\": %ld,\n", greaterThanCutoff);
 	fprintf(output, "\t\"nrComparisons\": %ld,\n", nComparisons);
-	fprintf(output, "\t\"minPeaks\": %ld,\n", datasetA->Size);
-	fprintf(output, "\t\"maxPeaks\": %ld,\n", datasetB->Size);
+	fprintf(output, "\t\"minPeaks\": %ld,\n", par->minPeaks);
+	fprintf(output, "\t\"maxPeaks\": %ld,\n", par->peakCount);
 	fprintf(output, "\t\"mzRange\": [%.4f, %.4f]\n,", par->minMz, par->maxMz);
 	fprintf(output, "\t\"mzBinSize\": %.4f,\n", par->binSize);
 	fprintf(output, "\t\"nrMzBins\": %ld,\n", par->nBins);
