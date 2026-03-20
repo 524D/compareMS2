@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld(
         onLogError: (callback) => ipcRenderer.on('logError', (_event, message) => callback(message)),
         onSetActivity: (callback) => ipcRenderer.on('setActivity', (_event, message) => callback(message)),
         onProgressUpdate: (callback) => ipcRenderer.on('progress-update', (_event, progress) => callback(progress)),
+        onError: (callback) => ipcRenderer.on('s2s-error', (_event, message) => callback(message)),
         toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
     }
 )

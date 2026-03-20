@@ -158,6 +158,7 @@ async function runS2S(params, window) {
     const compareResults = [];
     let completedTasks = 0;
     const totalTasks = comparisonTasks.length;
+    let aborted = false;
 
     // Function to execute a single comparison
     async function executeComparison(task) {
@@ -189,6 +190,9 @@ async function runS2S(params, window) {
 
         // Use the parallelization manager to control execution
         return await parallelManager.executeTask(async () => {
+            if (aborted) {
+                throw new Error('aborted');
+            }
             // Check if window is still valid before starting process
             if (!isWindowValid(window)) {
                 return { success: false, error: 'Window closed', sampleFile };
@@ -221,7 +225,7 @@ async function runS2S(params, window) {
                 });
             } catch (error) {
                 elog(window, 'Error running compareMS2:', error);
-                return { success: false, error, sampleFile };
+                throw error;
             }
 
             // Rename the output file to the final name
@@ -231,8 +235,9 @@ async function runS2S(params, window) {
                 llog(window, 'Compare file created: ' + cmpFileJSON);
                 return { success: true, cmpFileJSON, sampleFile };
             } else {
-                elog(window, 'Compare file not created: ' + cmpFileJSON);
-                return { success: false, error: 'Output file not created', sampleFile };
+                const err = new Error('Output file not created: ' + cmpFileJSON);
+                elog(window, err.message);
+                throw err;
             }
         });
     }
@@ -274,34 +279,24 @@ async function runS2S(params, window) {
 
     // Execute all comparisons in parallel using Promise.all
     // The parallelization manager will handle the actual concurrency control
-    const allResults = await Promise.all(
-        comparisonTasks.map(async (task) => {
-            try {
+    try {
+        await Promise.all(
+            comparisonTasks.map(async (task) => {
                 const result = await executeComparison(task);
                 processCompletedComparison(result);
                 return result;
-            } catch (error) {
-                elog(window, 'Comparison task failed:', error);
-                errors++;
-                completedTasks++;
-
-                // Update progress bar even for errors
-                const progress = (completedTasks / totalTasks) * 100;
-                safeWindowSend(window, 'progress-update', progress);
-
-                return { success: false, error, sampleFile: task.sampleFile };
-            }
-        })
-    );
+            })
+        );
+    } catch (error) {
+        aborted = true;
+        cleanupWindowResources(window.id);
+        safeWindowSend(window, 's2s-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
+        return;
+    }
 
     // After all comparisons, send a message to the renderer process to indicate completion
     safeWindowSend(window, 'progress-update', 100);
-
-    if (errors > 0) {
-        setActivity(window, `spectra2species comparison completed with ${errors} errors. Check the logs for details.`);
-    } else {
-        setActivity(window, 'spectra2species comparison completed successfully.');
-    }
+    setActivity(window, 'spectra2species comparison completed successfully.');
 }
 
 // Convert distance to similarity

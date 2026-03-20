@@ -94,6 +94,11 @@ window.s2sAPI.onSetActivity((message) => {
     }
 });
 
+// Handle error messages from the main process
+window.s2sAPI.onError((message) => {
+    alert(message);
+});
+
 // Handle progress updates from the main process
 window.s2sAPI.onProgressUpdate((progress) => {
     const progressBar = document.getElementById('progress');
