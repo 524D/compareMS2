@@ -304,10 +304,6 @@ async function executeTreeComparison(task, window, instanceId, params) {
     const state = computationStates.get(instanceId);
     const { mgf1, mgf2, file1Idx, file2Idx } = task;
 
-    // Send activity update
-    const activity = `Comparing ${path.basename(mgf1)} vs ${path.basename(mgf2)}`;
-    setActivity(window, activity);
-
     // Order alphabetically for consistent hashing
     let orderedMgf1 = mgf1;
     let orderedMgf2 = mgf2;
@@ -339,6 +335,9 @@ async function executeTreeComparison(task, window, instanceId, params) {
                     return;
                 }
 
+                // Send activity update
+                const activity = `Comparing ${path.basename(orderedMgf1)} vs ${path.basename(orderedMgf2)}`;
+                setActivity(window, activity);
                 const cmp_ms2 = spawn(compareMS2exe, cmdArgsWithOutput);
 
                 // Track this process
