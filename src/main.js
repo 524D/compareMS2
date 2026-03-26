@@ -48,6 +48,26 @@ const defaultOptions = {
 // The filename where options of the last run are stored
 const prevOptionsFn = getUserDataFn();
 
+// Parse any command line arguments supplied when launching the app.
+// These override saved options and defaults (applied in the request-options handler).
+const USAGE_STRING =
+    'usage: compareMS2 [-h]' +
+    ' [-A <first dataset filename>]' +
+    ' [-B <second dataset filename>]' +
+    ' [-W <first scan number>,<last scan number>]' +
+    ' [-R <first retention time>,<last retention time>]' +
+    ' [-c <score cutoff>]' +
+    ' [-o <output filename>]' +
+    ' [-m <min base peak intensity>,<min total ion current>]' +
+    ' [-w <maximum scan number difference>]' +
+    ' [-r <maximum retention time difference>]' +
+    ' [-p <maximum difference in precursor mass>]' +
+    ' [-s <scaling power>]' +
+    ' [-n <noise threshold>]' +
+    ' [-d <distance metric (0, 1 or 2)>]' +
+    ' [-q <QC measure (0)>]';
+const cliArgOverrides = parseCommandLineArgs();
+
 // We have split the code for the different compare modes into separate files
 // This is to keep the main.js file clean and to allow for easier maintenance
 // Some parameters are shared between the different compare modes, so we define them here
@@ -170,11 +190,14 @@ ipcMain.on('request-options', (event) => {
     // Check if the options file exists
     fs.access(prevOptionsFn, fs.F_OK, (err) => {
         if (err) {
-            // Load the default options 
+            // Load the default options
+            applyCliArgsToOptions(defaultOptions);
             updateOptionsToRenderer(defaultOptions);
         } else {
             // If the file exists, load the options from the file
             loadOptionsFromFile(prevOptionsFn, true, (options) => {
+                // Apply CLI overrides on top of saved options
+                applyCliArgsToOptions(options);
                 // Update the options in the main window
                 updateOptionsToRenderer(options);
             });
@@ -609,6 +632,139 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
         'heatmap': [heatMapMsg, heatMapSubmitEnabled],
         'spec-to-species': [spectra2SpeciesMsg, spectra2SpeciesSubmitEnabled]
     };
+}
+
+// Parse command line arguments supplied when launching the app.
+// Flags mirror those of the compareMS2 binary:
+//   -h                  print this help and exit
+//   -A <first dataset filename>
+//   -B <second dataset filename>
+//   -W <first scan number>,<last scan number>
+//   -R <first retention time>,<last retention time>
+//   -c <score cutoff>
+//   -o <output filename>
+//   -m <min base peak intensity>,<min total ion current>
+//   -w <maximum scan number difference>
+//   -r <maximum retention time difference>
+//   -p <maximum difference in precursor mass>
+//   -s <scaling power>
+//   -n <noise threshold>
+//   -d <distance metric (0, 1 or 2)>
+//   -q <QC measure (0)>
+function parseCommandLineArgs() {
+    // In packaged apps argv[0] is the executable; in development argv[0] is
+    // electron and argv[1] is the app path, so user args start at index 2.
+    const rawArgs = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
+    const overrides = {};
+
+    for (let i = 0; i < rawArgs.length; i++) {
+        const arg = rawArgs[i];
+        if (arg.length < 2 || arg[0] !== '-') continue;
+
+        const flag = arg[1];
+        // Electron's own switches start with '--'; skip them,
+        // except --help which we handle explicitly.
+        if (flag === '-') {
+            if (arg === '--help') {
+                process.stdout.write(USAGE_STRING + '\n');
+                process.exit(0);
+            }
+            continue;
+        }
+
+        // -h prints usage and exits immediately (no value needed).
+        if (flag === 'h') {
+            process.stdout.write(USAGE_STRING + '\n');
+            process.exit(0);
+        }
+
+        let value;
+        if (arg.length > 2) {
+            value = arg.slice(2);
+        } else {
+            i++;
+            if (i >= rawArgs.length) break;
+            value = rawArgs[i];
+        }
+
+        switch (flag) {
+            case 'A':
+                overrides.mzFile1 = value;
+                break;
+            case 'B':
+                overrides.mzFile2 = value;
+                break;
+            case 'W': {
+                const parts = value.split(',');
+                if (parts.length === 2) {
+                    overrides.startScan = parseInt(parts[0], 10);
+                    overrides.endScan = parseInt(parts[1], 10);
+                }
+                break;
+            }
+            case 'R': {
+                const parts = value.split(',');
+                if (parts.length === 2) {
+                    overrides.startRT = parseFloat(parts[0]);
+                    overrides.endRT = parseFloat(parts[1]);
+                }
+                break;
+            }
+            case 'c':
+                overrides.cutoff = parseFloat(value);
+                break;
+            case 'o':
+                overrides.outBasename = value;
+                break;
+            case 'm': {
+                const parts = value.split(',');
+                if (parts.length === 2) {
+                    overrides.minBasepeakIntensity = parseFloat(parts[0]);
+                    overrides.minTotalIonCurrent = parseFloat(parts[1]);
+                }
+                break;
+            }
+            case 'w':
+                overrides.maxScanNumberDifference = parseFloat(value);
+                break;
+            case 'r':
+                overrides.maxRTDifference = parseFloat(value);
+                break;
+            case 'p':
+                overrides.maxPrecursorDifference = parseFloat(value);
+                break;
+            case 's':
+                overrides.scaling = parseFloat(value);
+                break;
+            case 'n':
+                overrides.noise = parseFloat(value);
+                break;
+            case 'd':
+                overrides.metric = parseInt(value, 10);
+                break;
+            case 'q':
+                overrides.qc = parseInt(value, 10);
+                break;
+            default:
+                console.warn('Unknown command line flag: -' + flag);
+        }
+    }
+
+    return overrides;
+}
+
+// Apply CLI argument overrides to an options object.
+// Also updates fileParams for file-related flags (-A, -B) so that
+// updateOptionsToRenderer picks up the correct paths.
+function applyCliArgsToOptions(options) {
+    Object.assign(options, cliArgOverrides);
+    if (cliArgOverrides.mzFile1 !== undefined) {
+        fileParams.file1 = cliArgOverrides.mzFile1;
+        getSampleDirFiles(path.dirname(cliArgOverrides.mzFile1));
+    }
+    if (cliArgOverrides.mzFile2 !== undefined) {
+        fileParams.file2 = cliArgOverrides.mzFile2;
+    }
 }
 
 function updateSampleToSpeciesFile(dir, fileParams) {
