@@ -52,8 +52,9 @@ const prevOptionsFn = getUserDataFn();
 // These override saved options and defaults (applied in the request-options handler).
 const USAGE_STRING =
     'usage: compareMS2 [-h]' +
-    ' [-A <first dataset filename>]' +
-    ' [-B <second dataset filename>]' +
+    ' [<mgf directory>]' +
+    ' [<first dataset.mgf>]' +
+    ' [<second dataset.mgf>]' +
     ' [-W <first scan number>,<last scan number>]' +
     ' [-R <first retention time>,<last retention time>]' +
     ' [-c <score cutoff>]' +
@@ -637,8 +638,6 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
 // Parse command line arguments supplied when launching the app.
 // Flags mirror those of the compareMS2 binary:
 //   -h                  print this help and exit
-//   -A <first dataset filename>
-//   -B <second dataset filename>
 //   -W <first scan number>,<last scan number>
 //   -R <first retention time>,<last retention time>
 //   -c <score cutoff>
@@ -651,15 +650,44 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
 //   -n <noise threshold>
 //   -d <distance metric (0, 1 or 2)>
 //   -q <QC measure (0)>
+// Non-flag arguments that are existing .mgf files are treated as the first
+// and second dataset filenames (at most 2). A non-flag argument that is an
+// existing directory is treated as the mgfDir (at most 1).
 function parseCommandLineArgs() {
     // In packaged apps argv[0] is the executable; in development argv[0] is
     // electron and argv[1] is the app path, so user args start at index 2.
     const rawArgs = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
     const overrides = {};
+    const mgfFiles = [];
+    let mgfDir = undefined;
 
     for (let i = 0; i < rawArgs.length; i++) {
         const arg = rawArgs[i];
-        if (arg.length < 2 || arg[0] !== '-') continue;
+
+        // Non-flag argument: treat as a positional MGF filename or directory.
+        if (arg[0] !== '-') {
+            let stat;
+            try { stat = fs.statSync(arg); } catch (e) { stat = null; }
+            if (stat && stat.isDirectory()) {
+                if (mgfDir !== undefined) {
+                    process.stderr.write('Error: more than one directory specified. At most 1 is allowed.\n');
+                    process.exit(1);
+                }
+                mgfDir = arg;
+            } else if (stat && stat.isFile() && arg.toLowerCase().endsWith('.mgf')) {
+                mgfFiles.push(arg);
+                if (mgfFiles.length > 2) {
+                    process.stderr.write('Error: more than 2 MGF files specified. At most 2 are allowed.\n');
+                    process.exit(1);
+                }
+            } else {
+                process.stderr.write('Error: "' + arg + '" is not an existing .mgf file or directory.\n');
+                process.exit(1);
+            }
+            continue;
+        }
+
+        if (arg.length < 2) continue;
 
         const flag = arg[1];
         // Electron's own switches start with '--'; skip them,
@@ -688,12 +716,6 @@ function parseCommandLineArgs() {
         }
 
         switch (flag) {
-            case 'A':
-                overrides.mzFile1 = value;
-                break;
-            case 'B':
-                overrides.mzFile2 = value;
-                break;
             case 'W': {
                 const parts = value.split(',');
                 if (parts.length === 2) {
@@ -750,17 +772,27 @@ function parseCommandLineArgs() {
         }
     }
 
+    if (mgfFiles.length >= 1) overrides.mzFile1 = mgfFiles[0];
+    if (mgfFiles.length >= 2) overrides.mzFile2 = mgfFiles[1];
+    if (mgfDir !== undefined) overrides.mgfDir = mgfDir;
+
     return overrides;
 }
 
 // Apply CLI argument overrides to an options object.
-// Also updates fileParams for file-related flags (-A, -B) so that
+// Also updates fileParams for file-related overrides so that
 // updateOptionsToRenderer picks up the correct paths.
 function applyCliArgsToOptions(options) {
     Object.assign(options, cliArgOverrides);
+    if (cliArgOverrides.mgfDir !== undefined) {
+        getSampleDirFiles(cliArgOverrides.mgfDir);
+    }
     if (cliArgOverrides.mzFile1 !== undefined) {
         fileParams.file1 = cliArgOverrides.mzFile1;
-        getSampleDirFiles(path.dirname(cliArgOverrides.mzFile1));
+        // Only derive mgfDir from the file if not explicitly specified
+        if (cliArgOverrides.mgfDir === undefined) {
+            getSampleDirFiles(path.dirname(cliArgOverrides.mzFile1));
+        }
     }
     if (cliArgOverrides.mzFile2 !== undefined) {
         fileParams.file2 = cliArgOverrides.mzFile2;
