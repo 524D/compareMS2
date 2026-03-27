@@ -51,22 +51,22 @@ const prevOptionsFn = getUserDataFn();
 // Parse any command line arguments supplied when launching the app.
 // These override saved options and defaults (applied in the request-options handler).
 const USAGE_STRING =
-    'usage: compareMS2 [-h]' +
+    'usage: compareMS2 [-h|--help]' +
     ' [<mgf directory>]' +
     ' [<first dataset.mgf>]' +
     ' [<second dataset.mgf>]' +
-    ' [-W <first scan number>,<last scan number>]' +
-    ' [-R <first retention time>,<last retention time>]' +
-    ' [-c <score cutoff>]' +
-    ' [-o <output filename>]' +
-    ' [-m <min base peak intensity>,<min total ion current>]' +
-    ' [-w <maximum scan number difference>]' +
-    ' [-r <maximum retention time difference>]' +
-    ' [-p <maximum difference in precursor mass>]' +
-    ' [-s <scaling power>]' +
-    ' [-n <noise threshold>]' +
-    ' [-d <distance metric (0, 1 or 2)>]' +
-    ' [-q <QC measure (0)>]';
+    ' [-W|--scan-range <first scan number>,<last scan number>]' +
+    ' [-R|--rt-range <first retention time>,<last retention time>]' +
+    ' [-c|--cutoff <score cutoff>]' +
+    ' [-o|--output <output basename>]' +
+    ' [-m|--min-intensity <min base peak intensity>,<min total ion current>]' +
+    ' [-w|--max-scan-diff <maximum scan number difference>]' +
+    ' [-r|--max-rt-diff <maximum retention time difference>]' +
+    ' [-p|--max-precursor-diff <maximum difference in precursor mass>]' +
+    ' [-s|--scaling <scaling power>]' +
+    ' [-n|--noise <noise threshold>]' +
+    ' [-d|--metric <distance metric (0, 1 or 2)>]' +
+    ' [-q|--qc <QC measure (0)>]';
 const cliArgOverrides = parseCommandLineArgs();
 
 // We have split the code for the different compare modes into separate files
@@ -636,23 +636,99 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
 }
 
 // Parse command line arguments supplied when launching the app.
-// Flags mirror those of the compareMS2 binary:
-//   -h                  print this help and exit
-//   -W <first scan number>,<last scan number>
-//   -R <first retention time>,<last retention time>
-//   -c <score cutoff>
-//   -o <output filename>
-//   -m <min base peak intensity>,<min total ion current>
-//   -w <maximum scan number difference>
-//   -r <maximum retention time difference>
-//   -p <maximum difference in precursor mass>
-//   -s <scaling power>
-//   -n <noise threshold>
-//   -d <distance metric (0, 1 or 2)>
-//   -q <QC measure (0)>
+// Flags mirror those of the compareMS2 binary (short and long forms):
+//   -h  / --help                 print this help and exit
+//   -W  / --scan-range           <first scan number>,<last scan number>
+//   -R  / --rt-range             <first retention time>,<last retention time>
+//   -c  / --cutoff               <score cutoff>
+//   -o  / --output               <output basename>
+//   -m  / --min-intensity        <min base peak intensity>,<min total ion current>
+//   -w  / --max-scan-diff        <maximum scan number difference>
+//   -r  / --max-rt-diff          <maximum retention time difference>
+//   -p  / --max-precursor-diff   <maximum difference in precursor mass>
+//   -s  / --scaling              <scaling power>
+//   -n  / --noise                <noise threshold>
+//   -d  / --metric               <distance metric (0, 1 or 2)>
+//   -q  / --qc                   <QC measure (0)>
 // Non-flag arguments that are existing .mgf files are treated as the first
 // and second dataset filenames (at most 2). A non-flag argument that is an
 // existing directory is treated as the mgfDir (at most 1).
+
+// Maps long option names to their single-character equivalents.
+const longNameToShortFlag = {
+    'scan-range': 'W',
+    'rt-range': 'R',
+    'cutoff': 'c',
+    'output': 'o',
+    'min-intensity': 'm',
+    'max-scan-diff': 'w',
+    'max-rt-diff': 'r',
+    'max-precursor-diff': 'p',
+    'scaling': 's',
+    'noise': 'n',
+    'metric': 'd',
+    'qc': 'q',
+};
+
+// Apply a single parsed flag+value to the overrides object.
+function applyFlag(flag, value, overrides) {
+    switch (flag) {
+        case 'W': {
+            const parts = value.split(',');
+            if (parts.length === 2) {
+                overrides.startScan = parseInt(parts[0], 10);
+                overrides.endScan = parseInt(parts[1], 10);
+            }
+            break;
+        }
+        case 'R': {
+            const parts = value.split(',');
+            if (parts.length === 2) {
+                overrides.startRT = parseFloat(parts[0]);
+                overrides.endRT = parseFloat(parts[1]);
+            }
+            break;
+        }
+        case 'c':
+            overrides.cutoff = parseFloat(value);
+            break;
+        case 'o':
+            overrides.outBasename = value;
+            break;
+        case 'm': {
+            const parts = value.split(',');
+            if (parts.length === 2) {
+                overrides.minBasepeakIntensity = parseFloat(parts[0]);
+                overrides.minTotalIonCurrent = parseFloat(parts[1]);
+            }
+            break;
+        }
+        case 'w':
+            overrides.maxScanNumberDifference = parseFloat(value);
+            break;
+        case 'r':
+            overrides.maxRTDifference = parseFloat(value);
+            break;
+        case 'p':
+            overrides.maxPrecursorDifference = parseFloat(value);
+            break;
+        case 's':
+            overrides.scaling = parseFloat(value);
+            break;
+        case 'n':
+            overrides.noise = parseFloat(value);
+            break;
+        case 'd':
+            overrides.metric = parseInt(value, 10);
+            break;
+        case 'q':
+            overrides.qc = parseInt(value, 10);
+            break;
+        default:
+            console.warn('Unknown command line flag: -' + flag);
+    }
+}
+
 function parseCommandLineArgs() {
     // In packaged apps argv[0] is the executable; in development argv[0] is
     // electron and argv[1] is the app path, so user args start at index 2.
@@ -690,13 +766,33 @@ function parseCommandLineArgs() {
         if (arg.length < 2) continue;
 
         const flag = arg[1];
-        // Electron's own switches start with '--'; skip them,
-        // except --help which we handle explicitly.
+
+        // Long option: --name or --name=value
         if (flag === '-') {
-            if (arg === '--help') {
+            const longArg = arg.slice(2);
+            if (longArg === 'help') {
                 process.stdout.write(USAGE_STRING + '\n');
                 process.exit(0);
             }
+            const eqIdx = longArg.indexOf('=');
+            let longKey, longVal;
+            if (eqIdx !== -1) {
+                longKey = longArg.slice(0, eqIdx);
+                longVal = longArg.slice(eqIdx + 1);
+            } else {
+                longKey = longArg;
+                i++;
+                if (i >= rawArgs.length) {
+                    process.stderr.write('Error: missing value for --' + longKey + '\n');
+                    process.exit(1);
+                }
+                longVal = rawArgs[i];
+            }
+            const shortFlag = longNameToShortFlag[longKey];
+            if (shortFlag) {
+                applyFlag(shortFlag, longVal, overrides);
+            }
+            // Unknown long options (Electron internals etc.) are silently ignored.
             continue;
         }
 
@@ -706,6 +802,7 @@ function parseCommandLineArgs() {
             process.exit(0);
         }
 
+        // Short option: -X or -Xvalue
         let value;
         if (arg.length > 2) {
             value = arg.slice(2);
@@ -714,62 +811,7 @@ function parseCommandLineArgs() {
             if (i >= rawArgs.length) break;
             value = rawArgs[i];
         }
-
-        switch (flag) {
-            case 'W': {
-                const parts = value.split(',');
-                if (parts.length === 2) {
-                    overrides.startScan = parseInt(parts[0], 10);
-                    overrides.endScan = parseInt(parts[1], 10);
-                }
-                break;
-            }
-            case 'R': {
-                const parts = value.split(',');
-                if (parts.length === 2) {
-                    overrides.startRT = parseFloat(parts[0]);
-                    overrides.endRT = parseFloat(parts[1]);
-                }
-                break;
-            }
-            case 'c':
-                overrides.cutoff = parseFloat(value);
-                break;
-            case 'o':
-                overrides.outBasename = value;
-                break;
-            case 'm': {
-                const parts = value.split(',');
-                if (parts.length === 2) {
-                    overrides.minBasepeakIntensity = parseFloat(parts[0]);
-                    overrides.minTotalIonCurrent = parseFloat(parts[1]);
-                }
-                break;
-            }
-            case 'w':
-                overrides.maxScanNumberDifference = parseFloat(value);
-                break;
-            case 'r':
-                overrides.maxRTDifference = parseFloat(value);
-                break;
-            case 'p':
-                overrides.maxPrecursorDifference = parseFloat(value);
-                break;
-            case 's':
-                overrides.scaling = parseFloat(value);
-                break;
-            case 'n':
-                overrides.noise = parseFloat(value);
-                break;
-            case 'd':
-                overrides.metric = parseInt(value, 10);
-                break;
-            case 'q':
-                overrides.qc = parseInt(value, 10);
-                break;
-            default:
-                console.warn('Unknown command line flag: -' + flag);
-        }
+        applyFlag(flag, value, overrides);
     }
 
     if (mgfFiles.length >= 1) overrides.mzFile1 = mgfFiles[0];
