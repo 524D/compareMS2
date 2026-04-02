@@ -32,6 +32,15 @@ function initPhylTree(genParams) {
     });
 
 
+    // Start computation when the renderer signals it is fully initialized
+    ipcMain.on('tree-ready', (event) => {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) return;
+        const state = computationStates.get(window.id);
+        if (!state) return;
+        runTreeComparison(window, window.id, state.params);
+    });
+
     // FIXME: This should be handled by the main process
     ipcMain.on('tree-download-image', async (event, imageType, svgData, filename) => {
         const window = BrowserWindow.fromWebContents(event.sender);
@@ -83,7 +92,8 @@ function showPhylTreeWindow(mainWindow, icon, params) {
         compareDir: '',
         compResultListFile: '',
         newick: '',
-        topology: ''
+        topology: '',
+        params: params
     });
 
     phyltreeWindow.on('closed', () => {
@@ -98,15 +108,8 @@ function showPhylTreeWindow(mainWindow, icon, params) {
     }
 
     phyltreeWindow.show();
-    // Wait for the window to be ready before running the comparison
-    // and wait 1 second extra to ensure the phylotree renderer is ready
-    phyltreeWindow.webContents.once('did-finish-load',
-        () => {
-            setTimeout(() => {
-                runTreeComparison(phyltreeWindow, phyltreeWindow.id, params);
-            }, 1000);
-        }
-    );
+    // Computation starts when the renderer sends 'tree-ready' after
+    // RequireJS finishes loading phylotree and d3 (see tree.js / tree-preload.js).
 }
 
 /**

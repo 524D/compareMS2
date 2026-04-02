@@ -433,6 +433,9 @@
 
         // Add zoom control:
         // https://observablehq.com/@d3/programmatic-zoom
+
+        // Signal to the main process that initialization is complete
+        window.treeAPI.notifyReady();
     }
 
     // Check if libraries are already loaded or wait for them

@@ -25,5 +25,8 @@ contextBridge.exposeInMainWorld('treeAPI', {
     // Remove listeners
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
 
+    // Notify the main process that the tree renderer is fully initialized
+    notifyReady: () => ipcRenderer.send('tree-ready'),
+
 });
 
