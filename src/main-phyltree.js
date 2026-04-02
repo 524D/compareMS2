@@ -86,11 +86,6 @@ function showPhylTreeWindow(mainWindow, icon, params) {
         topology: ''
     });
 
-    // On window close, remove from maps
-    phyltreeWindow.on('close', () => {
-        cleanupWindowResourcesPhyltree(phyltreeWindow.id);
-    });
-
     phyltreeWindow.on('closed', () => {
         cleanupWindowResourcesPhyltree(phyltreeWindow.id);
     });

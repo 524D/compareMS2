@@ -37,10 +37,6 @@ function showHeatMapWindow(mainWindow, icon, params) {
         icon: icon,
     });
 
-    heatmapWindow.on('close', () => {
-        cleanupWindowResources(heatmapWindow.id);
-    });
-
     heatmapWindow.on('closed', () => {
         cleanupWindowResources(heatmapWindow.id);
     });

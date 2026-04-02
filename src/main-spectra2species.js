@@ -94,10 +94,6 @@ function showS2SWindow(mainWindow, icon, params) {
         },
         icon: icon,
     });
-    s2sWindow.on('close', () => {
-        cleanupWindowResources(s2sWindow.id);
-    });
-
     s2sWindow.on('closed', () => {
         cleanupWindowResources(s2sWindow.id);
     });
