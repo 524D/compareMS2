@@ -18,6 +18,32 @@ var computedItems = {
 document.addEventListener('DOMContentLoaded', function () {
     // Request the options from the main process
     window.electronAPI.requestOptions();
+
+    // Register callbacks for main-process-initiated UI updates
+    window.electronAPI.onShowAbout(() => {
+        document.getElementById('about').style.display = 'block';
+    });
+    window.electronAPI.onSelectedSpeciesFile((p) => {
+        document.getElementById('s2sfile').value = `${p}`;
+    });
+    window.electronAPI.onSelectedDirectory((p) => {
+        document.getElementById('mgfdir').value = p.dir;
+    });
+    window.electronAPI.onSelectedFile1((p) => {
+        document.getElementById('file1').value = `${p}`;
+    });
+    window.electronAPI.onSelectedFile2((p) => {
+        document.getElementById('file2').value = `${p}`;
+    });
+    window.electronAPI.onShowAlert((type, text) => {
+        const modal = document.getElementById('alert-modal');
+        const title = document.getElementById('alert-modal-title');
+        const msg = document.getElementById('alert-modal-text');
+        title.textContent = type === 'error' ? 'Error' : 'Warning';
+        title.className = type === 'error' ? 'alert-error' : 'alert-warning';
+        msg.textContent = text;
+        modal.style.display = 'block';
+    });
 });
 
 // Set all user interface elements according to options
