@@ -6,19 +6,13 @@ const { BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
-
-const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
 
 var generalParams = null;
 
 function initS2S(genParams) {
     generalParams = genParams;
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function readSampleFiles(mgfDir, window) {

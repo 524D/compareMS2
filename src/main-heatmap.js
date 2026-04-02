@@ -6,9 +6,7 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess } = require('./main-common.js');
-
-const compareDirName = 'compareresult'; // Directory where the compare results are stored relative to the mgfDir
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName } = require('./main-common.js');
 
 const xMin = -1.6;
 const xMax = +1.6;
