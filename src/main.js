@@ -149,7 +149,13 @@ function selectMGFfile(title) {
     return files;
 }
 
-function handleStoreImageV2(dummy, defaultName, imgFmt, imageData) {
+function handleStoreImageV2(event, defaultName, imgFmt, imageData) {
+    // Validate that the request comes from a legitimate child window (not mainWindow)
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!senderWindow || senderWindow === mainWindow) {
+        return;
+    }
+
     // Sanitize the defaultName to ensure it is a valid filename
     defaultName = defaultName.replace(/[^a-z0-9_\-\.]/gi, '_').toLowerCase();
     // Ensure the defaultName does not end with a dot
@@ -168,7 +174,7 @@ function handleStoreImageV2(dummy, defaultName, imgFmt, imageData) {
         imageData = Buffer.from(imageData);
     }
 
-    const files = dialog.showSaveDialogSync(mainWindow, {
+    const files = dialog.showSaveDialogSync(senderWindow, {
         title: 'Save image',
         defaultPath: defaultName + '' + imgFmt,
         filters: [
