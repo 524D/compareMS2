@@ -58,7 +58,7 @@ class ParallelizationManager {
         const runningTasks = new Set();
         let taskIndex = 0;
 
-        async function scheduleNextTask() {
+        const scheduleNextTask = async () => {
             if (taskIndex >= tasks.length || runningTasks.size >= effectiveMaxConcurrency) {
                 return;
             }
@@ -76,18 +76,18 @@ class ParallelizationManager {
                 })
                 .finally(async () => {
                     runningTasks.delete(taskPromise);
-                    await scheduleNextTask.call(this);
+                    await scheduleNextTask();
                 });
 
             if (runningTasks.size < effectiveMaxConcurrency && taskIndex < tasks.length) {
-                await scheduleNextTask.call(this);
+                await scheduleNextTask();
             }
-        }
+        };
 
         // Start initial batch of tasks
         const initialPromises = [];
         for (let i = 0; i < Math.min(effectiveMaxConcurrency, tasks.length); i++) {
-            initialPromises.push(scheduleNextTask.call(this));
+            initialPromises.push(scheduleNextTask());
         }
 
         await Promise.all(initialPromises);
