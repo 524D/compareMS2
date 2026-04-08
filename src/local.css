@@ -115,10 +115,15 @@ html, body {
 
 .info-details {
     overflow: auto;
-    height: 1px;
+    height: 150px;
 }
 
 .small-input {
     font-size: 80%;
+}
+
+.stdout-header {
+    font-size: 80%;
+    font-weight: bold;
 }
 

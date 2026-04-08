@@ -403,11 +403,9 @@ document.getElementById("store-image").addEventListener("click", function (e) {
 
 document.getElementById("details").addEventListener("click", function (e) {
     const tvertDetails = document.querySelectorAll(".tvert-details");
-    const infoDetails = document.querySelectorAll(".info-details");
     const expanded = this.getAttribute("aria-expanded") === "true";
 
-    tvertDetails.forEach(element => { element.style.visibility = expanded ? "hidden" : "visible"; });
-    infoDetails.forEach(element => { element.style.height = expanded ? "1px" : "150px"; });
+    tvertDetails.forEach(element => { element.style.display = expanded ? "none" : "block"; });
     this.setAttribute("aria-expanded", String(!expanded));
     this.textContent = expanded ? "Show details" : "Hide details";
 });
