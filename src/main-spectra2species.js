@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 
 var generalParams = null;
@@ -101,6 +101,7 @@ function showS2SWindow(mainWindow, icon, params) {
     s2sWindow.show();
     // Wait for the window to be ready before running the comparison
     s2sWindow.webContents.once('did-finish-load', () => {
+        safeWindowSend(s2sWindow, 'set-log-path', getLogFilePath());
         runS2S(params, s2sWindow);
     });
 }

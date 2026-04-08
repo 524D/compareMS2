@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const lineReader = require('line-reader');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { UPGMA } = require('./upgma.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 
@@ -36,6 +36,7 @@ function initPhylTree(genParams) {
         if (!window) return;
         const state = computationStates.get(window.id);
         if (!state) return;
+        safeWindowSend(window, 'set-log-path', getLogFilePath());
         runTreeComparison(window, window.id, state.params);
     });
 

@@ -42,6 +42,10 @@ window.heatmapAPI.onLogError((message) => {
     appendToStdout(`<span class="warn">${message}</span><br>`);
 });
 
+window.heatmapAPI.onSetLogPath((logPath) => {
+    setLogPath(logPath);
+});
+
 // Handle activity messages from the main process
 window.heatmapAPI.onSetActivity((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');

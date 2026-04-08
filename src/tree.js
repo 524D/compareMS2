@@ -216,6 +216,10 @@
             elog(message);
         });
 
+        window.treeAPI.onSetLogPath((logPath) => {
+            setLogPath(logPath);
+        });
+
         window.treeAPI.onTreeData((event, treeData) => {
             updateTree(treeData);
         });

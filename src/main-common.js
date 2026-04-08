@@ -116,6 +116,14 @@ function getCPUCount() {
     return require('os').cpus().length;
 }
 
+function getLogFilePath() {
+    try {
+        return log.transports.file.getFile().path;
+    } catch (e) {
+        return '(unknown)';
+    }
+}
+
 /**
  * Clean up all resources associated with a window when it's closed
  */
@@ -254,6 +262,7 @@ exports.getHashName = getHashName;
 exports.shortHashObj = shortHashObj;
 exports.getSystemMemoryInfo = getSystemMemoryInfo;
 exports.getCPUCount = getCPUCount;
+exports.getLogFilePath = getLogFilePath;
 exports.cleanupWindowResources = cleanupWindowResources;
 exports.addActiveProcess = addActiveProcess;
 exports.removeActiveProcess = removeActiveProcess;

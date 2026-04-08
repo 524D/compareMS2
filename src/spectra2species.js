@@ -73,6 +73,10 @@ window.s2sAPI.onLogError((message) => {
     appendToStdout(`<span class="warn">${message}</span><br>`);
 });
 
+window.s2sAPI.onSetLogPath((logPath) => {
+    setLogPath(logPath);
+});
+
 // Handle activity messages from the main process
 window.s2sAPI.onSetActivity((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');

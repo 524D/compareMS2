@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 
 const xMin = -1.6;
 const xMax = +1.6;
@@ -49,6 +49,7 @@ function showHeatMapWindow(mainWindow, icon, params) {
     heatmapWindow.show();
     // Wait for the window to be ready before running the comparison
     heatmapWindow.webContents.once('did-finish-load', () => {
+        safeWindowSend(heatmapWindow, 'set-log-path', getLogFilePath());
         runHeatMap(heatmapWindow, params, convertResultToHeatmap);
     });
 }

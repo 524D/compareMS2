@@ -27,5 +27,8 @@ contextBridge.exposeInMainWorld('treeAPI', {
     // Notify the main process that the tree renderer is fully initialized
     notifyReady: () => ipcRenderer.send('tree-ready'),
 
+    // Receive the log file path from the main process
+    onSetLogPath: (callback) => ipcRenderer.on('set-log-path', (_event, logPath) => callback(logPath)),
+
 });
 
