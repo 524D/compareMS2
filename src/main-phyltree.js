@@ -533,7 +533,6 @@ async function finishComputation(window, instanceId, params) {
     safeWindowSend(window, 'progress-update', 100);
 
     setActivity(window, 'Finished');
-    safeWindowSend(window, 'tree-computation-finished');
 }
 
 /**
