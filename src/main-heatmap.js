@@ -98,18 +98,15 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     }
 
     // Convert parameters to command line arguments for the comparems2 executable
-    userparams.experimentalFeatures = 1; // Enable experimental for heatmap output
+    userparams.experimentalFeatures = 1; // Enable experimental for heatmap output in JSON
     const cmdArgs = buildCmdArgs(mzFile1, mzFile2, userparams);
     // Get the hash name and compare file
     const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
 
-    // Insert -x before extenson of cmpFile name for experimental features
-    const cmpFileExpFeatures = cmpFile.replace(/\.txt$/, "-x.txt");
-
-    // Check if the compare file already exists
-    if (fs.existsSync(cmpFileExpFeatures)) {
-        llog(window, 'Compare file already exists: ' + cmpFileExpFeatures);
-        onFinishedFunc(window, cmpFileExpFeatures, title, yAxisLabel, userparams);
+    // Check if the compare file already exists (JSON contains heatmap data)
+    if (fs.existsSync(cmpFileJSON)) {
+        llog(window, 'Compare file already exists: ' + cmpFileJSON);
+        onFinishedFunc(window, cmpFileJSON, title, yAxisLabel, userparams);
         return;
     }
 
@@ -117,10 +114,8 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     // used to avoid stale incomplete output after interrupt
     const comparems2tmp = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp");
     const comparems2tmpJSON = comparems2tmp + '.json';
-    // "Experimental features"=output heatmap data
-    const comparems2tmpX = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + "-x.tmp");
     // Append output filename, should not be part of hash
-    const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-X', comparems2tmpX, '-J', comparems2tmpJSON,];
+    const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON,];
 
     const compareMS2exe = generalParams.compareMS2Exe;
     // Properly quote the command line arguments so that we can paste in in a terminal window
@@ -190,19 +185,15 @@ function runHeatMap(window, userparams, onFinishedFunc) {
             } else {
                 // Compare finished, rename temporary output files
                 // to final filenames
-                fs.rename(comparems2tmpX, cmpFileExpFeatures, function (err) {
+                fs.rename(comparems2tmpJSON, cmpFileJSON, function (err) {
                     if (err) throw err
-                    // Rename the JSON file
-                    fs.rename(comparems2tmpJSON, cmpFileJSON, function (err) {
+                    // Rename the text file
+                    fs.rename(comparems2tmp, cmpFile, function (err) {
                         if (err) throw err
-                        // Rename the text file
-                        fs.rename(comparems2tmp, cmpFile, function (err) {
-                            if (err) throw err
-                        });
                     });
                     // Call the onFinishedFunc with the results
                     if (isWindowValid(window)) {
-                        onFinishedFunc(window, cmpFileExpFeatures, title, yAxisLabel, userparams);
+                        onFinishedFunc(window, cmpFileJSON, title, yAxisLabel, userparams);
                     }
                 });
             }
@@ -210,40 +201,33 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     });
 }
 
-// Convert the TAB delimited data in tabData into the format required by heatmap
-function convertData(tabData) {
+// Convert the massDiffDotProdHistogram from the JSON data into the format required by heatmap
+function convertDataFromJSON(jsonData) {
     let xData = [];
     let yData = [];
     let data = [];
-    let lines = tabData.split('\n');
+    const histogram = jsonData.massDiffDotProdHistogram;
+    const counts = histogram.count;
+    const mzRange = histogram.mzRange;
+    const xRange = mzRange[1] - mzRange[0];
     const yRange = yMax - yMin;
-    const xRange = xMax - xMin;
-    // Remove empty lines
 
-    lines = lines.filter(function (line) {
-        return line.trim() !== '';
-    });
-
-    // We ignore lines at the start that are all zeros
-    const il = lines.length;
+    // We ignore rows at the start that are all zeros
+    const il = counts.length;
     let i;
     for (i = 0; i < il; i++) {
-        let line = lines[i];
-        let items = line.split('\t');
-        if (!(items.every(item => item == 0))) {
-            // Leave the loop when we find the first non-zero line
+        if (!counts[i].every(item => item === 0)) {
+            // Leave the loop when we find the first non-zero row
             break;
         }
     }
 
     const realYmin = (yRange * i) / il + yMin;
 
-    // i is now the index of the first non-zero line
-    // We use the first non-zero row to determine the number of columns
-    let items = lines[i].split('\t');
-    const jl = items.length;
+    // Use first non-zero row to determine number of columns
+    const jl = counts[i].length;
     for (let j = 0; j < jl; j++) {
-        const x = (xRange * j) / jl + xMin;
+        const x = (xRange * j) / jl + mzRange[0];
         xData.push(x);
     }
 
@@ -251,31 +235,24 @@ function convertData(tabData) {
     let maxVal = 0;
     let y = 0;
     for (; i < il; i++) {
-        let line = lines[i];
-        let items = line.split('\t');
-        const jl = items.length;
-
-        // const y = (yRange*i)/il+yMin;
+        const row = counts[i];
         yData.push(y);
-
-        for (let j = 0; j < jl; j++) {
-            let item = items[j];
-            item = Math.log(item);
-            maxVal = Math.max(maxVal, parseFloat(item));
+        for (let j = 0; j < row.length; j++) {
+            const item = Math.log(row[j]);
+            maxVal = Math.max(maxVal, item);
             const x = j; // x here is just the index, not the actual value
             // const x=(xRange*j)/jl + xMin
-            data.push({ value: [x, y, parseFloat(item)] });
+            data.push({ value: [x, y, item] });
         }
         y++;
-
     }
     return [data, xData, yData, realYmin, maxVal];
 }
 
-function convertResultToHeatmap(window, cmpFile, title, yAxisLabel, params) {
-    // Read cmpFile into tabData
-    let tabData = fs.readFileSync(cmpFile, 'utf8');
-    [data, xData, yData, realYMin, maxVal] = convertData(tabData)
+function convertResultToHeatmap(window, cmpFileJSON, title, yAxisLabel, params) {
+    // Read and parse the JSON file
+    const jsonData = JSON.parse(fs.readFileSync(cmpFileJSON, 'utf8'));
+    [data, xData, yData, realYMin, maxVal] = convertDataFromJSON(jsonData)
     var chartContent = {
         title: title,
         yAxisLabel: yAxisLabel,
