@@ -19,7 +19,6 @@ contextBridge.exposeInMainWorld('treeAPI', {
     onLogMessage: (callback) => ipcRenderer.on('logMessage', callback),
     onLogError: (callback) => ipcRenderer.on('logError', callback),
     onTreeData: (callback) => ipcRenderer.on('treeData', callback),
-    onComputationFinished: (callback) => ipcRenderer.on('tree-computation-finished', callback),
     onError: (callback) => ipcRenderer.on('tree-error', callback),
 
     // Remove listeners

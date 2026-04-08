@@ -220,12 +220,6 @@
             updateTree(treeData);
         });
 
-        window.treeAPI.onComputationFinished((event) => {
-            document.getElementById('details').disabled = true;
-            document.querySelector(".tvert-details").style.visibility = "hidden";
-            document.querySelector(".info-details").style.height = "1px";
-        });
-
         window.treeAPI.onError((event, message) => {
             alert(message);
         });
