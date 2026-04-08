@@ -246,18 +246,14 @@
         });
 
         document.getElementById("details").addEventListener("click", function (e) {
-            const detailsDiv = document.querySelector(".tvert-details");
-            const infoDiv = document.querySelector(".info-details");
+            const tvertDetails = document.querySelectorAll(".tvert-details");
+            const infoDetails = document.querySelectorAll(".info-details");
+            const expanded = this.getAttribute("aria-expanded") === "true";
 
-            if (this.innerHTML == "Hide details") {
-                detailsDiv.style.visibility = "hidden";
-                infoDiv.style.height = "1px";
-                this.innerHTML = "Show details";
-            } else {
-                detailsDiv.style.visibility = "visible";
-                infoDiv.style.height = "150px";
-                this.innerHTML = "Hide details";
-            }
+            tvertDetails.forEach(element => { element.style.visibility = expanded ? "hidden" : "visible"; });
+            infoDetails.forEach(element => { element.style.height = expanded ? "1px" : "150px"; });
+            this.setAttribute("aria-expanded", String(!expanded));
+            this.textContent = expanded ? "Show details" : "Hide details";
         });
 
         document.getElementById("qscale").addEventListener("change", function (e) {
