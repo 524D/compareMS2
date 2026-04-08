@@ -312,7 +312,7 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
     // Check if result already exists
     if (fs.existsSync(cmpFileJSON)) {
-        llog(window, 'Compare file already exists: ' + cmpFileJSON);
+        llog(window, 'Compare file already exists: ' + cmpFileJSON, hashName);
         return { success: true, cmpFileJSON };
     }
 
@@ -340,11 +340,10 @@ async function executeTreeComparison(task, window, instanceId, params) {
                 addActiveProcess(instanceId, cmp_ms2);
 
                 cmp_ms2.stdout.on('data', (data) => {
-                    llog(window, data.toString());
+                    llog(window, data.toString(), hashName);
                 });
-
                 cmp_ms2.stderr.on('data', (data) => {
-                    elog(window, data.toString());
+                    elog(window, data.toString(), hashName);
                 });
 
                 cmp_ms2.on('error', (error) => {
@@ -368,12 +367,12 @@ async function executeTreeComparison(task, window, instanceId, params) {
             // Rename temporary file to final name
             fs.renameSync(comparems2tmpJSON, cmpFileJSON);
             fs.renameSync(comparems2tmp, cmpFile);
-            llog(window, 'Compare file created: ' + cmpFileJSON);
+            llog(window, 'Compare file created: ' + cmpFileJSON, hashName);
             updateProgress(window, state.mgfFiles.length, file1Idx, file2Idx);
             return { success: true, cmpFileJSON };
 
         } catch (error) {
-            elog(window, `Error running compareMS2: ${error.message}`);
+            elog(window, `Error running compareMS2: ${error.message}`, hashName);
             throw error;
         }
     });

@@ -15,17 +15,17 @@ const compareDirName = 'compareresult';
 let activeProcesses = new Map(); // Map<windowId, Set<childProcess>>
 
 // Function to log messages to the web page and the Electron log
-function llog(window, msg) {
-    log.info(msg);
-    // FIXME: Logging to the UI takes tremendous time, and is not very useful if here are no errors
-    // So for now, we only log to the console
-    //    safeWindowSend(window, 'logMessage', msg);
+function llog(window, msg, hashName = null) {
+    const prefixed = hashName ? `[${hashName}] ${msg}` : msg;
+    log.info(prefixed);
+    safeWindowSend(window, 'logMessage', prefixed);
 }
 
 // Function to log error messages to the web page and the Electron log
-function elog(window, msg) {
-    log.error(msg);
-    safeWindowSend(window, 'logError', msg);
+function elog(window, msg, hashName = null) {
+    const prefixed = hashName ? `[${hashName}] ${msg}` : msg;
+    log.error(prefixed);
+    safeWindowSend(window, 'logError', prefixed);
 }
 
 // Function to send a message to the renderer process to set activity status

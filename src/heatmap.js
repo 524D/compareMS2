@@ -28,29 +28,18 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-
 // Handle log messages from the main process
 window.heatmapAPI.onLogMessage((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
     message = message.replace(/(?: )/g, '&nbsp;');
-    // Append new line to the output div
-    message += '<br>';
-    // Append the message to the output div
-    const outputDiv = document.getElementById('stdout');
-    if (outputDiv) {
-        outputDiv.innerHTML += message;
-    }
+    appendToStdout(message + '<br>');
 });
 
 // Handle log error messages from the main process
 window.heatmapAPI.onLogError((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
     message = message.replace(/(?: )/g, '&nbsp;');
-    // Append the message to the output div
-    const outputDiv = document.getElementById('stdout');
-    if (outputDiv) {
-        outputDiv.innerHTML += `<span class="warn">${message}</span><br>`;
-    }
+    appendToStdout(`<span class="warn">${message}</span><br>`);
 });
 
 // Handle activity messages from the main process

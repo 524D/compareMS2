@@ -163,7 +163,7 @@ async function runS2S(params, window) {
 
         // Check if the compare file already exists
         if (fs.existsSync(cmpFileJSON)) {
-            llog(window, 'Compare file already exists: ' + cmpFileJSON);
+            llog(window, 'Compare file already exists: ' + cmpFileJSON, hashName);
             return { success: true, cmpFileJSON, sampleFile };
         }
 
@@ -176,7 +176,7 @@ async function runS2S(params, window) {
 
         const compareMS2exe = generalParams.compareMS2Exe;
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgsWithOutput);
-        llog(window, 'Executing: ' + cmdStr + '\n');
+        llog(window, 'Executing: ' + cmdStr + '\n', hashName);
 
         // Use the parallelization manager to control execution
         return await parallelManager.executeTask(async () => {
@@ -214,7 +214,7 @@ async function runS2S(params, window) {
                     });
                 });
             } catch (error) {
-                elog(window, 'Error running compareMS2:', error);
+                elog(window, `Error running compareMS2: ${error.message}`, hashName);
                 throw error;
             }
 
@@ -222,11 +222,11 @@ async function runS2S(params, window) {
             if (fs.existsSync(comparems2tmpJSON)) {
                 fs.renameSync(comparems2tmpJSON, cmpFileJSON);
                 fs.renameSync(comparems2tmp, cmpFile);
-                llog(window, 'Compare file created: ' + cmpFileJSON);
+                llog(window, 'Compare file created: ' + cmpFileJSON, hashName);
                 return { success: true, cmpFileJSON, sampleFile };
             } else {
                 const err = new Error('Output file not created: ' + cmpFileJSON);
-                elog(window, err.message);
+                elog(window, err.message, hashName);
                 throw err;
             }
         });

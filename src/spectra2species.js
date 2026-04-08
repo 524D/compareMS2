@@ -63,24 +63,14 @@ window.s2sAPI.updateChart((distanceMap, compareDir, mzFile1, s2sFile) => {
 window.s2sAPI.onLogMessage((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
     message = message.replace(/(?: )/g, '&nbsp;');
-    // Append new line to the output div
-    message += '<br>';
-    // Append the message to the output div
-    const outputDiv = document.getElementById('stdout');
-    if (outputDiv) {
-        outputDiv.innerHTML += message;
-    }
+    appendToStdout(message + '<br>');
 });
 
 // Handle log error messages from the main process
 window.s2sAPI.onLogError((message) => {
     message = message.replace(/(?:\r\n|\r|\n)/g, '<br>');
     message = message.replace(/(?: )/g, '&nbsp;');
-    // Append the message to the output div
-    const outputDiv = document.getElementById('stdout');
-    if (outputDiv) {
-        outputDiv.innerHTML += `<span class="warn">${message}</span><br>`;
-    }
+    appendToStdout(`<span class="warn">${message}</span><br>`);
 });
 
 // Handle activity messages from the main process

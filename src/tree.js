@@ -63,14 +63,13 @@
         function llog(msg) {
             msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
             msg = msg.replace(/(?: )/g, '&nbsp;');
-            document.getElementById('stdout').innerHTML += msg;
+            appendToStdout(msg);
         }
 
         function elog(msg) {
             msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br>');
             msg = msg.replace(/(?: )/g, '&nbsp;');
-            msg = '<span class="warn">' + msg + '</span>';
-            document.getElementById('stdout').innerHTML += msg;
+            appendToStdout('<span class="warn">' + msg + '</span>');
         }
 
         function updateTree(treeData) {
