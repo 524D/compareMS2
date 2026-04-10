@@ -186,6 +186,7 @@ function runTreeComparison(window, instanceId, params) {
     // Create comparison list file
     state.compResultListFile = path.join(params.mgfDir, `cmp_list-${instanceId}.txt`);
     fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
+    state.completedCount = 0;
     computationStates.set(instanceId, state);
 
     // Check for existing cache files and determine starting point
@@ -202,6 +203,7 @@ function runTreeComparison(window, instanceId, params) {
         for (const cmpFileJSON of resumeInfo.existingCacheFiles) {
             fs.appendFileSync(state.compResultListFile, cmpFileJSON + "\n");
         }
+        state.completedCount = resumeInfo.existingCacheFiles.length;
 
         // Generate intermediate tree with existing data if we have a substantial amount cached
         if (resumeInfo.lastCompleteRow >= 2) {
@@ -261,8 +263,6 @@ async function runParallelTreeComparison(window, instanceId, params, startFromRo
                 mgf2: state.mgfFiles[file2Idx]
             });
         }
-
-        updateProgress(window, nMgf, file1Idx - 1, 0); // Update progress before starting the row
 
         // Execute all comparisons for this row in parallel
         let rowResults;
@@ -369,7 +369,12 @@ async function executeTreeComparison(task, window, instanceId, params) {
             fs.renameSync(comparems2tmpJSON, cmpFileJSON);
             fs.renameSync(comparems2tmp, cmpFile);
             llog(window, 'Compare file created: ' + cmpFileJSON, hashName);
-            updateProgress(window, state.mgfFiles.length, file1Idx, file2Idx);
+            const currentState = computationStates.get(instanceId);
+            if (currentState) {
+                currentState.completedCount = (currentState.completedCount || 0) + 1;
+                const totalComps = (currentState.mgfFiles.length * (currentState.mgfFiles.length - 1)) / 2;
+                safeWindowSend(window, 'progress-update', (currentState.completedCount / totalComps) * 100);
+            }
             return { success: true, cmpFileJSON };
 
         } catch (error) {
@@ -377,13 +382,6 @@ async function executeTreeComparison(task, window, instanceId, params) {
             throw error;
         }
     });
-}
-
-function updateProgress(window, nMgfFiles, file1Idx, file2Idx) {
-    const totalComparisons = (nMgfFiles * (nMgfFiles - 1)) / 2;
-    const completedComparisons = ((file1Idx - 1) * file1Idx) / 2 + file2Idx + 1;
-    const progress = completedComparisons / totalComparisons;
-    safeWindowSend(window, 'progress-update', progress * 100);
 }
 
 async function makeTree(window, instanceId, params) {
