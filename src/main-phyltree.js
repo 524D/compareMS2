@@ -408,7 +408,7 @@ async function makeTree(window, instanceId, params) {
         'Distance matrix created successfully',
         'creating distance matrix',
         (window, instanceId, params, dfArg) => {
-            const df = dfArg + "_distance_matrix.json";
+            const df = dfArg + ".json";
             parseDistanceMatrix(window, instanceId, params, df);
         }
     );
@@ -511,7 +511,7 @@ async function finishComputation(window, instanceId, params) {
     }
 
     // Delete temporary json file
-    const outBasenameTmp = path.join(params.mgfDir, params.outBasename) + `-${instanceId}_distance_matrix.json`;
+    const outBasenameTmp = path.join(params.mgfDir, params.outBasename) + `-${instanceId}.json`;
     if (fs.existsSync(outBasenameTmp)) {
         fs.unlinkSync(outBasenameTmp);
     }

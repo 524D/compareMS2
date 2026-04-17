@@ -33,7 +33,7 @@ const defaultOptions = {
     qc: 0,
     topN: -1,
     s2sFile: "",
-    outBasename: "comp",
+    outBasename: "distance_matrix",
     avgSpecie: true,
     outNexus: false,
     outNewick: false,
