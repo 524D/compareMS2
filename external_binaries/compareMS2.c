@@ -38,7 +38,7 @@
 #define DOTPROD_HISTOGRAM_BINS 200
 #define MASSDIFF_HISTOGRAM_BINS 320
 #define MASSDIFF_HISTOGRAM_RANGE 3.2 // The range of the mass difference histogram in m/z
-#define USAGE_STRING "usage: compareMS2 -A <first dataset filename> -B <second dataset filename> [-W <first scan number>,<last scan number> -R <first retention time>,<last retention time> -c <score cutoff> -o <output filename> -m <minimum base peak signal in MS/MS spectrum for comparison>,<minimum total ion signal in MS/MS spectrum for comparison> -w <maximum scan number difference> -r <maximum retention time difference> -p <maximum difference in precursor mass> -e <maximum mass measurement error> -s <scaling power> -n <noise threshold> -d <distance metric (0, 1 or 2)> -q <QC measure (0)>]"
+#define USAGE_STRING "usage: compareMS2 -A <first dataset filename> -B <second dataset filename> [-W <first scan number>,<last scan number> -R <first retention time>,<last retention time> -c <score cutoff> -o <output filename> -m <minimum base peak signal in MS/MS spectrum for comparison>,<minimum total ion signal in MS/MS spectrum for comparison> -w <maximum scan number difference> -r <maximum retention time difference> -p <maximum difference in precursor mass> -s <scaling power> -n <noise threshold> -d <distance metric (0, 1 or 2)> -q <QC measure (0)>]"
 
 #define	DEFAULT_MIN_BASEPEAK_INTENSITY 0
 #define	DEFAULT_MIN_TOTAL_ION_CURRENT 0
