@@ -55,7 +55,7 @@ Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen
         <tr>
             <td>-</td>
             <td>database search (<a href="https://doi.org/10.1002/(SICI)1522-2683(19991201)20:18<3551::AID-ELPS3551>3.0.CO;2-2">Mascot</a>,
-                <a href="https://doi.org/10.1038/msb4100024">Comet</a>, ...)</td>
+                <a href="https://doi.org/10.1038/msb4100024">Comet</a>, <a href="https://doi.org/10.1021/acs.jproteome.3c00486">Sage</a>, ...)</td>
             <td><i>de novo</i> sequencing (<a href="https://doi.org/10.1002/pro.5560010902">LUTEFISK</a>,
                 <a href="https://doi.org/10.1021/ac048788h">PepNovo</a>, ...)</td>
         </tr>
