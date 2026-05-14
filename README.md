@@ -201,6 +201,10 @@ Fish species authentication in commercial fish products using mass spectrometry 
 
 compareMS2 2.0: An Improved Software for Comparing Tandem Mass Spectrometry Datasets, Marissen M, Varunjikar MS, Laros JFJ, Rasinger JD, Neely BA and Palmblad M, *J. Proteome Res.*  **22(2)**:514–519, 2023, [doi.org/10.1021/acs.jproteome.2c00457](https://doi.org/10.1021/acs.jproteome.2c00457)
 
+Multi-tissue proteogenomic analysis for mechanistic toxicology studies in non-model species, Lin MS, Varunjikar MS, Lie KK, Søfteland L, Dellafiora L, Ørnsrud R, Sanden M, Berntssen MHG, Dorne JLCM, Bafna V and Rasinger JD, *Environment International* **182**:108309, 2023 [https://doi.org/10.1016/j.envint.2023.108309 ](https://doi.org/10.1016/j.envint.2023.108309 )
+
+Unveiling the potential of proteomics in addressing food and feed safety challenges, Perkons I, Varunjikar MS and Rasinger JD, *EFSA Journal* **21(Suppl 1)**:e211013, 2023 [https://doi.org/10.2903/j.efsa.2023.e211013 ](https://doi.org/10.2903/j.efsa.2023.e211013 )
+
 Shotgun proteomics approaches for authentication, biological analyses, and allergen detection in feed and food-grade insect species, Varunjikar MS, Belghit I, Gjerde J, Palmblad M, Oveland E and Rasinger JD, *Food Control* **131**, 2022, [doi.org/10.1016/j.foodcont.2022.108888](https://doi.org/10.1016/j.foodcont.2022.108888)
 
 Comparing novel shotgun DNA sequencing and state-of-the-art proteomics approaches for authentication of fish species in mixed samples, Varunjikar MS, Moreno-Ibarguen C, Andrade-Martinez JS, Tung HS, Belghit I, Palmblad M, Olsvik PA, Reyes A, Rasinger JD and Lie KK, *Food Control* **131**:108417, 2022, [doi.org/10.1016/j.foodcont.2021.108417](https://doi.org/10.1016/j.foodcont.2021.108417)
