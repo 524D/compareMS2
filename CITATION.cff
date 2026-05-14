@@ -1,40 +1,84 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
-title: compareMS2
-message: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+message: Please cite the following works when using this software.
 type: software
+abstract: |-
+  <jats:sec>
+                      <jats:title>RATIONALE</jats:title>
+                      <jats:p>Molecular phylogenetics is the study of evolution and relatedness of organisms or genes. Mass spectrometry is used routinely for bacterial identification and has also been used for phylogenetic analysis, for instance from bone material. Unfortunately, only a small fraction of the acquired tandem mass spectra allow direct interpretation.</jats:p>
+                    </jats:sec>
+                    <jats:sec>
+                      <jats:title>METHODS</jats:title>
+                      <jats:p>We describe a new algorithm and software for molecular phylogenetics using pairwise comparisons of tandem mass spectra from enzymatically digested proteins. The spectra need not be annotated and all acquired data is used in the analysis. To demonstrate the method, we analyzed tryptic digests of sera from four great apes and two other primates.</jats:p>
+                    </jats:sec>
+                    <jats:sec>
+                      <jats:title>RESULTS</jats:title>
+                      <jats:p>The distribution of spectra dot products for thousands of tandem mass spectra collected from two samples provides a measure on the fraction of shared peptides between the two samples. When inverted, this becomes a distance metric. By pairwise comparison between species and averaging over four individuals per species, it was possible to reconstruct the unique correct phylogenetic tree for the great apes and other primates.</jats:p>
+                    </jats:sec>
+                    <jats:sec>
+                      <jats:title>CONCLUSIONS</jats:title>
+                      <jats:p>
+                        The new method described here has several attractive features compared with existing methods, among them simplicity, the unbiased use of all acquired data rather than a small subset of spectra, and the potential use of heavily degraded proteins or proteins with
+                        <jats:italic>a priori</jats:italic>
+                        unknown modifications. Copyright © 2012 John Wiley &amp; Sons, Ltd.
+                      </jats:p>
+                    </jats:sec>
 authors:
-  - given-names: Rob
-    family-names: Marissen
-    email: r.j.marissen@lumc.nl
-    affiliation: >-
-      Center for Proteomics and Metabolomics, Leiden
-      University Medical Center
-    orcid: 'https://orcid.org/0000-0002-1220-9173'
-  - given-names: Magnus
-    family-names: Palmblad
-    email: N.M.Palmblad@lumc.nl
-    affiliation: >-
-      Center for Proteomics and Metabolomics, Leiden
-      University Medical Center
-    orcid: 'https://orcid.org/0000-0002-5865-8994'
+  - family-names: Palmblad
+    given-names: Magnus
+  - family-names: Deelder
+    given-names: André M.
+doi: 10.1002/rcm.6162
 identifiers:
+  - type: doi
+    value: 10.1002/rcm.6162
   - type: url
-    value: >-
-      https://github.com/524D/compareMS2/releases/tag/v2.1.1
-    description: The URL of version 2.1.1 of the software
-repository-code: 'https://github.com/524D/compareMS2'
-abstract: >-
-  compareMS2 calculates the similarity between tandem mass
-  spectrometry datasets, and generates a phylogenetic tree
-  from the results.
-keywords:
-  - proteomics
-  - mass spectrometry
-  - phylogenetics
-  - forensics
-license: MIT
+    value: http://dx.doi.org/10.1002/rcm.6162
+  - type: other
+    value: urn:issn:0951-4198
+title: Molecular phylogenetics by direct comparison of tandem mass spectra
+url: http://dx.doi.org/10.1002/rcm.6162
+preferred-citation:
+  authors:
+    - family-names: Marissen
+      given-names: Rob
+      orcid: https://orcid.org/0000-0002-1220-9173
+    - family-names: Varunjikar
+      given-names: Madhushri S.
+      orcid: https://orcid.org/0000-0001-9011-5642
+    - family-names: Laros
+      given-names: Jeroen F. J.
+    - family-names: Rasinger
+      given-names: Josef D.
+    - family-names: Neely
+      given-names: Benjamin A.
+      orcid: https://orcid.org/0000-0001-6120-7695
+    - family-names: Palmblad
+      given-names: Magnus
+      orcid: https://orcid.org/0000-0002-5865-8994
+  doi: 10.1021/acs.jproteome.2c00457
+  identifiers:
+    - type: doi
+      value: 10.1021/acs.jproteome.2c00457
+    - type: url
+      value: http://dx.doi.org/10.1021/acs.jproteome.2c00457
+    - type: other
+      value: urn:issn:1535-3893
+  title: >-
+    compareMS2 2.0: An Improved Software for Comparing Tandem Mass Spectrometry
+    Datasets
+  url: http://dx.doi.org/10.1021/acs.jproteome.2c00457
+  database: Crossref
+  date-published: 2022-09-29
+  year: 2022
+  month: 9
+  issn: 1535-3893
+  issue: '2'
+  journal: Journal of Proteome Research
+  languages:
+    - en
+  publisher:
+    name: American Chemical Society (ACS)
+  start: '514'
+  end: '519'
+  type: article
+  volume: '22'
