@@ -197,6 +197,42 @@
                 500);
         }
 
+        function getCSSStyles() {
+            // Collect CSS rules from stylesheets that apply to SVG elements
+            let cssText = '';
+
+            // Get all stylesheets
+            for (let sheet of document.styleSheets) {
+                try {
+                    // Only process stylesheets we can access (same origin)
+                    if (sheet.cssRules) {
+                        for (let rule of sheet.cssRules) {
+                            // Include rules that might apply to SVG elements
+                            if (rule.cssText) {
+                                // Filter for rules relevant to phylotree and SVG elements
+                                const ruleText = rule.cssText;
+                                if (ruleText.includes('.tree-') ||
+                                    ruleText.includes('.node') ||
+                                    ruleText.includes('.branch') ||
+                                    ruleText.includes('.clade') ||
+                                    ruleText.includes('.legend') ||
+                                    ruleText.includes('.title') ||
+                                    ruleText.includes('.domain') ||
+                                    ruleText.includes('.tick')) {
+                                    cssText += ruleText + '\n';
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Skip stylesheets we can't access (cross-origin)
+                    console.warn('Could not access stylesheet:', e);
+                }
+            }
+
+            return cssText;
+        }
+
         // ******************************* Event Handlers ******************************************** //
 
         // Set up event listeners
@@ -264,7 +300,16 @@
             const imageType = document.getElementById('img-type').value;
             if (imageType == "svg") {
                 const svg = document.querySelector('#main-chart svg');
-                const svgData = new XMLSerializer().serializeToString(svg);
+                // Clone the SVG to avoid modifying the displayed version
+                const svgClone = svg.cloneNode(true);
+
+                // Collect and inline CSS styles
+                const cssStyles = getCSSStyles();
+                const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
+                styleElement.textContent = cssStyles;
+                svgClone.insertBefore(styleElement, svgClone.firstChild);
+
+                const svgData = new XMLSerializer().serializeToString(svgClone);
                 window.treeAPI.downloadImage('svg', svgData, 'phylotree.svg');
             } else if (imageType == "png") {
                 d3ToPng('#main-chart svg', 'phylotree', { scale: 5 });
