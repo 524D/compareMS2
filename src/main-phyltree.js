@@ -601,7 +601,7 @@ function runCompToDistExe(window, instanceId, params, state, formatFlags, output
                 }
                 resolve();
             } else {
-                elog(window, `${compToDistExe} exited with code 0x${code.toString(16)}`);
+                elog(window, `${compToDistExe} exited with code ${code}`);
                 if (onSuccess) {
                     setActivity(window, `Error ${errorContext}`);
                 }
