@@ -33,6 +33,7 @@
     "@electron-forge/maker-rpm": "^7.10.2",
     "@electron-forge/maker-squirrel": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
-    "electron": "39.2.6"
-  }
+    "electron": "42.2.0"
+  },
+  "packageManager": "yarn@4.14.1"
 }
