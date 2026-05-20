@@ -641,41 +641,6 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
     };
 }
 
-// Parse command line arguments supplied when launching the app.
-// Flags mirror those of the compareMS2 binary (short and long forms):
-//   -h  / --help                 print this help and exit
-//   -W  / --scan-range           <first scan number>,<last scan number>
-//   -R  / --rt-range             <first retention time>,<last retention time>
-//   -c  / --cutoff               <score cutoff>
-//   -o  / --output               <output basename>
-//   -m  / --min-intensity        <min base peak intensity>,<min total ion current>
-//   -w  / --max-scan-diff        <maximum scan number difference>
-//   -r  / --max-rt-diff          <maximum retention time difference>
-//   -p  / --max-precursor-diff   <maximum difference in precursor mass>
-//   -s  / --scaling              <scaling power>
-//   -n  / --noise                <noise threshold>
-//   -d  / --metric               <distance metric (0, 1 or 2)>
-//   -q  / --qc                   <QC measure (0)>
-// Non-flag arguments that are existing .mgf files are treated as the first
-// and second dataset filenames (at most 2). A non-flag argument that is an
-// existing directory is treated as the mgfDir (at most 1).
-
-// Maps long option names to their single-character equivalents.
-const longNameToShortFlag = {
-    'scan-range': 'W',
-    'rt-range': 'R',
-    'cutoff': 'c',
-    'output': 'o',
-    'min-intensity': 'm',
-    'max-scan-diff': 'w',
-    'max-rt-diff': 'r',
-    'max-precursor-diff': 'p',
-    'scaling': 's',
-    'noise': 'n',
-    'metric': 'd',
-    'qc': 'q',
-};
-
 // Apply a single parsed flag+value to the overrides object.
 function applyFlag(flag, value, overrides) {
     switch (flag) {
@@ -735,12 +700,47 @@ function applyFlag(flag, value, overrides) {
     }
 }
 
+// Parse command line arguments supplied when launching the app.
+// Flags mirror those of the compareMS2 binary (short and long forms):
+//   -h  / --help                 print this help and exit
+//   -W  / --scan-range           <first scan number>,<last scan number>
+//   -R  / --rt-range             <first retention time>,<last retention time>
+//   -c  / --cutoff               <score cutoff>
+//   -o  / --output               <output basename>
+//   -m  / --min-intensity        <min base peak intensity>,<min total ion current>
+//   -w  / --max-scan-diff        <maximum scan number difference>
+//   -r  / --max-rt-diff          <maximum retention time difference>
+//   -p  / --max-precursor-diff   <maximum difference in precursor mass>
+//   -s  / --scaling              <scaling power>
+//   -n  / --noise                <noise threshold>
+//   -d  / --metric               <distance metric (0, 1 or 2)>
+//   -q  / --qc                   <QC measure (0)>
+// Non-flag arguments that are existing .mgf files are treated as the first
+// and second dataset filenames (at most 2). A non-flag argument that is an
+// existing directory is treated as the mgfDir (at most 1).
 function parseCommandLineArgs() {
     // In packaged apps argv[0] is the executable; in development argv[0] is
     // electron and argv[1] is the app path, so user args start at index 2.
     const rawArgs = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
     const overrides = {};
     const mgfFiles = [];
+
+    // Maps long option names to their single-character equivalents.
+    const longNameToShortFlag = {
+        'scan-range': 'W',
+        'rt-range': 'R',
+        'cutoff': 'c',
+        'output': 'o',
+        'min-intensity': 'm',
+        'max-scan-diff': 'w',
+        'max-rt-diff': 'r',
+        'max-precursor-diff': 'p',
+        'scaling': 's',
+        'noise': 'n',
+        'metric': 'd',
+        'qc': 'q',
+    };
+
     let mgfDir = undefined;
 
     for (let i = 0; i < rawArgs.length; i++) {
@@ -794,6 +794,7 @@ function parseCommandLineArgs() {
                 }
                 longVal = rawArgs[i];
             }
+
             const shortFlag = longNameToShortFlag[longKey];
             if (shortFlag) {
                 applyFlag(shortFlag, longVal, overrides);
