@@ -195,7 +195,7 @@ function handleStoreImageV2(event, defaultName, imgFmt, imageData) {
 // Get the initial parameters for the main window
 ipcMain.on('request-options', (event) => {
     // Check if the options file exists
-    fs.access(prevOptionsFn, fs.F_OK, (err) => {
+    fs.access(prevOptionsFn, fs.constants.F_OK, (err) => {
         if (err) {
             // Load the default options
             applyCliArgsToOptions(defaultOptions);
@@ -852,7 +852,7 @@ function updateSampleToSpeciesFile(dir, fileParams) {
     var s2sFn = fileParams.s2sFile;
     // Check if sample_to_species.txt exists
     try {
-        fs.accessSync(s2sFnCheck, fs.F_OK);
+        fs.accessSync(s2sFnCheck, fs.constants.F_OK);
         if (!fileParams.sampleToSpeciesManuallySet) {
             // If the file exists and we don't have a s2sFile yet, set it
             s2sFn = s2sFnCheck;
