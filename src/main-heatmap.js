@@ -96,7 +96,7 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     userparams.experimentalFeatures = 1; // Enable experimental for heatmap output in JSON
     const cmdArgs = buildCmdArgs(mzFile1, mzFile2, userparams);
     // Get the hash name and compare file
-    const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
+    const { _, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
 
     // Check if the compare file already exists (JSON contains heatmap data)
     if (fs.existsSync(cmpFileJSON)) {
@@ -107,10 +107,9 @@ function runHeatMap(window, userparams, onFinishedFunc) {
 
     // Temporary output filename of compare ms2
     // used to avoid stale incomplete output after interrupt
-    const comparems2tmp = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp");
-    const comparems2tmpJSON = comparems2tmp + '.json';
+    const comparems2tmpJSON = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp.json");
     // Append output filename, should not be part of hash
-    const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON,];
+    const cmdArgsWithOutput = [...cmdArgs, '-J', comparems2tmpJSON,];
 
     const compareMS2exe = generalParams.compareMS2Exe;
     // Properly quote the command line arguments so that we can paste in in a terminal window
@@ -182,10 +181,6 @@ function runHeatMap(window, userparams, onFinishedFunc) {
                 // to final filenames
                 fs.rename(comparems2tmpJSON, cmpFileJSON, function (err) {
                     if (err) throw err
-                    // Rename the text file
-                    fs.rename(comparems2tmp, cmpFile, function (err) {
-                        if (err) throw err
-                    });
                     // Call the onFinishedFunc with the results
                     if (isWindowValid(window)) {
                         onFinishedFunc(window, cmpFileJSON, title, yAxisLabel, userparams);

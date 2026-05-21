@@ -144,7 +144,7 @@ function findLastCompleteRow(mgfFiles, compareDir, params) {
             }
 
             const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
-            const { cmpFile, cmpFileJSON } = getHashName(cmdArgs, compareDir);
+            const { _, cmpFileJSON } = getHashName(cmdArgs, compareDir);
 
             if (fs.existsSync(cmpFileJSON)) {
                 rowCacheFiles.push(cmpFileJSON);
@@ -309,7 +309,7 @@ async function executeTreeComparison(task, window, instanceId, params) {
     }
 
     const cmdArgs = buildCmdArgs(orderedMgf1, orderedMgf2, params);
-    const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, state.compareDir);
+    const { _, cmpFileJSON, hashName } = getHashName(cmdArgs, state.compareDir);
 
     // Check if result already exists
     if (fs.existsSync(cmpFileJSON)) {
@@ -319,10 +319,9 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
     // Use the parallelization manager to control execution
     return await getParallelizationManager().executeTask(async () => {
-        const comparems2tmp = path.join(state.compareDir, `${hashName}-${instanceId}.tmp`);
-        const comparems2tmpJSON = comparems2tmp + '.json';
+        const comparems2tmpJSON = path.join(state.compareDir, `${hashName}-${instanceId}.tmp.json`);
         const compareMS2exe = generalParams.compareMS2Exe;
-        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON];
+        const cmdArgsWithOutput = [...cmdArgs, '-J', comparems2tmpJSON];
 
         try {
             await new Promise((resolve, reject) => {
@@ -367,7 +366,6 @@ async function executeTreeComparison(task, window, instanceId, params) {
 
             // Rename temporary file to final name
             fs.renameSync(comparems2tmpJSON, cmpFileJSON);
-            fs.renameSync(comparems2tmp, cmpFile);
             llog(window, 'Compare file created: ' + cmpFileJSON, hashName);
             const currentState = computationStates.get(instanceId);
             if (currentState) {

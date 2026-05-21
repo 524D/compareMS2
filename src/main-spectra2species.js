@@ -160,7 +160,7 @@ async function runS2S(params, window) {
         // Convert parameters to command line arguments for the comparems2 executable
         const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
         // Get the hash name and compare file
-        const { cmpFile, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
+        const { _, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
 
         // Check if the compare file already exists
         if (fs.existsSync(cmpFileJSON)) {
@@ -170,10 +170,9 @@ async function runS2S(params, window) {
 
         // Temporary output filename of compare ms2
         // used to avoid stale incomplete output after interrupt
-        const comparems2tmp = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp");
-        const comparems2tmpJSON = comparems2tmp + '.json';
+        const comparems2tmpJSON = path.join(compareDir, hashName + "-" + window.id + "-" + Date.now() + ".tmp.json");
         // Append output filename, should not be part of hash
-        const cmdArgsWithOutput = [...cmdArgs, '-o', comparems2tmp, '-J', comparems2tmpJSON];
+        const cmdArgsWithOutput = [...cmdArgs, '-J', comparems2tmpJSON];
 
         const compareMS2exe = generalParams.compareMS2Exe;
         let cmdStr = compareMS2exe + JSON.stringify(cmdArgsWithOutput);
@@ -222,7 +221,6 @@ async function runS2S(params, window) {
             // Rename the output file to the final name
             if (fs.existsSync(comparems2tmpJSON)) {
                 fs.renameSync(comparems2tmpJSON, cmpFileJSON);
-                fs.renameSync(comparems2tmp, cmpFile);
                 llog(window, 'Compare file created: ' + cmpFileJSON, hashName);
                 return { success: true, cmpFileJSON, sampleFile };
             } else {
