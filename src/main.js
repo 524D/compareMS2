@@ -628,12 +628,12 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
     const phylTreeSubmitEnabled = (mgfFiles.length >= 2);
     // Message for compare mode "heatmap":
     const heatMapMsg = ""
-    const heatMapSubmitEnabled = (sampleFile1 !== null);
+    const heatMapSubmitEnabled = (sampleFile1);
 
     // Message for compare mode "spec-to-species":
     const nCompSpectra2Species = nMgf;
     const spectra2SpeciesMsg = nMgf + " MGF files, " + nCompSpectra2Species + " comparisons.";
-    const spectra2SpeciesSubmitEnabled = ((sampleFile1 !== null) && mgfFiles.length >= 2);
+    const spectra2SpeciesSubmitEnabled = ((sampleFile1) && mgfFiles.length >= 2);
     return {
         'phyltree': [phylTreeMsg, phylTreeSubmitEnabled],
         'heatmap': [heatMapMsg, heatMapSubmitEnabled],
