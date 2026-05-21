@@ -8,11 +8,6 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 
-const xMin = -1.6;
-const xMax = +1.6;
-const yMin = 0.0;
-const yMax = +100.0;
-
 var generalParams = null;
 
 function initHeatMap(genParams) {
@@ -209,59 +204,57 @@ function convertDataFromJSON(jsonData) {
     const histogram = jsonData.massDiffDotProdHistogram;
     const counts = histogram.count;
     const mzRange = histogram.mzRange;
-    const xRange = mzRange[1] - mzRange[0];
-    const yRange = yMax - yMin;
+    const mzMin = mzRange[0];
+    const mzMax = mzRange[1];
+    const xRange = mzMax - mzMin;
 
-    // We ignore rows at the start that are all zeros
+    // Create the data for the axis
     const il = counts.length;
-    let i;
-    for (i = 0; i < il; i++) {
-        if (!counts[i].every(item => item === 0)) {
-            // Leave the loop when we find the first non-zero row
-            break;
-        }
-    }
-
-    const realYmin = (yRange * i) / il + yMin;
-
-    // Use first non-zero row to determine number of columns
-    const jl = counts[i].length;
-    for (let j = 0; j < jl; j++) {
-        const x = (xRange * j) / jl + mzRange[0];
+    for (let i = 0; i < il; i++) {
+        const x = (xRange * i) / il + mzMin;
         xData.push(x);
+    }
+    const jl = counts[0].length;
+    //  The first half are bins for negative dot products, normally all zero -> don't show
+    const js = Math.floor(jl / 2);
+    for (let j = js; j < jl; j++) {
+        y = j - js;
+        yData.push(y);
     }
 
     // Extract the actual data
+    // Determine number of columns
+    // We assume that all rows have the same number of columns, so we can just look at the first row
     let maxVal = 0;
-    let y = 0;
-    for (; i < il; i++) {
+
+    for (let i = 0; i < il; i++) {
         const row = counts[i];
-        yData.push(y);
-        for (let j = 0; j < row.length; j++) {
+        const jl = row.length;
+        //  The first half are bins for negative dot products, normally all zero -> don't show
+        const js = Math.floor(jl / 2);
+        for (let j = js; j < jl; j++) {
             const item = Math.log(row[j]);
             maxVal = Math.max(maxVal, item);
-            const x = j; // x here is just the index, not the actual value
-            // const x=(xRange*j)/jl + xMin
-            data.push({ value: [x, y, item] });
+            // const x=(xRange*i)/il + mzMin;
+            data.push({ value: [i, j - js, item] });
         }
-        y++;
     }
-    return [data, xData, yData, realYmin, maxVal];
+    return [data, xData, yData, maxVal, mzMin, mzMax];
 }
 
 function convertResultToHeatmap(window, cmpFileJSON, title, yAxisLabel, params) {
     // Read and parse the JSON file
     const jsonData = JSON.parse(fs.readFileSync(cmpFileJSON, 'utf8'));
-    [data, xData, yData, realYMin, maxVal] = convertDataFromJSON(jsonData)
+    [data, xData, yData, maxVal, mzMin, mzMax] = convertDataFromJSON(jsonData)
     var chartContent = {
         title: title,
         yAxisLabel: yAxisLabel,
         data: data,
-        xMin: xMin,
-        xMax: xMax,
+        xMin: mzMin,
+        xMax: mzMax,
         xData: xData,
         yData: yData,
-        realYMin: realYMin,
+        realYMin: 0.0,
         maxVal: maxVal,
         compareDir: params.compareDir,
         mzFile1: params.mzFile1,
