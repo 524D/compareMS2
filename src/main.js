@@ -835,6 +835,9 @@ function applyCliArgsToOptions(options) {
     Object.assign(options, cliArgOverrides);
     if (cliArgOverrides.mgfDir !== undefined) {
         getSampleDirFiles(cliArgOverrides.mgfDir);
+        // Check if sample_to_species.txt exists in the mgfDir
+        const s2sFile = updateSampleToSpeciesFile(cliArgOverrides.mgfDir, fileParams);
+        fileParams.s2sFile = s2sFile;
     }
     if (cliArgOverrides.mzFile1 !== undefined) {
         fileParams.file1 = cliArgOverrides.mzFile1;
