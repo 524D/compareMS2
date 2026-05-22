@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: MIT
+// Copyright Rob Marissen.
+
+const { contextBridge, ipcRenderer } = require('electron')
+
+// These are used to communicate with the main process from the spectra2species BrowserWindow.
+// E.g. Use window.s2sAPI.stop() to send a 'stop' message to the main process.
+contextBridge.exposeInMainWorld(
+    's2sAPI',
+    {
+        storeImage: (defaultName, format, data) => ipcRenderer.send('store-image-v2', defaultName, format, data),
+        updateChart: (callback) => ipcRenderer.on('updateChart', (_event, distanceMap, compareDir, mzFile1, s2sFile) => callback(distanceMap, compareDir, mzFile1, s2sFile)),
+        onLogMessage: (callback) => ipcRenderer.on('logMessage', (_event, message) => callback(message)),
+        onLogError: (callback) => ipcRenderer.on('logError', (_event, message) => callback(message)),
+        onSetActivity: (callback) => ipcRenderer.on('setActivity', (_event, message) => callback(message)),
+        onProgressUpdate: (callback) => ipcRenderer.on('progress-update', (_event, progress) => callback(progress)),
+        onError: (callback) => ipcRenderer.on('s2s-error', (_event, message) => callback(message)),
+        toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
+        onSetLogPath: (callback) => ipcRenderer.on('set-log-path', (_event, logPath) => callback(logPath)),
+    }
+)

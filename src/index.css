@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT */
-/* Copyright 2022 Rob Marissen */
+/* Copyright Rob Marissen */
 
 .scroll-tab-container {
     height: 100%;
@@ -81,7 +81,7 @@ div.bottom-button {
     padding: 16px;
   }
   
-.about-container {
+.popup-container {
     text-align: center;
     padding: 16px;
 }
@@ -113,6 +113,14 @@ div.bottom-button {
     margin-top: 20px;
 }
 
+#alert-modal-title.alert-error {
+    color: #c0392b;
+}
+
+#alert-modal-title.alert-warning {
+    color: #d35400;
+}
+
 details p {
     font-size: small;
 }
@@ -126,4 +134,32 @@ details p {
     color: blue;
     text-decoration: underline;
     cursor: pointer;
+}
+
+.file-path-input {
+    direction: rtl;
+    text-align: left;
+}
+
+/* Dual button container for file 2 controls */
+.dual-button-container {
+    display: inline-flex;
+    gap: 2px;
+    align-items: center;
+    width: auto;
+}
+
+/* Clear button styling */
+.clear-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+}
+
+/* Select button styling to match existing buttons */
+.select-button {
+    display: inline-flex;
+    flex: 1;
 }

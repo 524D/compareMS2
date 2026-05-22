@@ -1,0 +1,16 @@
+{
+    "cSpell.words": [
+        "basepeak",
+        "deconvoluted",
+        "phylogenetics",
+        "proteomes",
+        "Wextra"
+    ],
+    "search.exclude": {
+        "**/.git": true,
+        "**/node_modules": true,
+        "**/out": true,
+        "**/temp": true,
+        "**/releases": true
+    },
+}

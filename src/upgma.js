@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright 2022 Rob Marissen.
+// Copyright Rob Marissen.
 
 // Convert a distance matrix into a phylogenetic tree
 // The tree is represented in Newick format
@@ -206,4 +206,7 @@ function testUPGMA() {
     testExpectUPGMA(table, labels, expect);
 }
 
-testUPGMA();
+// testUPGMA();
+
+exports.UPGMA = UPGMA;
+exports.testUPGMA = testUPGMA;

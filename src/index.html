@@ -1,28 +1,39 @@
 <!DOCTYPE html>
 <html lang='en'>
 <!--- SPDX-License-Identifier: MIT --->
-<!--- Copyright 2022 Rob Marissen. --->
+<!--- Copyright Rob Marissen. --->
 
 <head>
     <meta charset="utf-8">
-
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self';">
     <link rel="stylesheet" href="assets/bootstrap.min.css">
     <link rel="stylesheet" href="assets/css/micon_nb.min.css">
     <link rel="stylesheet" href="assets/jquery-ui.min.css">
     <link rel="stylesheet" href="local.css">
     <link rel="stylesheet" href="index.css">
-
 </head>
 
 <body>
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <div class="container">
+                <div class="popup-container">
+                    <h2 id="alert-modal-title"></h2>
+                    <p id="alert-modal-text"></p>
+                    <button id="alert-modal-close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="about" class="modal">
         <div class="modal-content">
             <div class="container">
-                <div class="about-container">
-                    <h2>About CompareMS2</h2>
+                <div class="popup-container">
+                    <h2>About compareMS2</h2>
                     <div id="versioninfo"></div>
-                    <p><a href="#" class="extern-link" onclick="openSourceCodeInBrowser()">Source code</a></p>
-                    <p>Copyright 2022 Rob Marissen and Magnus Palmblad</p>
+                    <p><a href="#" class="extern-link">Source code</a></p>
+                    <p>Copyright Rob Marissen and Magnus Palmblad</p>
                     <details>
                         <summary>MIT license</summary>
                         <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software
@@ -49,24 +60,32 @@
     </div>
 
     <div class="tab">
-        <button class="tablinks active" onclick="openTab(event, 'CompareMode')">Compare Mode</button>
-        <button class="tablinks" onclick="openTab(event, 'CompareSettings')">Settings</button>
+        <button class="tablinks active" id="compare-tab">Compare Mode</button>
+        <button class="tablinks" id="settings-tab">Settings</button>
     </div>
 
     <!-- Tab content -->
     <div id="CompareMode" class="tabcontent tabdefault">
         <div><label class="input-label">Compare mode:</label>
-            <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
-                 title="Compare many files and generate a phylogenetic tree">
-            <label for="phyltree">Phylogenetic tree (N vs N)</label>
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
-                title="Compare two files and mass difference heatmap">
-            <label for="heatmap">Heatmap (1 vs 1)</label>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="phyltree" name="cmpmode" value="phyltree" checked
+                    title="Compare many files and generate a phylogenetic tree">
+                <label for="phyltree">phylogenetic tree (N vs N)</label>
+            </div>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="spec-to-species" name="cmpmode" value="spec-to-species"
+                    title="Compare one file to many files">
+                <label for="spec-to-species">spectra2species (1 vs N)</label>
+            </div>
+            <div class="input-select">
+                <input class="cmpmode" type="radio" id="heatmap" name="cmpmode" value="heatmap"
+                    title="Compare two files and mass difference heatmap">
+                <label for="heatmap">heatmap (1 vs 1)</label>
+            </div>
         </div>
-        <div class="enable_in_mode phyltree">
+        <div class="enable_in_mode phyltree spec-to-species">
             <div><label class="input-label2">Directory of MGF files:</label>
-                <input class="input-value" type="text" id="mgfdir" spellcheck="false">&nbsp;
+                <input class="input-value file-path-input" type="text" id="mgfdir" spellcheck="false" disabled>&nbsp;
                 <button type="button" id="select-directory">
                     <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
             </div>
@@ -74,19 +93,27 @@
                 <span id=mgfinfo class="small"></span>
             </div>
         </div>
-        <div class="enable_in_mode heatmap">
+        <div class="enable_in_mode heatmap spec-to-species">
             <div><label class="input-label2">File 1:</label>
-                <input class="input-value" type="text" id="file1" spellcheck="false">&nbsp;
+                <input class="input-value file-path-input" type="text" id="file1" spellcheck="false" disabled>&nbsp;
                 <button type="button" id="select-file1">
                     <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 1</button>
             </div>
+        </div>
+        <div class="enable_in_mode heatmap">
             <div><label class="input-label3 small"></label>
                 <span class="small">Compare to self if file 2 is not set</span>
             </div>
             <div><label class="input-label2">File 2:</label>
-                <input class="input-value" type="text" id="file2" spellcheck="false">&nbsp;
-                <button type="button" id="select-file2">
-                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2</button>
+                <input class="input-value file-path-input" type="text" id="file2" spellcheck="false" disabled>&nbsp;
+                <div class="dual-button-container">
+                    <button type="button" id="clear-file2" class="clear-button" title="Clear file 2">
+                        <i class="mi mi-Clear"></i>
+                    </button>
+                    <button type="button" id="select-file2" class="select-button">
+                        <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file 2
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -103,7 +130,8 @@
                 title="Comparison score for spectra to be considered similar">
         </div>
         <div><label class="input-label">Spectrum metric</label>
-            <select id="specMetric" name="specMetric" title="Choose spectral angle to stretch out the high end of the score cutoff">
+            <select id="specMetric" name="specMetric"
+                title="Choose spectral angle to stretch out the high end of the score cutoff">
                 <option value="0" selected="selected">Dot product</option>
                 <option value="1">Spectral angle</option>
             </select>
@@ -157,29 +185,37 @@
                     title="For this filter, the spectrum intensity is equal to the sum of all peaks in a spectrum.">
             </span>
         </div>
-        <div class="enable_in_mode phyltree">
+        <div class="enable_in_mode phyltree spec-to-species">
             <div><label class="input-label">Version of set distance metric</label>
                 <select id="metric" name="metric">
-                    <option value="2" selected="selected">CompareMS2 2.0 symmetric metric</option>
-                    <option value="0">Original compareMS2 metric</option>
-                    <option value="1">Symmetric metric</option>
+                    <option value="2" selected="selected">compareMS2 2.0 symmetric metric</option>
+                    <option value="0">original compareMS2 metric</option>
+                    <option value="1">symmetric metric</option>
                 </select>
             </div>
             <div><label class="input-label">Sample to species file</label>
-                <input class="input-value" type="text" id="s2sfile"
-                    title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">
-                &nbsp;
-                <button type="button" id="select-speciesfile" title="">
-                    <i class="mi mi-OpenFile mi-lg icon-valign"></i>
-                    &nbsp;Select file
-                </button>
+                <input class="input-value file-path-input" type="text" id="s2sfile" spellcheck="false" disabled
+                    title="Tab separated file, each line like: sample-file-name&lt;TAB&gt;species-name. File samples_to_species.txt is auto detected in samples directory.">&nbsp;
+                <div class="dual-button-container">
+                    <button type="button" id="clear-speciesfile" class="clear-button" title="Clear species file">
+                        <i class="mi mi-Clear"></i>
+                    </button>
+                    <button type="button" id="select-speciesfile" class="select-button" title="">
+                        <i class="mi mi-OpenFile mi-lg icon-valign"></i>&nbsp;Select file
+                    </button>
+                </div>
             </div>
-            <div><label class="input-label">Output filename root</label>
-                <input class="input-value" type="text" id="outbasename" title="Root filename for output file">
+            <div><label class="input-label">Output filename basename</label>
+                <input class="input-value" type="text" id="outbasename"
+                    title="Basename for output file without extension">
             </div>
+        </div>
+        <div class="enable_in_mode phyltree">
             <div><label class="input-label">Output format</label>
-                <input disabled type="checkbox" id="outmega" name="output-mega">
+                <input type="checkbox" id="outmega" name="output-mega">
                 <label> MEGA</label>
+                <input type="checkbox" id="outmega12" name="output-mega12">
+                <label> MEGA 12</label>
                 <input type="checkbox" id="outnexus" name="output-nexus">
                 <label> NEXUS</label>&nbsp;
                 <input type="checkbox" id="outnewick" name="output-newick">
@@ -202,12 +238,21 @@
                 <label> Impute missing values</label>
             </div>
         </div>
+        <div><label class="input-label">Maximum number of CPUs to use</label>
+            <input class="input-value" type="number" id="maxCPUs" min="1" max="64" step="1"
+                title="Maximum number of CPU cores to use for parallel processing. Leave empty to use all available cores."
+                placeholder="Auto (use all)">
+        </div>
+        <div><label class="input-label">Keep settings</label>
+            <input type="checkbox" id="keepsetting" name="keepsetting" checked
+                title="Keep settings between runs of CompareMS2">
+        </div>
+
     </div>
 
     <div class="text-center bottom-button">
         <button class="btn-lg" id="submit"><i class="mi mi-Play mi-lg icon-valign"></i>Start</button>
     </div>
-    <script src="util.js"></script>
     <script src="assets/jquery-3.6.0.min.js"></script>
     <script src="assets/jquery-ui.min.js"></script>
     <script src="index.js"></script>

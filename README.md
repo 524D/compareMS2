@@ -123,60 +123,124 @@ For example, the resulting Windows installer can than be found (relative to the 
 
 ## 3. Using compareMS2
 
-compareMS2 can be used both from the command-line interface (CLI) and through the compareMS2 GUI. Every compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
+compareMS2 can be used both from the command-line interface (CLI) and through the compareMS2 Graphical User Interface (GUI). This section describes the use of the GUI.
+
+From the GUI, 3 different visualizations can be produced from MS2 data.
+
+1) Phylogenetic tree: A set of MS2 data files are compared, and the distances between them are combined into a phylogenetic tree.
+2) spectra2species: One MS2 data file is compared to a set of other files. The distance is represented as a bar graph, and is an indication of how close the respective samples are.
+3) Heatmap: An MS2 data file is compared to itself or to another. The distribution of the inner products of the spectra is represented in a heatmap. This gives an overview of many properties of the MS2 spectra, such as charge stated, mass accuracy, and similarity (in case two different files are compared).
+
+### 3.1. Main screen
+
+The visualization and input data are selected on the main screen
+
+![compareMS2 main screen](./pictures/main-screen.png)
+
+Depending on the selected "Compare mode", only the relevant file selection and other user interface items
+are accessible, while the items that are not useful for the selected mode are greyed out.
+
+In "settings" tab, instrument specific settings, output format and related items can be set.
+
+![compareMS2 main screen 2](./pictures/settings-tab.png)
+
+#### 3.1.1. Sample to species file
+
+One setting that deserves special attention is the "Sample to species file". This file
+maps file names to species names. If this file is present, the GUI will display the
+name of the species instead of the name of the sample file. Furthermore, it allows multiple
+sample files for the same species. In the comparisons, the results of all samples files for the same species are then averaged.
+
+The content of the "Sample to species file" must a plain text file. Each line should contain a filename
+and a species name, separated by a TAB character. If the directory with samples contains
+a file with the exact name "spectra_to_species.txt", that file is automatically selected.
+CompareMS also works without "spectra_to_species.txt file". Also, not all species or files that are listed have to be present in the data set.
+
+### 3.2. Phylogenetic tree
+
+Selecting "phylogenetic tree" and pressing "start" results in a phylogenetic tree being generated.
+
+![compareMS2 phylogenetic tree](./pictures/phylotree.png)
+
+The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix.
+
+Every phylogenetic compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
 
 ![compareMS2 on primate datasets](./pictures/primates_circular.png)  
 Figure 1. Phylogenetic tree based on sample primate [sera datasets](https://osf.io/sg796/) of 1,000 tandem mass spectra, as displayed during a compareMS2 run. This is a good test dataset for compareMS2.
 
 See PRIDE Project [PXD034932](https://www.ebi.ac.uk/pride/archive/projects/PXD034932) for additional compareMS2 test data.
 
-### 3.1 Configuring compareMS2  
+### 3.3 spectra2species
 
-The compareMS2 CLI has a small number of parameters, which are:
+Selecting "spectra2species" and pressing "start" results in a spectra2species bar chart being generated.
 
--A *first dataset filename*  
--B *second dataset filename*
--W *first scan number*, *last scan number*  
--R *first retention time*, *last retention time*  
--c *cutoff for spectral similarity*  
--o *output filename*  
--m *minimum base peak intensity*, *minimum total MS/MS intensity*  
--w *maximum scan number difference*  
--r *maximum retention time difference*  
--p *maximum difference in precursor mass*  
--e *maximum precursor mass measurement error*  
--s *intensity scaling before dot product*  
--n *noise threshold for dot product*  
--d *version of set distance metric*  
--q *version of QC metric*  
--N *include only N most intense spectra in comparison*  
--b *bin size for dot product*  
--I *minimum number of peaks for dot product*  
--L *lower m/z for dot product*  
--U *upper m/z for dot product*  
--x *experimental features*  
+![compareMS2 spectra2species](./pictures/spectra2species.png)
 
-The compareMS2 GUI exposes some of these, and determine others automatically, e.g. the dataset filenames from a specified directory.
+In spectra2species mode, a single MGF file is compared to a collection of other MFG files. This gives a fast
+indication of the similarity of a sample to other samples, and thus can help to identify the species of
+an unknown sample.
 
-### 3.2 Calculating distance matrices
+### 3.4 Heatmap
+
+Selecting "Heatmap" and pressing "start" results in a heatmap being generated.
+
+![compareMS2 heatmap](./pictures/heatmap.png)
+
+The heatmap can be computed for a single file, giving an indication of the charge states, noise level,
+and other quality measures of the data.
+
+Also, it's possible to generate a heatmap based on two files. In addition the results for a single file, this
+shows the similarity of the two files.
+
+### 3.5 Configuring compareMS2  
+
+The compareMS2 GUI can be configured using command line switches.
+These are similar t0 the command line switches of the
+command line switches of the underlying [compareMS command line program](https://github.com/524D/compareMS2-cmd).
+
+
+-h,--help  *print usage message*  
+-W,--scan-range  *first scan number,last scan number*    
+-R,--rt-range  *first retention time*,*last retention time*  
+-c,--cutoff *score cutoff*  
+-o,--output *output basename*
+-m,--min-intensity *min base peak intensity,min total ion current*  
+-w,--max-scan-diff *maximum scan number difference*  
+-r,--max-rt-diff *maximum retention time difference*
+-p,--max-precursor-diff *maximum difference in precursor mass*  
+-s,--scaling *scaling power*  
+-n,--noise  *noise threshold*  
+-d,--metric *distance metric (0, 1 or 2)*
+-q,--qc *QC measure*  
+\[MGF directory name\]  
+\[Filename 1\]  
+\[Filename 2\]
+
+For the final directory/filename arguments, compareMS2 checks
+if the argument is a directory of a file to determine its use.
+This way, a directory and/or file can simply be dragged onto the
+compareMS2 program icon to set these values.
+
+### 3.6 Calculating distance matrices
 
 Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filenames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
 
-### 3.3 Running compareMS2
+### 3.7 Running compareMS2
 
 After specifying the parameters, click on the "Start" button to run compareMS2 on all files in the specified directory. Alternatively, compareMS2 can be run on two specific files using the CLI version.
 
-### 3.4 Molecular phylogenetics
+### 3.8 Molecular phylogenetics
 
 We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see the [2012 paper](https://doi.org/10.1002/rcm.6162).
 
-### 3.5 Data quality control
+### 3.9 Data quality control
 
 compareMS2 provides a very quick overview of large number of datasets to see if they cluster as expected or if there are outliers. Data of lower quality can thus be detected *before* running them through a data analysis pipeline and statistical analysis. It is not absolutely necessary to include all spectra in the analysis - major discrepancies should be detectable with ~1,000 spectra, if selected systematically. Similarly, compareMS2 can be used to determine the relative importance of factors in sample preparation and analysis, as shown in a [2016 paper](https://doi.org/10.1002/rcm.7494).
 
 In addition, compareMS2 collects metadata on each dataset (by default the number of tandem mass spectra) and visualizes this on top of the hierarcical clustering or phylogenetic tree.
 
-### 3.6 Experimental features
+### 3.10 Experimental features
 
 Starting in version 2.0, we have begun to include experimental features in compareMS2. These are only available on the command line, but allow extraction of additional information from the comparisons, such as the distribution of similarity between tandem mass spectra as function of precursor mass measurement error, allowing identification of isotope errors and charge state distributions *before* any database search:
 

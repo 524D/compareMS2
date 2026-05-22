@@ -3,7 +3,7 @@
 <meta http-equiv="Content-Security-Policy"
     content="img-src 'self' data:;default-src 'self';style-src 'self' 'unsafe-inline'">
 <!--- SPDX-License-Identifier: MIT --->
-<!--- Copyright 2022 Rob Marissen. --->
+<!--- Copyright Rob Marissen. --->
 
 <head>
     <meta charset="utf-8">
@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="assets/css/micon_nb.min.css">
     <link rel="stylesheet" href="local.css">
     <link rel="stylesheet" href="tree.css">
+    <!-- Load RequireJS and configure module loading -->
+    <script data-main="assets/require-config" src="assets/require.js"></script>
 </head>
 
 <body>
@@ -31,9 +33,6 @@
                         <div class="control-item">
                             &nbsp;&nbsp;<input type="checkbox" id="topology" name="topology_only">
                             &nbsp;<label>Topology only</label>
-                        </div>
-                        <div class="control-item">
-                            &nbsp;<button id="pause"><i class="mi mi-Pause mi-lg icon-valign"></i>Pause</button>
                         </div>
                         <div class="control-item">
                             <label for="cars">Quality color scale:</label>
@@ -57,7 +56,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="main-tree-item">
+                <div id="main-chart">
                 </div>
             </div>
         </div>
@@ -67,23 +66,23 @@
                     <div id="activity" class="info-activity"></div>
                 </div>
                 <div class="act-details-button-item">
-                    <div class="info-control"><button id="details">Show details</botton>
+                    <div class="info-control"><button id="details" aria-expanded="false">Show details</botton>
                     </div>
                 </div>
             </div>
         </div>
         <div class="tvert-details">
+            <div class="stdout-header">Last 100 output messages &mdash; Full log file at: <span
+                    id="log-file-path"></span></div>
             <div id="stdout" class="info-details"></div>
         </div>
     </div>
 
-    <script src="util.js"></script>
+    <script src="renderer-util.js"></script>
     <script src="assets/jquery-3.6.0.min.js"></script>
-    <script src="assets/bootstrap.bundle.min.js"></script>
-    <script src="assets/underscore-min.js" charset="utf-8"></script>
-    <script src="tree.js"></script>
-    <script src="upgma.js"></script>
 
+    <!-- <script src="assets/bootstrap.bundle.min.js"></script>
+    <script src="assets/underscore-min.js" charset="utf-8"></script> -->
 </body>
 
 </html>

@@ -1,99 +1,36 @@
 /* SPDX-License-Identifier: MIT */
-/* Copyright 2022 Rob Marissen */
-
-.tvert-container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.tvert-progress {
-    flex: 0 1 auto;
-    width: 100%;
-    padding-right: 10px;
-    padding-left: 10px;
-}
+/* Copyright Rob Marissen */
 
 .tvert-main {
-    flex: 1 1;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;  /* flexbox fix to prevent overflow */
 }
 
 .tvert-activity  {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     width: 100%;
+    min-height: 30px;
     background-color: lightgrey;
     border-top: 1px solid rgb(0, 0, 0);
 }
 
 .tvert-details {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     width: 100%;
+    min-height: 0;  /* flexbox fix to prevent overflow */
     background-color: lightgrey;
     border-top: 1px solid rgb(128, 128, 128);
-    visibility: hidden;
+    display: none;
 }
 
 .mainhor-container {
     display: flex;
     flex-direction: row;
     height: 100%;
-}
-
-#main-tree-item {
-    flex: 1 1 auto;
-}
-
-.main-control-item  {
-    flex: 0 0 200px;
-}
-
-.control-container {
-    display: flex;
-    flex-direction: column;
-    padding: 2px;
-    border: 1px solid black;
-    margin: 2px;
-    background-color: rgb(240, 240, 240);
-    height: 100%;    
-}
-
-.control-item {
-  flex: 0 0 50px;
-}
-
-.act-hor-container  {
-    display: flex;
-    flex-direction: row;
-    position: relative;
-}
-
-.act-text-item {
-    flex: 1 1;
-}
-
-.act-details-button-item {
-    flex: 0 1 auto;
+    min-height: 0;  /* flexbox fix to prevent overflow */
 }
 
 #progress {
     width: 100%;
-}
-
-.info-activity {
-    font-weight: bolder;
-    overflow: hidden;
-}
-
-.info-control {
-    width: 120px;
-}
-
-.info-details {
-    overflow: auto;
-    height: 1px;
-}
-
-.small-input {
-    font-size: 80%;
 }

@@ -1,52 +1,59 @@
 // SPDX-License-Identifier: MIT
-// Copyright 2022 Rob Marissen.
+// Copyright Rob Marissen.
+const searchParams = new URLSearchParams(window.location.search);
+const appVersion = searchParams.get('version') || 'unknown';
+const availableCPUs = searchParams.get('availableCPUs') || -1;
 
-const { BrowserWindow, app } = nodeRequire('@electron/remote')
-const path = nodeRequire('path')
-const { ipcRenderer } = nodeRequire('electron')
-var appVersion = app.getVersion();
+// Info on number of comparisons and Submit button state
+// for each compare mode
+// The first element is a string with the info text,
+// the second element is a boolean indicating if the submit button should be enabled,
+var computedItems = {
+    'phyltree': ['', false],
+    'heatmap': ['', false],
+    'spec-to-species': ['', false]
+};
 
-const selectDirBtn = document.getElementById('select-directory')
-const selectFile1Btn = document.getElementById('select-file1')
-const selectFile2Btn = document.getElementById('select-file2')
-const selectSpeciesfileBtn = document.getElementById('select-speciesfile')
+// On document ready, request the options from the main process
+document.addEventListener('DOMContentLoaded', function () {
+    // Request the options from the main process
+    window.electronAPI.requestOptions();
 
-var s2sFileManualSet = false;
-
-const homedir = nodeRequire('os').homedir();
-
-const defaultOptions = {
-    mgfDir: homedir,
-    mzFile1: "",
-    mzFile2: "",
-    maxPrecursorDifference: 2.05,
-    minBasepeakIntensity: 10000,
-    minTotalIonCurrent: 0,
-    maxRTDifference: 60,
-    startRT: 0,
-    endRT: 100000,
-    maxScanNumberDifference: 10000,
-    startScan: 1,
-    endScan: 1000000,
-    cutoff: 0.8,
-    specMetric: 0,
-    scaling: 1.0,
-    noise: 10,
-    metric: 2,
-    qc: 0,
-    topN: -1,
-    s2sFile: homedir,
-    outBasename: "comp",
-    avgSpecie: true,
-    outNexus: false,
-    outNewick: false,
-    outMega: true,
-    impMissing: false,
-    compareOrder: "smallest-largest",
-}
+    // Register callbacks for main-process-initiated UI updates
+    window.electronAPI.onShowAbout(() => {
+        document.getElementById('about').style.display = 'block';
+    });
+    window.electronAPI.onSelectedSpeciesFile((p) => {
+        document.getElementById('s2sfile').value = `${p}`;
+    });
+    window.electronAPI.onSelectedDirectory((p) => {
+        document.getElementById('mgfdir').value = p.dir;
+    });
+    window.electronAPI.onSelectedFile1((p) => {
+        document.getElementById('file1').value = `${p}`;
+    });
+    window.electronAPI.onSelectedFile2((p) => {
+        document.getElementById('file2').value = `${p}`;
+    });
+    window.electronAPI.onShowAlert((type, text) => {
+        const modal = document.getElementById('alert-modal');
+        const title = document.getElementById('alert-modal-title');
+        const msg = document.getElementById('alert-modal-text');
+        title.textContent = type === 'error' ? 'Error' : 'Warning';
+        title.className = type === 'error' ? 'alert-error' : 'alert-warning';
+        msg.textContent = text;
+        modal.style.display = 'block';
+    });
+});
 
 // Set all user interface elements according to options
 function setOptions(options) {
+    // Set compare mode
+    const cmpMode = options.compareMode;
+    document.querySelectorAll('input[name="cmpmode"]').forEach(function (radio) {
+        radio.checked = (radio.value === cmpMode);
+    });
+
     document.getElementById("mgfdir").value = options.mgfDir;
     document.getElementById("file1").value = options.mzFile1;
     document.getElementById("file2").value = options.mzFile2;
@@ -60,7 +67,7 @@ function setOptions(options) {
     document.getElementById("startScan").value = options.startScan;
     document.getElementById("endScan").value = options.endScan;
     document.getElementById("cutoff").value = options.cutoff;
-    document.getElementById("specMetric").value = options.specMetric;  
+    document.getElementById("specMetric").value = options.specMetric;
     document.getElementById("scaling").value = options.scaling;
     document.getElementById("noise").value = options.noise;
     document.getElementById("metric").value = options.metric;
@@ -72,14 +79,32 @@ function setOptions(options) {
     document.getElementById("outnexus").checked = options.outNexus;
     document.getElementById("outnewick").checked = options.outNewick;
     document.getElementById("outmega").checked = options.outMega;
+    document.getElementById("outmega12").checked = options.outMega12;
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
-    updateMgfInfo(options.mgfDir);
+    document.getElementById("keepsetting").checked = options.keepSettings;
+    // Show empty field if using default number of CPUs (all available)
+    const maxCPUsInput = document.getElementById("maxCPUs");
+    // If numberOfCPUs is -1
+    if (options.numberOfCPUs === -1) {
+        maxCPUsInput.value = "";
+    } else {
+        maxCPUsInput.value = options.numberOfCPUs;
+    }
+    // Set the max attribute to a reasonable upper limit
+    maxCPUsInput.setAttribute("max", availableCPUs > 0 ? availableCPUs : 64);
+    // Update placeholder to show actual CPU count when available
+    if (availableCPUs > 0) {
+        maxCPUsInput.setAttribute("placeholder", `Auto (${availableCPUs})`);
+    } else {
+        maxCPUsInput.setAttribute("placeholder", "Auto (use all)");
+    }
 }
 
 // Get all values set by user
 function getOptions() {
     var options = {
+        compareMode: document.querySelector('input[name="cmpmode"]:checked').value,
         mgfDir: document.getElementById("mgfdir").value,
         mzFile1: document.getElementById("file1").value,
         mzFile2: document.getElementById("file2").value,
@@ -105,80 +130,48 @@ function getOptions() {
         outNexus: document.getElementById("outnexus").checked,
         outNewick: document.getElementById("outnewick").checked,
         outMega: document.getElementById("outmega").checked,
+        outMega12: document.getElementById("outmega12").checked,
         impMissing: document.getElementById("impmiss").checked,
         compareOrder: document.getElementById("compare-order").value,
-    }
+        keepSettings: document.getElementById("keepsetting").checked,
+        numberOfCPUs: parseInt(document.getElementById("maxCPUs").value) || -1, // -1 means use all available CPUs
+    };
     return options;
 }
 
-function loadOptionsFromFile(fn, processOpts) {
-    fs.readFile(fn, 'utf-8', (err, data) => {
-        if (err) {
-            alert("An error ocurred reading the file :" + err.message);
-            return;
-        }
-        else {
-            const options = JSON.parse(data);
-            processOpts(options);
-        }
-    });
-}
-
-function saveOptionsToFile(fn, options) {
-    try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
-    catch (e) { alert('Failed to save options file'); }
-}
-
-// Update MGF files info
-// FIXME: update info only after waiting some time
-function updateMgfInfo(path) {
-    const mgfinfo = document.getElementById('mgfinfo');
-    var mgfFiles = getMgfFiles(path);
-    var nMgf = mgfFiles.length;
-    mgfinfo.innerHTML = nMgf + " MGF files, " + (nMgf * (nMgf - 1)) / 2 + " comparisons.";
-    // Disable submit button if < 2 MGF files
-    updateSubmitButton();
-}
-
 function getCmpMode() {
-    const mode = $('input[name="cmpmode"]:checked').val();
+    const mode = document.querySelector('input[name="cmpmode"]:checked').value;
     return mode;
 }
 
-// Enable or disable submit button
-// The submit button is enabled if:
-// - the compare mode is "compare" and both files are selected
-// - the compare mode is "tree" and a folder is selected, and the
-//     folder contains at least 2 MGF files
-function updateSubmitButton() {
-    const mode = getCmpMode()
-    let enabled = false;
-    if (mode == "heatmap") {
-        if ($('#file1').val()) {
-            enabled = true;
-        }
-    }
-    else { // mode == "tree" 
-        if ( $('#mgfdir').val() ) {
-            const mgfFiles = getMgfFiles($('#mgfdir').val());
-            if (mgfFiles.length >= 2) {
-                enabled = true;
-            }
-        }
-    }
-    $('#submit').prop('disabled', !enabled);
-}
-
-// Enable/disable elements depending on compare mode
-function updateCmpModeElems() {
+// Update elements in the main window
+// This is called when the compare mode is changed or when the options are updated
+// It updates the MGF info and the submit button.
+function updateMainWindowItems() {
+    // Get the current compare mode
     const mode = getCmpMode();
+    // Update the MGF info
+    const mgfinfo = document.getElementById('mgfinfo');
+    mgfinfo.innerHTML = computedItems[mode][0];
+
     // Enable/disable elements depending on compare mode
     // Elements that must be set have class "enable_in_mode"
     // plus the mode name, e.g. "enable_in_mode compare"
     // This is done by adding/removing the class "disabled-area",
     // which makes the elements partly transparent and disables them.
-    $(".enable_in_mode." + mode).removeClass("disabled-area");
-    $(".enable_in_mode:not(." + mode + ")").addClass("disabled-area");
+    document.querySelectorAll(`.enable_in_mode.${mode}`).forEach(element => {
+        element.classList.remove("disabled-area");
+    });
+
+    document.querySelectorAll('.enable_in_mode').forEach(element => {
+        if (!element.classList.contains(mode)) {
+            element.classList.add("disabled-area");
+        }
+    });
+
+    // Update the submit button state
+    let enabled = computedItems[mode][1];
+    document.getElementById('submit').disabled = !enabled;
 }
 
 function openTab(evt, tabName) {
@@ -204,130 +197,96 @@ function openTab(evt, tabName) {
 
 // *******************************start of initialization ******************************************** //
 
-// Set defaults for input fields
-setOptions(defaultOptions);
-
-// Grey out the elements that are not needed for the selected compare mode
-updateCmpModeElems()
-
-// Update MGF info on manual input
-const inputHandler = function (e) {
-    updateMgfInfo(e.target.value);
-}
-document.getElementById("mgfdir").addEventListener('input', inputHandler);
-
 // Handle browse buttons
-selectDirBtn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-dir-dialog')
-})
+document.getElementById('select-directory').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-dir');
+});
 
-selectFile1Btn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-file1-dialog')
-})
+document.getElementById('select-file1').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-file1');
+});
 
-selectFile2Btn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-file2-dialog')
-})
+document.getElementById('select-file2').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-file2');
+});
 
-selectSpeciesfileBtn.addEventListener('click', (event) => {
-    ipcRenderer.send('open-speciesfile-dialog')
-})
+document.getElementById('select-speciesfile').addEventListener('click', (event) => {
+    window.electronAPI.mainGuiAction('select-speciesfile');
+});
+
+// Clear file 2 input when clear button is clicked
+document.getElementById("clear-file2").addEventListener("click", function () {
+    window.electronAPI.mainGuiAction('clear-file2');
+});
+
+// Clear species file input when clear button is clicked
+document.getElementById("clear-speciesfile").addEventListener("click", function () {
+    window.electronAPI.mainGuiAction('clear-speciesfile');
+});
 
 // Handle compare mode selection
-$('.cmpmode').change(function() {
-    updateCmpModeElems();
-    updateSubmitButton();
+document.querySelectorAll('.cmpmode').forEach(radio => {
+    radio.addEventListener('change', function () {
+        updateMainWindowItems();
+    });
 });
 
 // Handle the "Compare only N most intense spectra" input
 // Init 
-$('#topN').hide();
+document.getElementById('topN').style.display = 'none';
 
-$('#topAll').change(function () {
+document.getElementById('topAll').addEventListener('change', function () {
     if (this.checked) {
-        $('#topN').hide();
-        $('#topN').val(-1)
+        document.getElementById('topN').style.display = 'none';
+        document.getElementById('topN').value = -1;
     }
     else {
-        $('#topN').show();
-        $('#topN').val(1000)
+        document.getElementById('topN').style.display = 'block';
+        document.getElementById('topN').value = 1000;
     }
 });
 
 // Handle closing the "about" overlay
-$("#about-close").click(function () {
-    //    $("#about").removeClass( "modal" ).addClass( "hidden");
-    $('#about').hide();
+document.getElementById("about-close").addEventListener('click', function () {
+    document.getElementById('about').style.display = 'none';
 });
 
-// Handle messages from main process
-ipcRenderer.on('load-options', (event, p) => {
-    var fn = `${p}`;
-    loadOptionsFromFile(fn, setOptions);
-})
+// Handle closing the alert modal
+document.getElementById("alert-modal-close").addEventListener('click', function () {
+    document.getElementById('alert-modal').style.display = 'none';
+});
 
-ipcRenderer.on('save-options', (event, p) => {
-    var fn = `${p}`;
-    saveOptionsToFile(fn, getOptions());
-})
+// This function handles the request for options from the main process
+// It is called when the menu option "Save Options" is clicked
+window.electronAPI.onSaveOptions(() => {
+    const options = getOptions();
+    // Send message to main process to save options
+    window.electronAPI.storeOptions(options);
+});
 
-ipcRenderer.on('reset-options', (event, p) => {
-    setOptions(defaultOptions);
-})
+// This function handles the update of options from the main process
+// It is called when the main process sends an update for options,
+// such as when the app starts or when options are loaded through the menu
+window.electronAPI.onUpdateOptions((options, mgfInfo) => {
+    // Update the options in the UI
+    setOptions(options);
+});
 
-ipcRenderer.on('selected-directory', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("mgfdir").value = fn;
-    updateMgfInfo(fn);
-    // If sample-to-species file was not manually set, check if
-    // a file named 'sample_to_species.txt' exists in the selected
-    // dir, and set the path if so.
-    if (!s2sFileManualSet) {
-        const s2sFn = path.join(fn, "sample_to_species.txt");// p+"/sample_to_species.txt"; 
-        fs.access(s2sFn, fs.F_OK, (err) => {
-            if (err) {
-                return
-            }
-            document.getElementById("s2sfile").value = s2sFn;
-        });
-    }
-})
-
-ipcRenderer.on('selected-file1', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("file1").value = fn;
-    updateSubmitButton();    
-})
-
-ipcRenderer.on('selected-file2', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("file2").value = fn;
-    updateSubmitButton();    
-})
-
-ipcRenderer.on('selected-speciesfile', (event, p) => {
-    var fn = `${p}`;
-    document.getElementById("s2sfile").value = fn;
-    s2sFileManualSet = true;
-})
-
-ipcRenderer.on('show-about', (event) => {
-    $('#about').show();
+// This function handles the update of computed main window items from the main process
+window.electronAPI.onUpdateMainWindowItems((mainWindowsComputedItems) => {
+    // Update the main window items
+    computedItems = mainWindowsComputedItems;
+    updateMainWindowItems();
 });
 
 // Handle submit button
 const submitBtn = document.getElementById('submit');
 submitBtn.addEventListener('click', (event) => {
-    var params = getOptions();
-    // Check if we should show phylogenetic tree or show spectral comparison
+    const params = getOptions();
+    // Start the comparison in the selected mode
     const mode = getCmpMode();
-    if (mode == "heatmap"){
-        ipcRenderer.send('compareSpecs', params)
-    }
-    else {
-        ipcRenderer.send('maketree', params)
-    }
-})
+    window.electronAPI.startComparison(mode, params);
+});
 
 // Show version
 const versDiv = document.getElementById('versioninfo');
@@ -336,12 +295,43 @@ versDiv.innerHTML = "version: " + appVersion;
 // Enable tooltips
 $(document).tooltip({
     position: {
-      my: "left top",
-      at: "left+50 bottom-2",
-      collision: "none"
+        my: "left top",
+        at: "left+50 bottom-2",
+        collision: "none"
     }
-  });
+});
 
-  function openSourceCodeInBrowser() {
-    ipcRenderer.send('openSourceCodeInBrowser')
-  }
+function openSourceCodeInBrowser() {
+    window.electronAPI.openSourceCodeInBrowser();
+}
+
+// Move inline onclick handler to addEventListener
+document.addEventListener('DOMContentLoaded', function () {
+    // Request the options from the main process
+    window.electronAPI.requestOptions();
+
+    // Add event listener for source code link
+    const sourceCodeLink = document.querySelector('a.extern-link');
+    if (sourceCodeLink) {
+        sourceCodeLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            openSourceCodeInBrowser();
+        });
+    }
+
+    // Add event listeners for tab buttons using their IDs
+    const compareTabBtn = document.getElementById('compare-tab');
+    const settingsTabBtn = document.getElementById('settings-tab');
+
+    if (compareTabBtn) {
+        compareTabBtn.addEventListener('click', function (event) {
+            openTab(event, 'CompareMode');
+        });
+    }
+
+    if (settingsTabBtn) {
+        settingsTabBtn.addEventListener('click', function (event) {
+            openTab(event, 'CompareSettings');
+        });
+    }
+});
