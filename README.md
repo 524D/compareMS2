@@ -20,8 +20,9 @@ compareMS2 calculates the global similarity between tandem mass spectrometry dat
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Molecular phylogenetics](#34-Molecular-phylogenetics)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Data quality control](#35-Data-quality-control)  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Experimental features](#36-Experimental-features)  
-[4. Acknowledgements ](#4-Acknowledgements)  
-[5. Further reading](#5-Further-reading)  
+[4. compareMS2 tutorial](#4-compareMS2-tutorial)  
+[5. Acknowledgements ](#5-Acknowledgements)  
+[6. Further reading](#6-Further-reading)  
 
 ## 1. Introduction
 
@@ -54,7 +55,7 @@ Though compareMS2 is not limited to tandem mass spectra of peptides, it has seen
         <tr>
             <td>-</td>
             <td>database search (<a href="https://doi.org/10.1002/(SICI)1522-2683(19991201)20:18<3551::AID-ELPS3551>3.0.CO;2-2">Mascot</a>,
-                <a href="https://doi.org/10.1038/msb4100024">Comet</a>, ...)</td>
+                <a href="https://doi.org/10.1038/msb4100024">Comet</a>, <a href="https://doi.org/10.1021/acs.jproteome.3c00486">Sage</a>, ...)</td>
             <td><i>de novo</i> sequencing (<a href="https://doi.org/10.1002/pro.5560010902">LUTEFISK</a>,
                 <a href="https://doi.org/10.1021/ac048788h">PepNovo</a>, ...)</td>
         </tr>
@@ -136,9 +137,12 @@ The visualization and input data are selected on the main screen
 
 ![compareMS2 main screen](./pictures/main-screen.png)
 
+Depending on the selected "Compare mode", only the relevant file selection and other user interface items
+are accessible, while the items that are not useful for the selected mode are greyed out.
+
 In "settings" tab, instrument specific settings, output format and related items can be set.
 
-![compareMS2 main screen](./pictures/settings-tab.png)
+![compareMS2 main screen 2](./pictures/settings-tab.png)
 
 #### 3.1.1. Sample to species file
 
@@ -156,92 +160,114 @@ CompareMS also works without "spectra_to_species.txt file". Also, not all specie
 
 Selecting "phylogenetic tree" and pressing "start" results in a phylogenetic tree being generated.
 
-![compareMS2 main screen](./pictures/phylotree.png)
+![compareMS2 phylogenetic tree](./pictures/phylotree.png)
 
 The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix.
 
-#### 3.2.1. Details
-
-
-### spectra2species
-
-Selecting "phylogenetic tree" and pressing "start" results in a spectra2species bar chart being generated.
-
-### Heatmap
-
-Selecting "phylogenetic tree" and pressing "start" results in a heatmap being generated.
-
-
-
- Every compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
+Every phylogenetic compareMS2 analysis consists of two phases: (1) pairwise comparison of all LC-MS/MS datasets and (2) calculating a distance matrix from all pairwise comparisons. The compareMS2 GUI provides real-time feedback by continuously updating the distance matrix, and drawing a UPGMA tree at the completion of each row in the (lower triangular) distance matrix. The default distance metric D is symmetric, i.e. the distance from dataset A to dataset B is identical to the distance from dataset B to dataset A. If the distance D(A, B) has already been calculated, there is no need to calculate D(B, A). As every dataset is identical to itself, there is no point in calculating D(A, A) or D(B, B), as these are always zero.
 
 ![compareMS2 on primate datasets](./pictures/primates_circular.png)  
 Figure 1. Phylogenetic tree based on sample primate [sera datasets](https://osf.io/sg796/) of 1,000 tandem mass spectra, as displayed during a compareMS2 run. This is a good test dataset for compareMS2.
 
 See PRIDE Project [PXD034932](https://www.ebi.ac.uk/pride/archive/projects/PXD034932) for additional compareMS2 test data.
 
-### 3.1 Configuring compareMS2  
+### 3.3 spectra2species
 
-The compareMS2 CLI has a small number of parameters, which are:
+Selecting "spectra2species" and pressing "start" results in a spectra2species bar chart being generated.
 
--A *first dataset filename*  
--B *second dataset filename*
--W *first scan number*, *last scan number*  
--R *first retention time*, *last retention time*  
--c *cutoff for spectral similarity*  
--o *output filename*  
--m *minimum base peak intensity*, *minimum total MS/MS intensity*  
--w *maximum scan number difference*  
--r *maximum retention time difference*  
--p *maximum difference in precursor mass*  
--e *maximum precursor mass measurement error*  
--s *intensity scaling before dot product*  
--n *noise threshold for dot product*  
--d *version of set distance metric*  
--q *version of QC metric*  
--N *include only N most intense spectra in comparison*  
--b *bin size for dot product*  
--I *minimum number of peaks for dot product*  
--L *lower m/z for dot product*  
--U *upper m/z for dot product*  
--x *experimental features*  
+![compareMS2 spectra2species](./pictures/spectra2species.png)
 
-The compareMS2 GUI exposes some of these, and determine others automatically, e.g. the dataset filenames from a specified directory.
+In spectra2species mode, a single MGF file is compared to a collection of other MFG files. This gives a fast
+indication of the similarity of a sample to other samples, and thus can help to identify the species of
+an unknown sample.
 
-### 3.2 Calculating distance matrices
+### 3.4 Heatmap
+
+Selecting "Heatmap" and pressing "start" results in a heatmap being generated.
+
+![compareMS2 heatmap](./pictures/heatmap.png)
+
+The heatmap can be computed for a single file, giving an indication of the charge states, noise level,
+and other quality measures of the data.
+
+Also, it's possible to generate a heatmap based on two files. In addition the results for a single file, this
+shows the similarity of the two files.
+
+### 3.5 Configuring compareMS2  
+
+The compareMS2 GUI can be configured using command line switches.
+These are similar t0 the command line switches of the
+command line switches of the underlying [compareMS command line program](https://github.com/524D/compareMS2-cmd).
+
+
+-h,--help  *print usage message*  
+-W,--scan-range  *first scan number,last scan number*    
+-R,--rt-range  *first retention time*,*last retention time*  
+-c,--cutoff *score cutoff*  
+-o,--output *output basename*
+-m,--min-intensity *min base peak intensity,min total ion current*  
+-w,--max-scan-diff *maximum scan number difference*  
+-r,--max-rt-diff *maximum retention time difference*
+-p,--max-precursor-diff *maximum difference in precursor mass*  
+-s,--scaling *scaling power*  
+-n,--noise  *noise threshold*  
+-d,--metric *distance metric (0, 1 or 2)*
+-q,--qc *QC measure*  
+\[MGF directory name\]  
+\[Filename 1\]  
+\[Filename 2\]
+
+For the final directory/filename arguments, compareMS2 checks
+if the argument is a directory of a file to determine its use.
+This way, a directory and/or file can simply be dragged onto the
+compareMS2 program icon to set these values.
+
+### 3.6 Calculating distance matrices
 
 Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filenames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
 
-### 3.3 Running compareMS2
+### 3.7 Running compareMS2
 
 After specifying the parameters, click on the "Start" button to run compareMS2 on all files in the specified directory. Alternatively, compareMS2 can be run on two specific files using the CLI version.
 
-### 3.4 Molecular phylogenetics
+### 3.8 Molecular phylogenetics
 
 We recommend [MEGA](https://www.megasoftware.net/) creating phylogenetic trees from compareMS2 results. However, most phylogenetic software can take distance matrices as input for UPGMA analysis. This was the original use for which compareMS2 was developed, see the [2012 paper](https://doi.org/10.1002/rcm.6162).
 
-### 3.5 Data quality control
+### 3.9 Data quality control
 
 compareMS2 provides a very quick overview of large number of datasets to see if they cluster as expected or if there are outliers. Data of lower quality can thus be detected *before* running them through a data analysis pipeline and statistical analysis. It is not absolutely necessary to include all spectra in the analysis - major discrepancies should be detectable with ~1,000 spectra, if selected systematically. Similarly, compareMS2 can be used to determine the relative importance of factors in sample preparation and analysis, as shown in a [2016 paper](https://doi.org/10.1002/rcm.7494).
 
 In addition, compareMS2 collects metadata on each dataset (by default the number of tandem mass spectra) and visualizes this on top of the hierarcical clustering or phylogenetic tree.
 
-### 3.6 Experimental features
+### 3.10 Experimental features
 
 Starting in version 2.0, we have begun to include experimental features in compareMS2. These are only available on the command line, but allow extraction of additional information from the comparisons, such as the distribution of similarity between tandem mass spectra as function of precursor mass measurement error, allowing identification of isotope errors and charge state distributions *before* any database search:
 
 ![Experimental feature](./pictures/experimental_features.png)  
 Figure 2. Similarity (spectral angle from 0 to 1) of tandem mass spectra plotted against precursor *m*/*z* difference, revealing isotope errors up to at least 2 (corresponding to bands at *m*/*z* difference 2/3 and 2/5) and charge states up to 6 (corresponding to the band at *m*/*z* difference 1/6).
 
-## 4. Acknowledgements
+## 4. compareMS2 tutorial
+
+A compareMS2 workshop was held at the [EuBIC Winter School in Winterberg, Germany, January 15-19 2024](https://eubic-ms.org/events/2024-winter-school/). Some of the slides from this workshops can be found [here](https://osf.io/8qjwz), along with a tutorial [here](https://osf.io/e5j7q). All data for the tutorial are also available on [OSF](https://osf.io/sjtrm/).
+
+## 5. Acknowledgements
 
 The developers wish to thank Dr. Michael Dondrup at the University of Bergen for providing changes and additions to make compareMS2 work under macOS. All users and beta testers are also acknowledged for their valuable feedback that helped to improve compareMS2.
 
-## 5. Further reading
+## 6. Further reading
 
 compareMS2 and related applications have been described or used in a number of papers:
 
+Shotgun Proteomics Protocol for Insects, Varunjikar MS, Belghit I, Oveland E, Palmblad M and Rasinger JD, *Methods Mol. Biol.* **2884**:81-98, 2025, [doi.org/10.1007/978-1-0716-4298-6_7](https://doi.org/10.1007/978-1-0716-4298-6_7)
+
+Fish species authentication in commercial fish products using mass spectrometry and spectral library matching approach, Varunjikar MS, Pineda-Pampliega J, Belghit I, Palmblad M, Einar Grøsvik B, Meier S, Asgeir Olsvik P, Lie KK and Rasinger JD, *Food Res. Int.* **192**:114785, 2024, [doi.org/10.1016/j.foodres.2024.114785](https://doi.org/10.1016/j.foodres.2024.114785)
+
 compareMS2 2.0: An Improved Software for Comparing Tandem Mass Spectrometry Datasets, Marissen M, Varunjikar MS, Laros JFJ, Rasinger JD, Neely BA and Palmblad M, *J. Proteome Res.*  **22(2)**:514–519, 2023, [doi.org/10.1021/acs.jproteome.2c00457](https://doi.org/10.1021/acs.jproteome.2c00457)
+
+Multi-tissue proteogenomic analysis for mechanistic toxicology studies in non-model species, Lin MS, Varunjikar MS, Lie KK, Søfteland L, Dellafiora L, Ørnsrud R, Sanden M, Berntssen MHG, Dorne JLCM, Bafna V and Rasinger JD, *Environment International* **182**:108309, 2023 [https://doi.org/10.1016/j.envint.2023.108309 ](https://doi.org/10.1016/j.envint.2023.108309 )
+
+Unveiling the potential of proteomics in addressing food and feed safety challenges, Perkons I, Varunjikar MS and Rasinger JD, *EFSA Journal* **21(Suppl 1)**:e211013, 2023 [https://doi.org/10.2903/j.efsa.2023.e211013 ](https://doi.org/10.2903/j.efsa.2023.e211013 )
 
 Shotgun proteomics approaches for authentication, biological analyses, and allergen detection in feed and food-grade insect species, Varunjikar MS, Belghit I, Gjerde J, Palmblad M, Oveland E and Rasinger JD, *Food Control* **131**, 2022, [doi.org/10.1016/j.foodcont.2022.108888](https://doi.org/10.1016/j.foodcont.2022.108888)
 
