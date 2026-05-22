@@ -176,7 +176,7 @@ function handleStoreImageV2(event, defaultName, imgFmt, imageData) {
 
     const files = dialog.showSaveDialogSync(senderWindow, {
         title: 'Save image',
-        defaultPath: defaultName + '' + imgFmt,
+        defaultPath: defaultName + '.' + imgFmt,
         filters: [
             { name: imgFmt + ' file', extensions: [imgFmt] },
             { name: 'All Files', extensions: ['*'] }

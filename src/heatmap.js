@@ -390,7 +390,7 @@ document.getElementById("qscale").addEventListener("change", function () {
 
 document.getElementById("store-image").addEventListener("click", function (e) {
     const imgFmt = document.getElementById('img-type').value;
-    const defaultName = "spectra2species";
+    const defaultName = "heatmap";
     const option = myChart.getOption(); // Get the current chart option
     if (imgFmt == "svg") {
         const imageData = renderSVG(option);
