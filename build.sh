@@ -77,7 +77,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     #For Linux, the installer is in a subdirectory named deb/x64
     INSTALLER_DIR="out/make/deb/x64"
     INSTALLER_NAME=$(ls --indicator-style=none "${TEMP_DIR}/${INSTALLER_DIR}/" | grep .deb)
-elif [[ "$OSTYPE" == "msys"* ]]; then
+elif [[ "$OSTYPE" == "msys"* ]] || [[ "$OSTYPE" == "cygwin"* ]]; then
     #For Windows, the installer is in a subdirectory named squirrel.windows/x64
     INSTALLER_DIR="out/make/squirrel.windows/x64"
     INSTALLER_NAME=$(ls --indicator-style=none "${TEMP_DIR}/${INSTALLER_DIR}/" | grep .exe)
