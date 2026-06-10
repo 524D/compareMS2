@@ -47,6 +47,7 @@ else
     rm -rf "${TEMP_DIR}"
     mkdir -p "${TEMP_DIR}"
     cp -r ./* "${TEMP_DIR}"
+    cp .yarnrc.yml "${TEMP_DIR}"
     rm -rf "${TEMP_DIR}/.git"  # Remove .git directory if it exists
     rm -rf "${TEMP_DIR}/releases"  # Remove releases directory if it exists
     rm -rf "${TEMP_DIR}/node_modules"  # Remove node_modules directory if it exists
@@ -65,7 +66,7 @@ yarn
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ./build-linux.sh
 else
-    yarn make
+    yarn make --verbose
 fi
 
 echo "Build completed. Output is in the directory: $TEMP_DIR/out/make"
