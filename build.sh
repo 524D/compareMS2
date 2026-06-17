@@ -58,14 +58,13 @@ fi
 sed -i.bak "s/build-unknown/build-$TIMESTAMP/" package.json
 rm package.json.bak
 
-# Install dependencies
-yarn
-
 # Create the distributable packages
 # If running on linux, use the script 'build-linux.sh' instead
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     ./build-linux.sh
 else
+    # Install dependencies
+    yarn
     yarn make --verbose
 fi
 
