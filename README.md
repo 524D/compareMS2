@@ -76,25 +76,18 @@ On Windows and Ubuntu, the easiest way to install compareMS2 is through the [ins
 
 Alternatively, and for other platforms, follow the instructions below.
 
-A recent version of `NodeJs` and `yarn` are required. The versions supplied with most Linux distributions are outdated.
-We recommend installing the latest versions from the NodeJs and yarn websites. NodeJs must be installed before yarn.
+Download/install [NodeJS version 22.22.3](https://nodejs.org/en/download/archive/v22.22.3)
+Note: due to a [bug](https://github.com/electron/forge/issues/4277), the currently (June 2026) latest NodeJS version cannot be used.
 
-* For NodeJs, use the [installer](https://nodejs.org/en/download), except for Ubuntu/Debian (because no installer is provided).
-  For Ubuntu Linux we used the instructions found
-  [here](https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-ubuntu-22-04#option-2-installing-node-js-with-apt-using-a-nodesource-ppa)
-* For yarn, we used the instructions found [yarn website](https://classic.yarnpkg.com/lang/en/docs/install/)
-  under "Alternatives", installing the "Classic stable" version.
+Activate `yarn` by running `corepack enable`. On Windows, this must be done in a command window with administrator rights (<kbd>win</kbd> -> type `cmd` ->  <kbd>ctrl</kbd>+<kbd>shift</kbd>+<kbd>enter</kbd>)
 
-Then run the following on the command line:
+Then open a new command line windows and run the following on the command line:
 
 ```text
 git clone https://github.com/524D/compareMS2
 cd compareMS2
 yarn
 ```
-
-Ignore npm vulnerability warnings (**don't** run ```npm audit fix```). Since compareMS is not a web app, they are of limited relevance,
-and they can't easily be fixed.
 
 ### 2.1 Running compareMS2 in development mode
 
