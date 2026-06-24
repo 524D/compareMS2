@@ -780,6 +780,10 @@ function parseCommandLineArgs() {
                 process.stdout.write(USAGE_STRING + '\n');
                 process.exit(0);
             }
+            if (longArg === 'squirrel-firstrun') {
+                // TODO: Handle --squirrel-firstrun option
+                continue;
+            }
             const eqIdx = longArg.indexOf('=');
             let longKey, longVal;
             if (eqIdx !== -1) {
