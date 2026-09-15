@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: MIT
+
 <#
 .SYNOPSIS
     Runs all unique pairwise compareMS2 comparisons in an MGF directory.
@@ -133,7 +134,12 @@ function Test-ComparisonResult {
         $field = ($line -split "`t", 2)[0]
         if ($required -contains $field) { $seen[$field] = $true }
     }
-    return (($required | Where-Object { -not $seen.ContainsKey($_) }).Count -eq 0)
+    $missing = @(
+        $required |
+            Where-Object { -not $seen.ContainsKey($_) }
+    )
+
+    return ($missing.Count -eq 0)
 }
 
 function Write-RunLog {
