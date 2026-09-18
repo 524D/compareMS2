@@ -129,17 +129,45 @@ function Test-ComparisonResult {
     if ((Get-Item -LiteralPath $Path).Length -le 0) { return $false }
 
     $required = @('dataset_A', 'dataset_B', 'set_distance')
-    $seen = @{}
-    foreach ($line in (Get-Content -LiteralPath $Path)) {
-        $field = ($line -split "`t", 2)[0]
-        if ($required -contains $field) { $seen[$field] = $true }
-    }
-    $missing = @(
-        $required |
-            Where-Object { -not $seen.ContainsKey($_) }
-    )
+    $values = @{}
 
-    return ($missing.Count -eq 0)
+    foreach ($line in (Get-Content -LiteralPath $Path)) {
+        $parts = $line -split "`t", 2
+        if ($parts.Count -ne 2) { continue }
+
+        $field = $parts[0].Trim()
+        if ($required -contains $field) {
+            $value = $parts[1].Trim()
+            if ([string]::IsNullOrWhiteSpace($value)) {
+                return $false
+            }
+            $values[$field] = $value
+        }
+    }
+
+    foreach ($field in $required) {
+        if (-not $values.ContainsKey($field)) {
+            return $false
+        }
+    }
+
+    $distance = 0.0
+    $style = [System.Globalization.NumberStyles]::Float
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+
+    if (-not [double]::TryParse(
+        $values['set_distance'],
+        $style,
+        $culture,
+        [ref]$distance
+    )) {
+        return $false
+    }
+
+    return (
+        -not [double]::IsNaN($distance) -and
+        -not [double]::IsInfinity($distance)
+    )
 }
 
 function Write-RunLog {
@@ -163,6 +191,16 @@ if (-not $OutputStem) { $OutputStem = Join-Path $OutputDirectory 'distance_matri
 else { $OutputStem = Get-FullPath $OutputStem }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory, $PairwiseDirectory | Out-Null
+
+if ($DistanceMatrixPath) {
+    foreach ($extension in @('.nexus', '.meg', '.json')) {
+        Remove-Item `
+            -LiteralPath "$OutputStem$extension" `
+            -Force `
+            -ErrorAction SilentlyContinue
+    }
+}
+
 if (-not (Test-Path -LiteralPath $LogFile)) {
     New-Item -ItemType File -Path $LogFile | Out-Null
 }
@@ -291,7 +329,19 @@ if ($results.Count -ne $expected -or $failed -gt 0) {
     throw 'Not all pairwise comparisons succeeded; the distance matrix was not created.'
 }
 
-$results | Sort-Object Name | Select-Object -ExpandProperty FullName | Out-File -LiteralPath $FileList -Encoding ASCII
+[string[]]$fileListEntries = @(
+    $results |
+        Sort-Object Name |
+        Select-Object -ExpandProperty FullName
+)
+
+$utf8NoBom = New-Object System.Text.UTF8Encoding
+[System.IO.File]::WriteAllLines(
+    $FileList,
+    $fileListEntries,
+    $utf8NoBom
+)
+
 Write-RunLog "Pairwise stage complete: valid_files=$($results.Count), elapsed_hours=$([math]::Round(((Get-Date) - $started).TotalHours, 2))"
 
 if ($DistanceMatrixPath) {

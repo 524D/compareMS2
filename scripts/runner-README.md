@@ -2,7 +2,7 @@
 
 `run-comparems2-all-pairs.ps1` is a Windows PowerShell 5.1-compatible batch runner for the compareMS2 command-line executables. It runs every unique pair of MGF files serially, resumes valid cached results after interruption, validates outputs, logs failures, shows progress and ETA, and can optionally invoke `compareMS2_to_distance_matrices`.
 
-Serial execution is intentional. A single process avoids oversubscribing memory on large datasets and provides a conservative option for unattended runs. The script commits results atomically: each comparison is written to a `.partial` path and moved to its final path only after compareMS2 returns exit code 0 and the output contains `dataset_A`, `dataset_B`, and `set_distance` fields.
+Serial execution is intentional. A single process avoids oversubscribing memory on large datasets and provides a conservative option for unattended runs. The script commits results atomically: each comparison is written to a `.partial` path and moved to its final path only after compareMS2 returns exit code 0 and the output contains nonempty `dataset_A` and `dataset_B` values and a finite numeric `set_distance` value.
 
 ## Requirements
 
@@ -34,11 +34,13 @@ From the compareMS2 repository root:
     -MatrixFormat Mega12
 ```
 
-The optional mapping file is tab-delimited, with the MGF filename in column one and the species or group name in column two.
+The optional mapping file is tab-delimited, with the MGF filename in column one and the species or group name in column two. The generated pairwise-result file list is written as UTF-8 without a byte-order mark so that non-ASCII paths remain intact.
+
+When matrix generation is requested, existing `.nexus`, `.meg`, and `.json` files at the selected output stem are removed before pairwise processing begins. A failed rerun therefore cannot leave a stale matrix that appears to represent the current run.
 
 ## Resume behavior
 
-Run the same command again after an interruption. Existing nonempty result files are reused only if they contain all required fields. Empty, partial, and malformed files are recomputed. Use `-Force` to recompute all comparisons.
+Run the same command again after an interruption. Existing results are reused only if they contain nonempty dataset identifiers and a finite numeric set distance. Empty, partial, and malformed files are recomputed. Use `-Force` to recompute all comparisons.
 
 By default, the first failed pair stops the run. Use `-KeepGoing` to collect all failures in `failures.tsv`; matrix generation remains blocked until every expected pair has a valid result.
 
