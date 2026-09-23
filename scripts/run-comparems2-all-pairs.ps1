@@ -123,7 +123,11 @@ function Get-PairId {
 }
 
 function Test-ComparisonResult {
-    param([Parameter(Mandatory = $true)][string]$Path)
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedDatasetA,
+        [Parameter(Mandatory = $true)][string]$ExpectedDatasetB
+    )
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
     if ((Get-Item -LiteralPath $Path).Length -le 0) { return $false }
@@ -151,12 +155,46 @@ function Test-ComparisonResult {
         }
     }
 
+    try {
+        $actualDatasetA = Get-FullPath $values['dataset_A']
+        $actualDatasetB = Get-FullPath $values['dataset_B']
+        $expectedDatasetAPath = Get-FullPath $ExpectedDatasetA
+        $expectedDatasetBPath = Get-FullPath $ExpectedDatasetB
+    }
+    catch {
+        return $false
+    }
+
+    $comparison = [System.StringComparison]::OrdinalIgnoreCase
+
+    if (-not [string]::Equals(
+        $actualDatasetA,
+        $expectedDatasetAPath,
+        $comparison
+    )) {
+        return $false
+    }
+
+    if (-not [string]::Equals(
+        $actualDatasetB,
+        $expectedDatasetBPath,
+        $comparison
+    )) {
+        return $false
+    }
+
+    $distanceText = $values['set_distance']
+
+    if ($distanceText -match '^(?i:\+?(?:inf|infinity))$') {
+        return $true
+    }
+
     $distance = 0.0
     $style = [System.Globalization.NumberStyles]::Float
     $culture = [System.Globalization.CultureInfo]::InvariantCulture
 
     if (-not [double]::TryParse(
-        $values['set_distance'],
+        $distanceText,
         $style,
         $culture,
         [ref]$distance
@@ -166,7 +204,8 @@ function Test-ComparisonResult {
 
     return (
         -not [double]::IsNaN($distance) -and
-        -not [double]::IsInfinity($distance)
+        -not [double]::IsNegativeInfinity($distance) -and
+        $distance -ge 0.0
     )
 }
 
@@ -227,7 +266,7 @@ $runSignature = @(
     $Scaling.ToString($inv), $Noise.ToString($inv), $Metric,
     $SpectrumMetric, $QC
 ) -join "`n"
-$expectedResultFiles = New-Object System.Collections.Generic.List[string]
+$expectedResults = New-Object System.Collections.Generic.List[object]
 $started = Get-Date
 $processed = [int64]0
 $valid = [int64]0
@@ -247,11 +286,21 @@ for ($i = 0; $i -lt $mgfs.Count; $i++) {
         ) -join "`n"
         $pairId = Get-PairId -CacheKey $cacheKey
         $outFile = Join-Path $PairwiseDirectory ("{0}.txt" -f $pairId)
-        $expectedResultFiles.Add($outFile)
+        $expectedResults.Add([pscustomobject]@{
+            Path = $outFile
+            DatasetA = $fileA.FullName
+            DatasetB = $fileB.FullName
+        })
         $tmpFile = "$outFile.partial"
         $processed++
 
-        if (-not $Force -and (Test-ComparisonResult -Path $outFile)) {
+        if (
+            -not $Force -and
+            (Test-ComparisonResult `
+                -Path $outFile `
+                -ExpectedDatasetA $fileA.FullName `
+                -ExpectedDatasetB $fileB.FullName)
+        ) {
             $valid++
             $skipped++
         }
@@ -279,7 +328,13 @@ for ($i = 0; $i -lt $mgfs.Count; $i++) {
             try {
                 & $CompareMS2Path @compareArgs *> $consoleFile
                 $exitCode = $LASTEXITCODE
-                if ($exitCode -eq 0 -and (Test-ComparisonResult -Path $tmpFile)) {
+                if (
+                    $exitCode -eq 0 -and
+                    (Test-ComparisonResult `
+                        -Path $tmpFile `
+                        -ExpectedDatasetA $fileA.FullName `
+                        -ExpectedDatasetB $fileB.FullName)
+                ) {
                     Move-Item -LiteralPath $tmpFile -Destination $outFile -Force
                     Remove-Item -LiteralPath $consoleFile -Force -ErrorAction SilentlyContinue
                     $valid++
@@ -320,9 +375,16 @@ for ($i = 0; $i -lt $mgfs.Count; $i++) {
 Write-Progress -Activity 'compareMS2 all-pairs run' -Completed
 
 $results = @(
-    $expectedResultFiles |
-    Where-Object { Test-ComparisonResult -Path $_ } |
-    ForEach-Object { Get-Item -LiteralPath $_ }
+    foreach ($expectedResult in $expectedResults) {
+        if (
+            Test-ComparisonResult `
+                -Path $expectedResult.Path `
+                -ExpectedDatasetA $expectedResult.DatasetA `
+                -ExpectedDatasetB $expectedResult.DatasetB
+        ) {
+            Get-Item -LiteralPath $expectedResult.Path
+        }
+    }
 )
 if ($results.Count -ne $expected -or $failed -gt 0) {
     Write-RunLog "Pairwise validation failed: valid_files=$($results.Count), expected=$expected, failures=$failed"
