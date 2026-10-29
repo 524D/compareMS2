@@ -9,6 +9,7 @@ const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 const { getCPUCount } = require('./main-common.js');
 const { initializeParallelization } = require('./parallelization-manager.js');
+const { initConvert, isSupportedInput, needsConversion, getInputFileFilters } = require('./main-convert.js');
 const homedir = require('os').homedir();
 
 const defaultOptions = {
@@ -43,7 +44,11 @@ const defaultOptions = {
     compareOrder: "smallest-largest",
     keepSettings: true,
     numberOfCPUs: getCPUCount(), // Default to the number of CPU cores
+    convertCacheDir: "", // Empty: use a subdirectory next to the input files
 }
+
+// Locate msconvert (ProteoWizard) once at startup; it enables non-MGF input files
+const msconvertExe = initConvert();
 
 // The filename where options of the last run are stored
 const prevOptionsFn = getUserDataFn();
@@ -93,6 +98,7 @@ function getDefaultFileParams() {
         },
         s2sFile: "",
         sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
+        convertCacheDir: "", // Directory for converted MGF files, empty for the default
     };
 }
 
@@ -141,10 +147,7 @@ function selectMGFfile(title) {
     const files = dialog.showOpenDialogSync(mainWindow, {
         title: title,
         properties: ['openFile'],
-        filters: [
-            { name: 'MGF files', extensions: ['mgf'] },
-            { name: 'All Files', extensions: ['*'] }
-        ],
+        filters: getInputFileFilters(),
     });
     return files;
 }
@@ -278,6 +281,22 @@ ipcMain.on('main-gui-action', (event, action) => {
             mainWindow.send('selected-speciesfile', '');
             break;
         }
+        case 'select-convert-cache-dir': {
+            const dirs = dialog.showOpenDialogSync(mainWindow, {
+                title: 'Select directory for converted MGF files',
+                properties: ['openDirectory', 'createDirectory']
+            });
+            if (dirs && dirs[0]) {
+                fileParams.convertCacheDir = dirs[0];
+                mainWindow.send('selected-convert-cache-dir', fileParams.convertCacheDir);
+            }
+            break;
+        }
+        case 'clear-convert-cache-dir': {
+            fileParams.convertCacheDir = "";
+            mainWindow.send('selected-convert-cache-dir', '');
+            break;
+        }
     }
 })
 
@@ -296,6 +315,7 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     params.mzFile2 = fileParams.file2;
     params.s2sFile = fileParams.s2sFile;
     params.mgfDir = fileParams.sampleDir.dir;
+    params.convertCacheDir = fileParams.convertCacheDir;
     saveOptionsToFile(fn, params)
     params.sampleDir = fileParams.sampleDir; // Add the sampleDir info to the params that are passed to the compare windows
 
@@ -467,6 +487,7 @@ const createWindow = () => {
             query: {
                 "version": app.getVersion(),
                 "availableCPUs": getCPUCount(), // Pass the number of CPUs to the renderer
+                "msconvert": msconvertExe || "",
             }
         });
 
@@ -531,8 +552,8 @@ function getSampleDirFiles(dir) {
         const filePath = path.join(dir, file);
         return fs.statSync(filePath).isFile();
     });
-    // Filter for MGF files
-    const mgfFiles = files.filter(file => file.endsWith('.mgf'));
+    // Filter for input files: MGF, plus convertible files when msconvert is available
+    const mgfFiles = files.filter(isSupportedInput);
     const mgfFilesFull = mgfFiles.map(file => path.join(dir, file));
     const mgfFilesShort = mgfFiles.map(file => path.basename(file));
 
@@ -582,6 +603,7 @@ function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
             fileParams.file1 = options.mzFile1;
             fileParams.file2 = options.mzFile2;
             fileParams.s2sFile = options.s2sFile;
+            fileParams.convertCacheDir = options.convertCacheDir || "";
             processOpts(options);
         }
     });
@@ -593,6 +615,7 @@ function saveOptionsToFile(fn, options) {
     options.mzFile1 = fileParams.file1;
     options.mzFile2 = fileParams.file2;
     options.s2sFile = fileParams.s2sFile;
+    options.convertCacheDir = fileParams.convertCacheDir;
 
     try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
     catch (e) { alert('Failed to save options file'); }
@@ -604,6 +627,7 @@ function updateOptionsToRenderer(options) {
     options.mzFile1 = fileParams.file1;
     options.mzFile2 = fileParams.file2;
     options.s2sFile = fileParams.s2sFile;
+    options.convertCacheDir = fileParams.convertCacheDir;
     mainWindow.webContents.send('update-options', options);
 
     // Update the main window items based on the options
@@ -621,10 +645,12 @@ function updateOptionsToRenderer(options) {
 function getMainWindowCompItems(sampleDir, sampleFile1) {
     const mgfFiles = sampleDir.mgfFiles;
     const nMgf = mgfFiles.length;
+    const nConv = mgfFiles.filter(needsConversion).length;
+    const convInfo = nConv > 0 ? " (" + nConv + " to be converted to MGF)" : "";
 
     // Message for compare mode "phyltree":
     const nCompPhylTree = (nMgf * (nMgf - 1)) / 2;
-    const phylTreeMsg = nMgf + " MGF files, " + nCompPhylTree + " comparisons.";
+    const phylTreeMsg = nMgf + " input files" + convInfo + ", " + nCompPhylTree + " comparisons.";
     const phylTreeSubmitEnabled = (mgfFiles.length >= 2);
     // Message for compare mode "heatmap":
     const heatMapMsg = ""
@@ -632,7 +658,7 @@ function getMainWindowCompItems(sampleDir, sampleFile1) {
 
     // Message for compare mode "spec-to-species":
     const nCompSpectra2Species = nMgf;
-    const spectra2SpeciesMsg = nMgf + " MGF files, " + nCompSpectra2Species + " comparisons.";
+    const spectra2SpeciesMsg = nMgf + " input files" + convInfo + ", " + nCompSpectra2Species + " comparisons.";
     const spectra2SpeciesSubmitEnabled = ((sampleFile1) && mgfFiles.length >= 2);
     return {
         'phyltree': [phylTreeMsg, phylTreeSubmitEnabled],
@@ -756,14 +782,14 @@ function parseCommandLineArgs() {
                     process.exit(1);
                 }
                 mgfDir = arg;
-            } else if (stat && stat.isFile() && arg.toLowerCase().endsWith('.mgf')) {
+            } else if (stat && stat.isFile() && isSupportedInput(arg)) {
                 mgfFiles.push(arg);
                 if (mgfFiles.length > 2) {
-                    process.stderr.write('Error: more than 2 MGF files specified. At most 2 are allowed.\n');
+                    process.stderr.write('Error: more than 2 input files specified. At most 2 are allowed.\n');
                     process.exit(1);
                 }
             } else {
-                process.stderr.write('Error: "' + arg + '" is not an existing .mgf file or directory.\n');
+                process.stderr.write('Error: "' + arg + '" is not an existing supported input file or directory.\n');
                 process.exit(1);
             }
             continue;

@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
+const { resolveInputFiles } = require('./main-convert.js');
 
 var generalParams = null;
 
@@ -49,7 +50,7 @@ function showHeatMapWindow(mainWindow, icon, params) {
     });
 }
 
-function runHeatMap(window, userparams, onFinishedFunc) {
+async function runHeatMap(window, userparams, onFinishedFunc) {
     let mzFile1 = userparams.mzFile1;
     let mzFile2;
     let title;
@@ -76,6 +77,21 @@ function runHeatMap(window, userparams, onFinishedFunc) {
     } else {
         yAxisLabel = "MS2 similarity (spectral angle)";
     }
+
+    // Convert non-MGF input files (cached on disk) before comparing
+    try {
+        const mgfMap = await resolveInputFiles(window, window.id, [mzFile1, mzFile2], userparams.convertCacheDir);
+        mzFile1 = mgfMap.get(mzFile1);
+        mzFile2 = mgfMap.get(mzFile2);
+    } catch (error) {
+        hideLoading(window);
+        if (isWindowValid(window)) {
+            elog(window, `Conversion to MGF failed: ${error.message}`);
+            setActivity(window, `Conversion to MGF failed: ${error.message}`);
+        }
+        return;
+    }
+    if (!isWindowValid(window)) return;
 
     // compareMS2 executables need local filenames, so change default dir
     process.chdir(path.dirname(userparams.mzFile1));

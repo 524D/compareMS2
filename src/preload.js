@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onSelectedDirectory: (callback) => ipcRenderer.on('selected-directory', (_event, p) => callback(p)),
     onSelectedFile1: (callback) => ipcRenderer.on('selected-file1', (_event, p) => callback(p)),
     onSelectedFile2: (callback) => ipcRenderer.on('selected-file2', (_event, p) => callback(p)),
+    onSelectedConvertCacheDir: (callback) => ipcRenderer.on('selected-convert-cache-dir', (_event, p) => callback(p)),
     onShowAlert: (callback) => ipcRenderer.on('show-alert', (_event, type, text) => callback(type, text)),
 })

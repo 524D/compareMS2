@@ -3,6 +3,7 @@
 const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
 const availableCPUs = searchParams.get('availableCPUs') || -1;
+const msconvertPath = searchParams.get('msconvert') || '';
 
 // Info on number of comparisons and Submit button state
 // for each compare mode
@@ -34,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     window.electronAPI.onSelectedFile2((p) => {
         document.getElementById('file2').value = `${p}`;
+    });
+    window.electronAPI.onSelectedConvertCacheDir((p) => {
+        document.getElementById('convertcachedir').value = `${p}`;
     });
     window.electronAPI.onShowAlert((type, text) => {
         const modal = document.getElementById('alert-modal');
@@ -83,6 +87,7 @@ function setOptions(options) {
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
     document.getElementById("keepsetting").checked = options.keepSettings;
+    document.getElementById("convertcachedir").value = options.convertCacheDir || "";
     // Show empty field if using default number of CPUs (all available)
     const maxCPUsInput = document.getElementById("maxCPUs");
     // If numberOfCPUs is -1
@@ -135,6 +140,7 @@ function getOptions() {
         compareOrder: document.getElementById("compare-order").value,
         keepSettings: document.getElementById("keepsetting").checked,
         numberOfCPUs: parseInt(document.getElementById("maxCPUs").value) || -1, // -1 means use all available CPUs
+        convertCacheDir: document.getElementById("convertcachedir").value,
     };
     return options;
 }
@@ -223,6 +229,18 @@ document.getElementById("clear-file2").addEventListener("click", function () {
 document.getElementById("clear-speciesfile").addEventListener("click", function () {
     window.electronAPI.mainGuiAction('clear-speciesfile');
 });
+
+document.getElementById('select-convert-cache-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('select-convert-cache-dir');
+});
+
+document.getElementById('clear-convert-cache-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('clear-convert-cache-dir');
+});
+
+document.getElementById('msconvert-info').textContent = msconvertPath ?
+    'found: ' + msconvertPath :
+    'not found, only MGF input files are supported';
 
 // Handle compare mode selection
 document.querySelectorAll('.cmpmode').forEach(radio => {

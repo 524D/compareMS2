@@ -84,7 +84,7 @@
             </div>
         </div>
         <div class="enable_in_mode phyltree spec-to-species">
-            <div><label class="input-label2">Directory of MGF files:</label>
+            <div><label class="input-label2">Directory of input files:</label>
                 <input class="input-value file-path-input" type="text" id="mgfdir" spellcheck="false" disabled>&nbsp;
                 <button type="button" id="select-directory">
                     <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir</button>
@@ -242,6 +242,22 @@
             <input class="input-value" type="number" id="maxCPUs" min="1" max="64" step="1"
                 title="Maximum number of CPU cores to use for parallel processing. Leave empty to use all available cores."
                 placeholder="Auto (use all)">
+        </div>
+        <div><label class="input-label">Converted MGF directory</label>
+            <input class="input-value file-path-input" type="text" id="convertcachedir" spellcheck="false" disabled
+                placeholder="Default: subdirectory 'converted_mgf'"
+                title="Where files converted by msconvert are stored and reused. Empty: a subdirectory 'converted_mgf' of the directory of each input file.">&nbsp;
+            <div class="dual-button-container">
+                <button type="button" id="clear-convert-cache-dir" class="clear-button" title="Use default directory">
+                    <i class="mi mi-Clear"></i>
+                </button>
+                <button type="button" id="select-convert-cache-dir" class="select-button">
+                    <i class="mi mi-OpenFolderHorizontal mi-lg icon-valign"></i>&nbsp;Select dir
+                </button>
+            </div>
+        </div>
+        <div><label class="input-label">msconvert</label>
+            <span id="msconvert-info" class="small"></span>
         </div>
         <div><label class="input-label">Keep settings</label>
             <input type="checkbox" id="keepsetting" name="keepsetting" checked

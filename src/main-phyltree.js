@@ -10,6 +10,7 @@ const lineReader = require('line-reader');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { UPGMA } = require('./upgma.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
+const { resolveInputFiles } = require('./main-convert.js');
 
 let computationStates = new Map(); // Track computation state for each instance
 
@@ -168,13 +169,26 @@ function findLastCompleteRow(mgfFiles, compareDir, params) {
     };
 }
 
-function runTreeComparison(window, instanceId, params) {
+async function runTreeComparison(window, instanceId, params) {
     const state = computationStates.get(instanceId);
 
     if (!state || !window) return false;
 
+    // Convert non-MGF input files (cached on disk) before comparing
+    const inputFiles = params.sampleDir.mgfFilesFull || [];
+    try {
+        const mgfMap = await resolveInputFiles(window, instanceId, inputFiles, params.convertCacheDir);
+        state.mgfFiles = inputFiles.map(f => mgfMap.get(f));
+    } catch (error) {
+        if (isWindowValid(window) && computationStates.has(instanceId)) {
+            elog(window, `Conversion to MGF failed: ${error.message}`);
+            safeWindowSend(window, 'tree-error', `Conversion to MGF failed: ${error.message}`);
+        }
+        return false;
+    }
+    if (!isWindowValid(window) || !computationStates.has(instanceId)) return false;
+
     // Initialize computation state
-    state.mgfFiles = params.sampleDir.mgfFilesFull || [];
     sortFiles(state.mgfFiles, params.compareOrder);
 
     // Create compare directory

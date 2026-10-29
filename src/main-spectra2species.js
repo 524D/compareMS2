@@ -8,23 +8,12 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
+const { resolveInputFiles } = require('./main-convert.js');
 
 var generalParams = null;
 
 function initS2S(genParams) {
     generalParams = genParams;
-}
-
-function readSampleFiles(mgfDir, window) {
-    // Read all files in the mgfDir directory and return an array of sample files
-    if (!fs.existsSync(mgfDir)) {
-        elog(window, 'Directory does not exist: ' + mgfDir);
-        return [];
-    }
-    const files = fs.readdirSync(mgfDir);
-    // Filter files to only include .mfg files
-    const sampleFiles = files.filter(file => file.endsWith('.mgf')); // Get the full path of the files
-    return sampleFiles;
 }
 
 // Read the Sample2Species file
@@ -121,20 +110,35 @@ async function runS2S(params, window) {
     const compareDir = path.join(params.mgfDir, compareDirName);
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
 
-    const sampleFiles = readSampleFiles(params.mgfDir, window);
-    if (sampleFiles.length === 0) {
+    const inputFiles = params.sampleDir.mgfFilesFull || [];
+    if (inputFiles.length === 0) {
         elog(window, 'No sample files found in directory: ' + params.mgfDir);
         return;
     }
-    const sample2Species = readSample2Species(params.s2sFile, sampleFiles);
 
-    // Compare params.mzFile1 to all files in sampleFiles
+    // Convert non-MGF input files (cached on disk) before comparing
+    let mgfMap;
+    try {
+        mgfMap = await resolveInputFiles(window, window.id, [params.mzFile1, ...inputFiles], params.convertCacheDir);
+    } catch (error) {
+        if (isWindowValid(window)) {
+            elog(window, `Conversion to MGF failed: ${error.message}`);
+            safeWindowSend(window, 's2s-error', `Conversion to MGF failed: ${error.message}`);
+        }
+        return;
+    }
+    if (!isWindowValid(window)) return;
+    const refFile = mgfMap.get(params.mzFile1);
+    const sampleFilesFull = inputFiles.map(f => mgfMap.get(f));
+    const sample2Species = readSample2Species(params.s2sFile, sampleFilesFull);
+
+    // Compare the reference file to all files in sampleFilesFull
     // Filter out the reference file and prepare comparison tasks
     const comparisonTasks = [];
-    for (const sampleFile of sampleFiles) {
-        const sampleFileFull = path.join(params.mgfDir, sampleFile);
-        // Skip the mzFile1 file, it is the reference file
-        if (sampleFileFull == params.mzFile1) {
+    for (const sampleFileFull of sampleFilesFull) {
+        const sampleFile = path.basename(sampleFileFull);
+        // Skip the reference file
+        if (sampleFileFull == refFile) {
             llog(window, 'No self-compare, skipping file: ' + sampleFileFull);
             continue;
         }
@@ -158,7 +162,7 @@ async function runS2S(params, window) {
         setActivity(window, `Comparing ${path.basename(sampleFileFull)}`);
 
         // Convert parameters to command line arguments for the comparems2 executable
-        const cmdArgs = buildCmdArgs(params.mzFile1, sampleFileFull, params);
+        const cmdArgs = buildCmdArgs(refFile, sampleFileFull, params);
         // Get the hash name and compare file
         const { _, cmpFileJSON, hashName } = getHashName(cmdArgs, compareDir);
 
@@ -240,7 +244,7 @@ async function runS2S(params, window) {
             compareResults.push(parseCompareMS2JSON(result.cmpFileJSON));
 
             // Create a distance map
-            const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window);
+            const distanceMap = comparisons2Distance(refFile, compareResults, sample2Species, window);
             if (distanceMap.length === 0) {
                 llog(window, 'No distances found for sample: ' + result.sampleFile);
                 return;
@@ -254,7 +258,7 @@ async function runS2S(params, window) {
             // Update the chart with current results
             safeWindowSend(window, 'updateChart', distanceMap,
                 path.basename(params.mgfDir),
-                path.basename(params.mzFile1),
+                path.basename(refFile),
                 params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
         } else {
             errors++;
