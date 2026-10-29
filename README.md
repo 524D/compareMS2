@@ -1,7 +1,6 @@
 [![Latest release](https://img.shields.io/github/release/524D/compareMS2.svg)](https://github.com/524D/compareMS2/releases/latest) [![GitHub](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/524D/compareMS2)
 [![GitHub](https://img.shields.io/github/license/524D/compareMS2)](https://github.com/524D/compareMS2/blob/main/LICENSE.txt) [![RSD](https://img.shields.io/badge/rsd-compareMS2-00a3e3.svg)](https://research-software.nl/software/comparems2) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14990300.svg)](https://doi.org/10.5281/zenodo.14990300) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10480/badge)](https://www.bestpractices.dev/projects/10480) [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu) [![bio.tools](https://img.shields.io/badge/bio.tools-compareMS2-005472)](https://bio.tools/compareMS2)
 
-
 # compareMS2
 
 compareMS2 calculates the global similarity between tandem mass spectrometry datasets.
@@ -246,7 +245,16 @@ A compareMS2 workshop was held at the [EuBIC Winter School in Winterberg, German
 
 ## 5. Acknowledgements
 
-The developers wish to thank Dr. Michael Dondrup at the University of Bergen for providing changes and additions to make compareMS2 work under macOS. All users and beta testers are also acknowledged for their valuable feedback that helped to improve compareMS2.
+The developers wish to thank:
+
+* Dr. Michael Dondrup at the University of Bergen for providing changes and additions to make compareMS2 work under macOS. 
+* Dr. Benjamin Neely at National Institute of Standards and Technology for providing the `run-comparems2-all-pairs.ps1`
+script.
+* Dr. Madhushri Shrikant Varunjikar for valuable feedback on the
+practical use of compareMS2
+* All users and beta testers are also acknowledged for their valuable feedback that helped to improve compareMS2.
+
+Parts of compareMS2 were written in collaboration with various AI helpers (mainly Claude Sonnet in conjunction with Microsoft Copilot).
 
 ## 6. Further reading
 
@@ -278,9 +286,9 @@ Species and tissues specific differentiation of processed animal proteins in aqu
 
 Authentication of closely related fish and derived fish products using tandem mass spectrometry and spectral library matching. Nessen M, van der Zwaan D, Greevers S, Dalebout H, Staats M, Kok E and Palmblad M, *J. Agric. Food Chem.* **64(18)**:3669-3677, 2016, [doi.org/10.1021/acs.jafc.5b05322](https://doi.org/10.1021/acs.jafc.5b05322)
 
-Identification of meat products by shotgun spectral matching. Ohana D, Dalebout H, Marissen RJ, Wulff J, Bergquist J, Deelder AM and Palmblad M, *Food Chem.* **203**:28-34, 2016, [doi.org/10.1016/j.foodchem.2016.01.138](https://doi.org/10.1016/j.foodchem.2016.01.138)   
+Identification of meat products by shotgun spectral matching. Ohana D, Dalebout H, Marissen RJ, Wulff J, Bergquist J, Deelder AM and Palmblad M, *Food Chem.* **203**:28-34, 2016, [doi.org/10.1016/j.foodchem.2016.01.138](https://doi.org/10.1016/j.foodchem.2016.01.138)
 
-Differentiating samples and experimental protocols by direct comparison of tandem mass spectra. van der Plas-Duivesteijn SJ, Wulff T, Klychnikov O, Ohana D, Dalebout H, van Veelen PA, de Keijzer J, Nessen MA, van der Burgt YEM, Deelder AM and Palmblad M, *Rapid Commun. Mass Spectrom.* **30**:731-738, 2016, [doi.org/10.1002/rcm.7494](https://doi.org/10.1002/rcm.7494) 
+Differentiating samples and experimental protocols by direct comparison of tandem mass spectra. van der Plas-Duivesteijn SJ, Wulff T, Klychnikov O, Ohana D, Dalebout H, van Veelen PA, de Keijzer J, Nessen MA, van der Burgt YEM, Deelder AM and Palmblad M, *Rapid Commun. Mass Spectrom.* **30**:731-738, 2016, [doi.org/10.1002/rcm.7494](https://doi.org/10.1002/rcm.7494)
 
 Identifying Proteins in Zebrafish Embryos Using Spectral Libraries Generated from Dissected Adult Organs and Tissues. van der Plas-Duivesteijn SJ, Mohammed Y, Dalebout H, Meijer A, Botermans A, Hoogendijk JL, Henneman AA, Deelder AM, Spaink HP and Palmblad M, *J. Proteome Res.* **13(3)**:1537-1544, 2014, [doi.org/10.1021/pr4010585](https://doi.org/10.1021/pr4010585)
 
