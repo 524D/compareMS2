@@ -191,15 +191,24 @@ async function runTreeComparison(window, instanceId, params) {
     // Initialize computation state
     sortFiles(state.mgfFiles, params.compareOrder);
 
-    // Create compare directory
-    state.compareDir = path.join(params.mgfDir, compareDirName);
-    if (!fs.existsSync(state.compareDir)) {
-        fs.mkdirSync(state.compareDir, { recursive: true });
-    }
+    try {
+        // Create compare directory
+        state.compareDir = path.join(params.mgfDir, compareDirName);
+        if (!fs.existsSync(state.compareDir)) {
+            fs.mkdirSync(state.compareDir, { recursive: true });
+        }
 
-    // Create comparison list file
-    state.compResultListFile = path.join(params.mgfDir, `cmp_list-${instanceId}.txt`);
-    fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
+        // Create comparison list file
+        state.compResultListFile = path.join(params.mgfDir, `cmp_list-${instanceId}.txt`);
+        fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
+    } catch (error) {
+        if (isWindowValid(window) && computationStates.has(instanceId)) {
+            const msg = `Cannot write to the sample directory "${params.mgfDir}": ${error.message}`;
+            elog(window, msg);
+            safeWindowSend(window, 'tree-error', msg);
+        }
+        return false;
+    }
     state.completedCount = 0;
     computationStates.set(instanceId, state);
 
