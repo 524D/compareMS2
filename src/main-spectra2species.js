@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 const { resolveInputFiles } = require('./main-convert.js');
 
@@ -106,8 +106,8 @@ async function runS2S(params, window) {
     safeWindowSend(window, 'progress-update', 0);
 
     var errors = 0; // Count the number of errors
-    // Create directory for compare results
-    const compareDir = path.join(params.mgfDir, compareDirName);
+    // Directory for compare results
+    const compareDir = params.cacheDir;
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
 
     const inputFiles = params.sampleDir.mgfFilesFull || [];
@@ -119,7 +119,7 @@ async function runS2S(params, window) {
     // Convert non-MGF input files (cached on disk) before comparing
     let mgfMap;
     try {
-        mgfMap = await resolveInputFiles(window, window.id, [params.mzFile1, ...inputFiles], params.convertCacheDir);
+        mgfMap = await resolveInputFiles(window, window.id, [params.mzFile1, ...inputFiles], params.cacheDir);
     } catch (error) {
         if (isWindowValid(window)) {
             elog(window, `Conversion to MGF failed: ${error.message}`);

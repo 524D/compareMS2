@@ -7,7 +7,7 @@ const fs = require('fs');
 const { initPhylTree, showPhylTreeWindow } = require('./main-phyltree.js');
 const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
-const { getCPUCount } = require('./main-common.js');
+const { getCPUCount, cacheDirName } = require('./main-common.js');
 const { initializeParallelization } = require('./parallelization-manager.js');
 const { initConvert, isSupportedInput, needsConversion, getInputFileFilters } = require('./main-convert.js');
 const homedir = require('os').homedir();
@@ -44,7 +44,8 @@ const defaultOptions = {
     compareOrder: "smallest-largest",
     keepSettings: true,
     numberOfCPUs: getCPUCount(), // Default to the number of CPU cores
-    convertCacheDir: "", // Empty: use a subdirectory next to the input files
+    resultDir: "", // Empty: use the input directory
+    cacheDir: "", // Empty: use a subdirectory of the result directory
 }
 
 // Locate msconvert (ProteoWizard) once at startup; it enables non-MGF input files
@@ -98,7 +99,8 @@ function getDefaultFileParams() {
         },
         s2sFile: "",
         sampleToSpeciesManuallySet: false, // Set to true if the user manually selected a sample-to-species file
-        convertCacheDir: "", // Directory for converted MGF files, empty for the default
+        resultDir: "", // Directory for output files, empty for the default
+        cacheDir: "", // Directory for converted MGF and intermediate files, empty for the default
     };
 }
 
@@ -281,20 +283,36 @@ ipcMain.on('main-gui-action', (event, action) => {
             mainWindow.send('selected-speciesfile', '');
             break;
         }
-        case 'select-convert-cache-dir': {
+        case 'select-result-dir': {
             const dirs = dialog.showOpenDialogSync(mainWindow, {
-                title: 'Select directory for converted MGF files',
+                title: 'Select result directory',
                 properties: ['openDirectory', 'createDirectory']
             });
             if (dirs && dirs[0]) {
-                fileParams.convertCacheDir = dirs[0];
-                mainWindow.send('selected-convert-cache-dir', fileParams.convertCacheDir);
+                fileParams.resultDir = dirs[0];
+                mainWindow.send('selected-result-dir', fileParams.resultDir);
             }
             break;
         }
-        case 'clear-convert-cache-dir': {
-            fileParams.convertCacheDir = "";
-            mainWindow.send('selected-convert-cache-dir', '');
+        case 'clear-result-dir': {
+            fileParams.resultDir = "";
+            mainWindow.send('selected-result-dir', '');
+            break;
+        }
+        case 'select-cache-dir': {
+            const dirs = dialog.showOpenDialogSync(mainWindow, {
+                title: 'Select cache directory',
+                properties: ['openDirectory', 'createDirectory']
+            });
+            if (dirs && dirs[0]) {
+                fileParams.cacheDir = dirs[0];
+                mainWindow.send('selected-cache-dir', fileParams.cacheDir);
+            }
+            break;
+        }
+        case 'clear-cache-dir': {
+            fileParams.cacheDir = "";
+            mainWindow.send('selected-cache-dir', '');
             break;
         }
     }
@@ -315,9 +333,13 @@ ipcMain.on('start-comparison', (event, mode, params) => {
     params.mzFile2 = fileParams.file2;
     params.s2sFile = fileParams.s2sFile;
     params.mgfDir = fileParams.sampleDir.dir;
-    params.convertCacheDir = fileParams.convertCacheDir;
     saveOptionsToFile(fn, params)
     params.sampleDir = fileParams.sampleDir; // Add the sampleDir info to the params that are passed to the compare windows
+
+    // Resolve the directories after saving, so that the saved options keep empty (default) values
+    const defaultResultDir = mode === 'heatmap' ? path.dirname(fileParams.file1) : fileParams.sampleDir.dir;
+    params.resultDir = fileParams.resultDir || defaultResultDir;
+    params.cacheDir = fileParams.cacheDir || path.join(params.resultDir, cacheDirName);
 
     const icon = path.join(iconPath, 'tree.png'); // Default icon for the windows
     switch (mode) {
@@ -603,7 +625,8 @@ function loadOptionsFromFile(fn, honorKeepSettings, processOpts) {
             fileParams.file1 = options.mzFile1;
             fileParams.file2 = options.mzFile2;
             fileParams.s2sFile = options.s2sFile;
-            fileParams.convertCacheDir = options.convertCacheDir || "";
+            fileParams.resultDir = options.resultDir || "";
+            fileParams.cacheDir = options.cacheDir || "";
             processOpts(options);
         }
     });
@@ -615,7 +638,8 @@ function saveOptionsToFile(fn, options) {
     options.mzFile1 = fileParams.file1;
     options.mzFile2 = fileParams.file2;
     options.s2sFile = fileParams.s2sFile;
-    options.convertCacheDir = fileParams.convertCacheDir;
+    options.resultDir = fileParams.resultDir;
+    options.cacheDir = fileParams.cacheDir;
 
     try { fs.writeFileSync(fn, JSON.stringify(options, null, 2), 'utf-8'); }
     catch (e) { alert('Failed to save options file'); }
@@ -627,7 +651,8 @@ function updateOptionsToRenderer(options) {
     options.mzFile1 = fileParams.file1;
     options.mzFile2 = fileParams.file2;
     options.s2sFile = fileParams.s2sFile;
-    options.convertCacheDir = fileParams.convertCacheDir;
+    options.resultDir = fileParams.resultDir;
+    options.cacheDir = fileParams.cacheDir;
     mainWindow.webContents.send('update-options', options);
 
     // Update the main window items based on the options

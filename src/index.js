@@ -36,8 +36,11 @@ document.addEventListener('DOMContentLoaded', function () {
     window.electronAPI.onSelectedFile2((p) => {
         document.getElementById('file2').value = `${p}`;
     });
-    window.electronAPI.onSelectedConvertCacheDir((p) => {
-        document.getElementById('convertcachedir').value = `${p}`;
+    window.electronAPI.onSelectedResultDir((p) => {
+        document.getElementById('resultdir').value = `${p}`;
+    });
+    window.electronAPI.onSelectedCacheDir((p) => {
+        document.getElementById('cachedir').value = `${p}`;
     });
     window.electronAPI.onShowAlert((type, text) => {
         const modal = document.getElementById('alert-modal');
@@ -87,7 +90,8 @@ function setOptions(options) {
     document.getElementById("impmiss").checked = options.impMissing;
     document.getElementById("compare-order").value = options.compareOrder;
     document.getElementById("keepsetting").checked = options.keepSettings;
-    document.getElementById("convertcachedir").value = options.convertCacheDir || "";
+    document.getElementById("resultdir").value = options.resultDir || "";
+    document.getElementById("cachedir").value = options.cacheDir || "";
     // Show empty field if using default number of CPUs (all available)
     const maxCPUsInput = document.getElementById("maxCPUs");
     // If numberOfCPUs is -1
@@ -140,7 +144,8 @@ function getOptions() {
         compareOrder: document.getElementById("compare-order").value,
         keepSettings: document.getElementById("keepsetting").checked,
         numberOfCPUs: parseInt(document.getElementById("maxCPUs").value) || -1, // -1 means use all available CPUs
-        convertCacheDir: document.getElementById("convertcachedir").value,
+        resultDir: document.getElementById("resultdir").value,
+        cacheDir: document.getElementById("cachedir").value,
     };
     return options;
 }
@@ -230,12 +235,20 @@ document.getElementById("clear-speciesfile").addEventListener("click", function 
     window.electronAPI.mainGuiAction('clear-speciesfile');
 });
 
-document.getElementById('select-convert-cache-dir').addEventListener('click', () => {
-    window.electronAPI.mainGuiAction('select-convert-cache-dir');
+document.getElementById('select-result-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('select-result-dir');
 });
 
-document.getElementById('clear-convert-cache-dir').addEventListener('click', () => {
-    window.electronAPI.mainGuiAction('clear-convert-cache-dir');
+document.getElementById('clear-result-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('clear-result-dir');
+});
+
+document.getElementById('select-cache-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('select-cache-dir');
+});
+
+document.getElementById('clear-cache-dir').addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('clear-cache-dir');
 });
 
 document.getElementById('msconvert-info').textContent = msconvertPath ?

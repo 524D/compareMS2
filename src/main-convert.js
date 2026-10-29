@@ -16,7 +16,6 @@ const MSCONVERT_ARGS = [
     '--filter', 'peakPicking vendor',
     '--filter', 'msLevel 2',
 ];
-const DEFAULT_CACHE_SUBDIR = 'converted_mgf';
 
 let msconvertExe = null;
 
@@ -184,11 +183,10 @@ function runMsconvert(window, instanceId, src, target, sig) {
 const inFlight = new Map(); // target path -> promise
 
 // Return the path of an up-to-date MGF for src, converting it if needed.
-function ensureConverted(window, instanceId, src, cacheDirOpt) {
+function ensureConverted(window, instanceId, src, cacheDir) {
     if (!msconvertExe) {
         return Promise.reject(new Error('msconvert was not found, cannot convert ' + src));
     }
-    const cacheDir = cacheDirOpt || path.join(path.dirname(src), DEFAULT_CACHE_SUBDIR);
     fs.mkdirSync(cacheDir, { recursive: true });
     const target = chooseCacheFile(src, cacheDir);
     const sig = getSourceSignature(src);
@@ -206,7 +204,7 @@ function ensureConverted(window, instanceId, src, cacheDirOpt) {
 
 // Map each input file to a usable MGF file; MGF files map to themselves.
 // Conversions run one at a time because msconvert is memory and I/O heavy.
-async function resolveInputFiles(window, instanceId, files, cacheDirOpt) {
+async function resolveInputFiles(window, instanceId, files, cacheDir) {
     const unique = [...new Set(files)];
     const nConvert = unique.filter(needsConversion).length;
     const result = new Map();
@@ -218,7 +216,7 @@ async function resolveInputFiles(window, instanceId, files, cacheDirOpt) {
             continue;
         }
         setActivity(window, `Converting ${path.basename(f)} to MGF (${done + 1}/${nConvert})`);
-        result.set(f, await ensureConverted(window, instanceId, f, cacheDirOpt));
+        result.set(f, await ensureConverted(window, instanceId, f, cacheDir));
         done++;
     }
     return result;

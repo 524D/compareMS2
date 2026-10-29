@@ -6,7 +6,7 @@ const { BrowserWindow, ipcMain, app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, getLogFilePath } = require('./main-common.js');
 const { resolveInputFiles } = require('./main-convert.js');
 
 var generalParams = null;
@@ -80,7 +80,7 @@ async function runHeatMap(window, userparams, onFinishedFunc) {
 
     // Convert non-MGF input files (cached on disk) before comparing
     try {
-        const mgfMap = await resolveInputFiles(window, window.id, [mzFile1, mzFile2], userparams.convertCacheDir);
+        const mgfMap = await resolveInputFiles(window, window.id, [mzFile1, mzFile2], userparams.cacheDir);
         mzFile1 = mgfMap.get(mzFile1);
         mzFile2 = mgfMap.get(mzFile2);
     } catch (error) {
@@ -97,8 +97,8 @@ async function runHeatMap(window, userparams, onFinishedFunc) {
     process.chdir(path.dirname(userparams.mzFile1));
     llog(window, 'Change default dir: "' + path.dirname(userparams.mzFile1) + '"\n');
 
-    // Create directory for compare results
-    const compareDir = path.join(path.dirname(userparams.mzFile1), compareDirName);
+    // Directory for compare results
+    const compareDir = userparams.cacheDir;
     if (!fs.existsSync(compareDir)) fs.mkdirSync(compareDir, { recursive: true });
 
     // The order of input files is not important for the result.

@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const lineReader = require('line-reader');
-const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
+const { llog, elog, setActivity, buildCmdArgs, getHashName, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, getLogFilePath } = require('./main-common.js');
 const { UPGMA } = require('./upgma.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 const { resolveInputFiles } = require('./main-convert.js');
@@ -177,7 +177,7 @@ async function runTreeComparison(window, instanceId, params) {
     // Convert non-MGF input files (cached on disk) before comparing
     const inputFiles = params.sampleDir.mgfFilesFull || [];
     try {
-        const mgfMap = await resolveInputFiles(window, instanceId, inputFiles, params.convertCacheDir);
+        const mgfMap = await resolveInputFiles(window, instanceId, inputFiles, params.cacheDir);
         state.mgfFiles = inputFiles.map(f => mgfMap.get(f));
     } catch (error) {
         if (isWindowValid(window) && computationStates.has(instanceId)) {
@@ -193,17 +193,20 @@ async function runTreeComparison(window, instanceId, params) {
 
     try {
         // Create compare directory
-        state.compareDir = path.join(params.mgfDir, compareDirName);
+        state.compareDir = params.cacheDir;
         if (!fs.existsSync(state.compareDir)) {
             fs.mkdirSync(state.compareDir, { recursive: true });
         }
 
         // Create comparison list file
-        state.compResultListFile = path.join(params.mgfDir, `cmp_list-${instanceId}.txt`);
+        state.compResultListFile = path.join(state.compareDir, `cmp_list-${instanceId}.txt`);
         fs.closeSync(fs.openSync(state.compResultListFile, 'w'));
+
+        fs.mkdirSync(params.resultDir, { recursive: true });
+        fs.accessSync(params.resultDir, fs.constants.W_OK);
     } catch (error) {
         if (isWindowValid(window) && computationStates.has(instanceId)) {
-            const msg = `Cannot write to the sample directory "${params.mgfDir}": ${error.message}`;
+            const msg = `Cannot write to the cache or result directory: ${error.message}`;
             elog(window, msg);
             safeWindowSend(window, 'tree-error', msg);
         }
@@ -416,7 +419,7 @@ async function makeTree(window, instanceId, params) {
         throw new Error('Window closed or invalid state');
     }
 
-    const outputBasename = params.outBasename + `-${instanceId}`;
+    const outputBasename = path.join(state.compareDir, params.outBasename + `-${instanceId}`);
 
     return runCompToDistExe(
         window,
@@ -520,7 +523,7 @@ async function finishComputation(window, instanceId, params) {
         params,
         state,
         outputFormats,
-        params.outBasename,
+        path.join(params.resultDir, params.outBasename),
         'Generating requested output formats',
         'Output formats generated successfully',
         'output format generation'
@@ -532,20 +535,20 @@ async function finishComputation(window, instanceId, params) {
     }
 
     // Delete temporary json file
-    const outBasenameTmp = path.join(params.mgfDir, params.outBasename) + `-${instanceId}.json`;
+    const outBasenameTmp = path.join(state.compareDir, params.outBasename) + `-${instanceId}.json`;
     if (fs.existsSync(outBasenameTmp)) {
         fs.unlinkSync(outBasenameTmp);
     }
 
     // Rename comparison list file to final name
-    const listFn = path.join(params.mgfDir, "cmp_list.txt");
+    const listFn = path.join(state.compareDir, "cmp_list.txt");
     if (fs.existsSync(state.compResultListFile)) {
         fs.renameSync(state.compResultListFile, listFn);
     }
 
     // Write Newick file if requested
     if (params.outNewick) {
-        const newickFn = path.join(params.mgfDir, params.outBasename) + ".nwk";
+        const newickFn = path.join(params.resultDir, params.outBasename) + ".nwk";
         fs.writeFileSync(newickFn, state.newick + ";");
     }
 
@@ -562,7 +565,7 @@ async function finishComputation(window, instanceId, params) {
  * @param {Object} params - Comparison parameters
  * @param {Object} state - Computation state
  * @param {Array<string>} formatFlags - Array of format flags (e.g., ['-m', '-m2', '-n'])
- * @param {string} outputBasename - Output file basename (can include instanceId suffix)
+ * @param {string} outputBasename - Output file path without extension (can include instanceId suffix)
  * @param {string} activityMsg - Activity message to display
  * @param {string} successMsg - Success log message
  * @param {string} errorContext - Error context description
@@ -574,7 +577,7 @@ function runCompToDistExe(window, instanceId, params, state, formatFlags, output
 
     setActivity(window, activityMsg);
 
-    const dfArg = path.join(params.mgfDir, outputBasename);
+    const dfArg = outputBasename;
     const cmdArgs = [
         '-i', state.compResultListFile,
         '-o', dfArg,

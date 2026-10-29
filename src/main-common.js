@@ -8,8 +8,8 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
-// The subdirectory (relative to the MGF directory) where comparison results are cached
-const compareDirName = 'compareresult';
+// Default name of the cache directory (created inside the result directory)
+const cacheDirName = 'comparems2-cache';
 
 // Global process tracking - using window.id as key since it's globally unique
 let activeProcesses = new Map(); // Map<windowId, Set<childProcess>>
@@ -266,5 +266,5 @@ exports.getLogFilePath = getLogFilePath;
 exports.cleanupWindowResources = cleanupWindowResources;
 exports.addActiveProcess = addActiveProcess;
 exports.removeActiveProcess = removeActiveProcess;
-exports.compareDirName = compareDirName;
+exports.cacheDirName = cacheDirName;
 exports.convertTxtToJson = convertTxtToJson;
