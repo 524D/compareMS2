@@ -7,3 +7,10 @@ src/assets/highlight.min.js
 src/assets/jquery-3.5.1.min.map
 src/assets/images/ui*
 src/assets/jquery-ui*
+# For now, the "test" folder is not part of the released code
+test/*
+# Ignore internal files
+*.gz
+run*.sh
+TODO.txt
+build-and-copy*
