@@ -11,11 +11,26 @@ const { llog, setActivity, isWindowValid, addActiveProcess, removeActiveProcess,
 
 // Extensions (lowercase) of non-MGF files that msconvert can read as a single file
 const CONVERTIBLE_EXTENSIONS = ['.raw', '.wiff', '.wiff2', '.mzml', '.mzxml', '.mz5', '.mzdata', '.lcd'];
+// Extensions (lowercase) of samples stored as a directory; msconvert reads the Bruker vendor format on Windows only
+const DIRECTORY_EXTENSIONS = ['.d'];
 const MSCONVERT_ARGS = [
     '--mgf',
     '--filter', 'peakPicking vendor',
     '--filter', 'msLevel 2',
 ];
+
+function getMsconvertArgs(src) {
+    // Merge the ion mobility scans of timsTOF data into one spectrum per precursor
+    return isDirectory(src) ? [...MSCONVERT_ARGS, '--combineIonMobilitySpectra'] : MSCONVERT_ARGS;
+}
+
+function isDirectory(p) {
+    try {
+        return fs.statSync(p).isDirectory();
+    } catch (e) {
+        return false;
+    }
+}
 
 let msconvertExe = null;
 
@@ -77,12 +92,24 @@ function isMgfFile(file) {
 }
 
 function needsConversion(file) {
-    return CONVERTIBLE_EXTENSIONS.includes(path.extname(file).toLowerCase());
+    const ext = path.extname(file).toLowerCase();
+    return CONVERTIBLE_EXTENSIONS.includes(ext) || DIRECTORY_EXTENSIONS.includes(ext);
 }
 
-// True for MGF files, and for convertible files when msconvert is available
-function isSupportedInput(file) {
-    return isMgfFile(file) || (msconvertExe !== null && needsConversion(file));
+// True if the directory is a sample that msconvert can read (Bruker .d on Windows)
+function isSampleDirectory(p) {
+    return process.platform === 'win32' && msconvertExe !== null &&
+        DIRECTORY_EXTENSIONS.includes(path.extname(p).toLowerCase()) && isDirectory(p);
+}
+
+// True for MGF files, and for convertible files or sample directories when msconvert is available.
+// p must be a full path.
+function isSupportedInput(p) {
+    if (isMgfFile(p)) return true;
+    if (msconvertExe === null) return false;
+    if (isSampleDirectory(p)) return true;
+    const ext = path.extname(p).toLowerCase();
+    return CONVERTIBLE_EXTENSIONS.includes(ext) && !isDirectory(p);
 }
 
 // Filters for the file open dialogs
@@ -106,12 +133,33 @@ function readMeta(mgf) {
 }
 
 function getSourceSignature(src) {
+    let size = 0;
+    let mtimeMs = 0;
     const st = fs.statSync(src);
+    if (st.isDirectory()) {
+        // A directory's own mtime does not change when files inside it are rewritten
+        const walk = (dir) => {
+            for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) {
+                    walk(p);
+                } else {
+                    const s = fs.statSync(p);
+                    size += s.size;
+                    mtimeMs = Math.max(mtimeMs, Math.floor(s.mtimeMs));
+                }
+            }
+        };
+        walk(src);
+    } else {
+        size = st.size;
+        mtimeMs = Math.floor(st.mtimeMs);
+    }
     return {
         source: src,
-        size: st.size,
-        mtimeMs: Math.floor(st.mtimeMs),
-        args: shortHashObj(MSCONVERT_ARGS),
+        size,
+        mtimeMs,
+        args: shortHashObj(getMsconvertArgs(src)),
     };
 }
 
@@ -146,7 +194,7 @@ function runMsconvert(window, instanceId, src, target, sig) {
     fs.rmSync(partialDir, { recursive: true, force: true });
     fs.mkdirSync(partialDir, { recursive: true });
 
-    const args = [src, ...MSCONVERT_ARGS, '-o', partialDir];
+    const args = [src, ...getMsconvertArgs(src), '-o', partialDir];
     llog(window, `Converting ${src} to MGF (this can take a long time): ${msconvertExe} ${args.join(' ')}`);
 
     return new Promise((resolve, reject) => {
@@ -225,6 +273,7 @@ async function resolveInputFiles(window, instanceId, files, cacheDir) {
 exports.initConvert = initConvert;
 exports.getMsconvertExe = getMsconvertExe;
 exports.isSupportedInput = isSupportedInput;
+exports.isSampleDirectory = isSampleDirectory;
 exports.needsConversion = needsConversion;
 exports.getInputFileFilters = getInputFileFilters;
 exports.resolveInputFiles = resolveInputFiles;

@@ -9,7 +9,7 @@ const { initHeatMap, showHeatMapWindow } = require('./main-heatmap.js');
 const { initS2S, showS2SWindow } = require('./main-spectra2species.js');
 const { getCPUCount, cacheDirName } = require('./main-common.js');
 const { initializeParallelization } = require('./parallelization-manager.js');
-const { initConvert, isSupportedInput, needsConversion, getInputFileFilters } = require('./main-convert.js');
+const { initConvert, isSupportedInput, isSampleDirectory, needsConversion, getInputFileFilters } = require('./main-convert.js');
 const homedir = require('os').homedir();
 
 const defaultOptions = {
@@ -154,6 +154,19 @@ function selectMGFfile(title) {
     return files;
 }
 
+// Select a sample stored as a directory (e.g. Bruker .d); returns an array like the file dialog
+function selectSampleDirectory(title) {
+    const dirs = dialog.showOpenDialogSync(mainWindow, {
+        title: title,
+        properties: ['openDirectory'],
+    });
+    if (dirs && dirs[0] && !isSampleDirectory(dirs[0])) {
+        mainWindow.webContents.send('show-alert', 'error', '"' + dirs[0] + '" is not a supported sample directory (Bruker .d).');
+        return undefined;
+    }
+    return dirs;
+}
+
 function handleStoreImageV2(event, defaultName, imgFmt, imageData) {
     // Validate that the request comes from a legitimate child window (not mainWindow)
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
@@ -238,8 +251,10 @@ ipcMain.on('main-gui-action', (event, action) => {
             }
             break;
         }
-        case 'select-file1': {
-            const files = selectMGFfile('First sample file');
+        case 'select-file1':
+        case 'select-file1-dir': {
+            const files = action === 'select-file1' ?
+                selectMGFfile('First sample file') : selectSampleDirectory('First sample directory (.d)');
             if (files && files[0]) {
                 fileParams.file1 = files[0];
                 mainWindow.send('selected-file1', fileParams.file1);
@@ -248,8 +263,10 @@ ipcMain.on('main-gui-action', (event, action) => {
             }
             break;
         }
-        case 'select-file2': {
-            const files = selectMGFfile('Second sample file');
+        case 'select-file2':
+        case 'select-file2-dir': {
+            const files = action === 'select-file2' ?
+                selectMGFfile('Second sample file') : selectSampleDirectory('Second sample directory (.d)');
             if (files && files[0]) {
                 fileParams.file2 = files[0];
                 mainWindow.send('selected-file2', fileParams.file2);
@@ -495,7 +512,7 @@ Menu.setApplicationMenu(menu)
 const createWindow = () => {
     // Create the browser window.
     mainWindow = new BrowserWindow({
-        width: 840,
+        width: 1200,
         height: 820,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
@@ -510,6 +527,7 @@ const createWindow = () => {
                 "version": app.getVersion(),
                 "availableCPUs": getCPUCount(), // Pass the number of CPUs to the renderer
                 "msconvert": msconvertExe || "",
+                "sampleDirs": process.platform === 'win32' && msconvertExe ? "1" : "", // Bruker .d support
             }
         });
 
@@ -575,7 +593,7 @@ function getSampleDirFiles(dir) {
         return fs.statSync(filePath).isFile();
     });
     // Filter for input files: MGF, plus convertible files when msconvert is available
-    const mgfFiles = files.filter(isSupportedInput);
+    const mgfFiles = filesAndDirs.filter(name => isSupportedInput(path.join(dir, name)));
     const mgfFilesFull = mgfFiles.map(file => path.join(dir, file));
     const mgfFilesShort = mgfFiles.map(file => path.basename(file));
 
@@ -801,13 +819,13 @@ function parseCommandLineArgs() {
         if (arg[0] !== '-') {
             let stat;
             try { stat = fs.statSync(arg); } catch (e) { stat = null; }
-            if (stat && stat.isDirectory()) {
+            if (stat && stat.isDirectory() && !isSampleDirectory(arg)) {
                 if (mgfDir !== undefined) {
                     process.stderr.write('Error: more than one directory specified. At most 1 is allowed.\n');
                     process.exit(1);
                 }
                 mgfDir = arg;
-            } else if (stat && stat.isFile() && isSupportedInput(arg)) {
+            } else if (stat && isSupportedInput(arg)) {
                 mgfFiles.push(arg);
                 if (mgfFiles.length > 2) {
                     process.stderr.write('Error: more than 2 input files specified. At most 2 are allowed.\n');

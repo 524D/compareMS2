@@ -4,6 +4,7 @@ const searchParams = new URLSearchParams(window.location.search);
 const appVersion = searchParams.get('version') || 'unknown';
 const availableCPUs = searchParams.get('availableCPUs') || -1;
 const msconvertPath = searchParams.get('msconvert') || '';
+const sampleDirsSupported = searchParams.get('sampleDirs') === '1';
 
 // Info on number of comparisons and Submit button state
 // for each compare mode
@@ -219,6 +220,17 @@ document.getElementById('select-file1').addEventListener('click', (event) => {
 
 document.getElementById('select-file2').addEventListener('click', (event) => {
     window.electronAPI.mainGuiAction('select-file2');
+});
+
+const btn1 = document.getElementById('select-file1-dir');
+btn1.hidden = !sampleDirsSupported;
+btn1.addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('select-file1-dir');
+});
+const btn2 = document.getElementById('select-file2-dir');
+btn2.hidden = !sampleDirsSupported;
+btn2.addEventListener('click', () => {
+    window.electronAPI.mainGuiAction('select-file2-dir');
 });
 
 document.getElementById('select-speciesfile').addEventListener('click', (event) => {
