@@ -244,6 +244,10 @@ compareMS2 program icon to set these values.
 
 Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filenames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
 
+On the `dev` branch, the bundled Windows x64 binaries under `external_binaries/` were rebuilt from `compareMS2-cmd` using Go (`CGO_ENABLED=0`, `GOOS=windows`, `GOARCH=amd64`, `go build -ldflags="-s -w"`):
+- `external_binaries/compareMS2.exe` (`compareMS2-cmd` commit `f52bb46`): includes the two-pass Top-N `-N` tie/blank-line fix and empty-dataset `-d 2` `"INF"` guard.
+- `external_binaries/compareMS2_to_distance_matrices.exe` (`compareMS2-cmd` commit `edc4522`): includes UTF-8 BOM stripping, CRLF/CR/LF normalization, trailing/consecutive tab collapsing, extra-column safety, POSIX/Windows basename extraction, and exact-then-lowercase sample-to-species matching.
+
 ### 3.7 Running compareMS2
 
 After specifying the parameters, click on the "Start" button to run compareMS2 on all files in the specified directory. Alternatively, compareMS2 can be run on two specific files using the CLI version.
