@@ -174,6 +174,20 @@ In spectra2species mode, a single MGF file is compared to a collection of other 
 indication of the similarity of a sample to other samples, and thus can help to identify the species of
 an unknown sample.
 
+On the `dev` branch, `spectra2species` also computes one-sided and two-sided **Fisher's Exact Test**
+enrichment analysis (`src/enrichment.js`, using a cached log-factorial table with Lanczos `logGamma`
+fallback for large counts, exact hypergeometric PMFs over 2×2 contingency tables, and Benjamini-Hochberg
+step-up FDR adjustment) across all library categories (`a` = matched spectra in category, `b` = unmatched
+spectra in category, `c` = matched spectra across other categories, `d` = unmatched spectra across other
+categories). Alongside the exact **Odds Ratio** (which can be `Inf` when a category has `0` unmatched
+spectra), the table and TSV export include a Haldane–Anscombe continuity-corrected odds ratio (**OR (HA)** /
+`odds_ratio_ha`, adding `0.5` to all cells when any cell is `0`). The main process (`src/main-spectra2species.js`)
+pools `nrGtCutoff` and total spectra per category (capping each dataset's spectrum count to `min(QC, N)` when
+Top-N `-N` filtering is active) and writes `<outBasename>_<query>_enrichment.tsv` automatically, while the
+renderer and preload (`src/spectra2species.html`, `src/spectra2species.css`, `src/spectra2species.js`,
+`src/spectra2species-preload.js`) add a metric selector (**Similarity**, **Fisher enrichment (-log10 p)**,
+**Fold enrichment**), enrichment tooltips, an interactive summary table, and manual **Save enrichment TSV** export.
+
 ### 3.4 Heatmap
 
 Selecting "Heatmap" and pressing "start" results in a heatmap being generated.

@@ -25,6 +25,14 @@
                 <div class="main-control-item">
                     <div class="control-container">
                         <div class="control-item">
+                            <label>Chart metric:</label>
+                            <select id="chart-metric">
+                                <option value="similarity" selected="selected">Similarity</option>
+                                <option value="enrichment_neglog10p">Fisher enrichment (-log10 p)</option>
+                                <option value="fold_enrichment">Fold enrichment</option>
+                            </select>
+                        </div>
+                        <div class="control-item">
                             <label>Color scale:</label>
                             <select id="qscale">
                                 <option value="rwb" selected="selected">Red-white-blue</option>
@@ -32,7 +40,6 @@
                                 <option value="rgb">Red-green-blue</option>
                                 <option value="ylgnbu">Yellow-green-blue</option>
                             </select>
-                            <br><br>
                         </div>
                         <div class="control-item">
                             &nbsp;<button id="store-image"><i class="mi mi-OpenFile mi-lg icon-valign"></i>Save
@@ -43,9 +50,42 @@
                                 <option value="svg">SVG</option>
                             </select>
                         </div>
+                        <div class="control-item">
+                            <label><input type="checkbox" id="toggle-enrichment-table" checked>&nbsp;Show enrichment table</label>
+                        </div>
+                        <div class="control-item">
+                            &nbsp;<button id="export-enrichment" disabled><i class="mi mi-Save mi-lg icon-valign"></i>Save
+                                enrichment TSV</button>
+                        </div>
                     </div>
                 </div>
-                <div id="main-chart"></div>
+                <div class="chart-and-table-col">
+                    <div id="main-chart"></div>
+                    <div id="enrichment-panel">
+                        <div class="enrichment-header">
+                            <strong>Fisher's Exact Test Library Enrichment</strong>
+                            <span class="enrichment-subtitle">(2&times;2 table per library category: <em>a</em> = matched in category, <em>b</em> = unmatched in category, <em>c</em> = matched in other categories, <em>d</em> = unmatched in other categories)</span>
+                        </div>
+                        <table class="table table-sm table-bordered table-hover enrichment-table" id="enrichment-table">
+                            <thead>
+                                <tr>
+                                    <th>Species / Category</th>
+                                    <th>Samples</th>
+                                    <th>Similarity</th>
+                                    <th>Matched (a / a+b)</th>
+                                    <th>Background (c / c+d)</th>
+                                    <th>Fold Enrich</th>
+                                    <th>Odds Ratio</th>
+                                    <th title="Haldane-Anscombe continuity-corrected odds ratio (+0.5 to all cells when any cell is 0)">OR (HA)</th>
+                                    <th>Fisher p (enrich)</th>
+                                    <th>BH FDR</th>
+                                    <th>Two-sided p</th>
+                                </tr>
+                            </thead>
+                            <tbody id="enrichment-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="tvert-activity">

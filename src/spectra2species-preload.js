@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld(
     's2sAPI',
     {
         storeImage: (defaultName, format, data) => ipcRenderer.send('store-image-v2', defaultName, format, data),
+        exportEnrichment: (defaultName, distanceMap) => ipcRenderer.send('export-s2s-enrichment', defaultName, distanceMap),
         updateChart: (callback) => ipcRenderer.on('updateChart', (_event, distanceMap, compareDir, mzFile1, s2sFile) => callback(distanceMap, compareDir, mzFile1, s2sFile)),
         onLogMessage: (callback) => ipcRenderer.on('logMessage', (_event, message) => callback(message)),
         onLogError: (callback) => ipcRenderer.on('logError', (_event, message) => callback(message)),
