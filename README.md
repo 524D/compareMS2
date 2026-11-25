@@ -146,8 +146,17 @@ sample files for the same species. In the comparisons, the results of all sample
 
 The content of the "Sample to species file" must a plain text file. Each line should contain a filename
 and a species name, separated by a TAB character. If the directory with samples contains
-a file with the exact name "spectra_to_species.txt", that file is automatically selected.
-CompareMS also works without "spectra_to_species.txt file". Also, not all species or files that are listed have to be present in the data set.
+a file with the exact name "sample_to_species.txt", that file is automatically selected.
+compareMS2 also works without a "sample_to_species.txt" file, and not all species or files that are listed have to be present in the data set.
+
+On the `dev` branch, sample-to-species parsing is implemented in `src/sample2species.js`
+(`sampleBaseName`, `parseSample2SpeciesContent`, `readSample2Species`) and used by `src/main-spectra2species.js`
+with parity to `compareMS2_to_distance_matrices`: it strips a leading UTF-8 BOM (`\uFEFF`), normalizes
+CRLF/CR/LF endings, collapses trailing or consecutive alignment tabs (`parts.length >= 2` non-empty
+trimmed fields while ignoring extra metadata columns beyond column 2 and rows with empty species names),
+extracts basenames across Windows (`\`) and POSIX (`/`) path prefixes, matches exact basename first with
+case-insensitive fallback, prunes unused mapping entries cleanly without colliding on species names, and
+guards cleared empty/unset paths in `src/main.js` and `src/main-phyltree.js`.
 
 ### 3.2. Phylogenetic tree
 

@@ -273,7 +273,7 @@ ipcMain.on('main-gui-action', (event, action) => {
             break;
         }
         case 'clear-speciesfile': {
-            fileParams.s2sFile = null;
+            fileParams.s2sFile = "";
             fileParams.sampleToSpeciesManuallySet = false;
             mainWindow.send('selected-speciesfile', '');
             break;

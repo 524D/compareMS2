@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 const { computeLibraryEnrichment, enrichmentToTSV } = require('./enrichment.js');
+const { readSample2Species } = require('./sample2species.js');
 
 var generalParams = null;
 
@@ -50,51 +51,6 @@ function readSampleFiles(mgfDir, window) {
     // Filter files to only include .mfg files
     const sampleFiles = files.filter(file => file.endsWith('.mgf')); // Get the full path of the files
     return sampleFiles;
-}
-
-// Read the Sample2Species file
-// The file is expected to be a tab-separated file with two columns: sample name and species name
-// 
-// The sample name is the base name of the sample file.
-// If the sample name is not present in the file, it will be added with the species name equal to the sample name.
-function readSample2Species(fn, sampleFiles) {
-    const sample2Species = {};
-    const extraSamples = new Set(); // To collect all sample names
-    const sampleFilesBaseNames = sampleFiles.map(file => path.basename(file)); // Get base names of sample files
-    if (fs.existsSync(fn)) {
-        const sample2SpeciesRaw = fs.readFileSync(fn, 'utf8');
-        const lines = sample2SpeciesRaw.split('\n').filter(line => line.trim() !== ''); // Remove empty lines
-        for (const line of lines) {
-            const parts = line.split('\t');
-            if (parts.length === 2) {
-                const sample = parts[0].trim();
-                const species = parts[1].trim();
-                sample2Species[sample] = species;
-                extraSamples.add(species); // Add sample
-            }
-        }
-    }
-    // Remove the samples that exist in sampleFiles from the extraSamples set
-    for (const sampleFn of sampleFilesBaseNames) {
-        if (extraSamples.has(sampleFn)) {
-            extraSamples.delete(sampleFn);
-        }
-    }
-    // The remaining samples in extraSamples are not present in the sample2Species file
-    // Remove them from the sample2Species object
-    for (const sample of extraSamples) {
-        if (sample2Species.hasOwnProperty(sample)) {
-            delete sample2Species[sample];
-        }
-    }
-
-    // Ensure all samples in sampleFiles are present in the sample2Species
-    for (const sampleFn of sampleFilesBaseNames) {
-        if (!sample2Species.hasOwnProperty(sampleFn)) {
-            sample2Species[sampleFn] = sampleFn; // Use the sample name
-        }
-    }
-    return sample2Species;
 }
 
 // Function to show the spectra2species window

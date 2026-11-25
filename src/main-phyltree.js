@@ -558,7 +558,7 @@ function runCompToDistExe(window, instanceId, params, state, formatFlags, output
         '-c', params.cutoff,
         ...formatFlags
     ];
-    if (fs.existsSync(params.s2sFile)) {
+    if (params.s2sFile && fs.existsSync(params.s2sFile)) {
         cmdArgs.push('-x', params.s2sFile);
     }
 
