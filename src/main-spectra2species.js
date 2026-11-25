@@ -292,9 +292,8 @@ function distance2Similarity(distance) {
     return Math.round(similarity * 10000) / 10000;
 }
 
-// This function reads an array of results from comparisons and returns a sorted array
-// of species distances, similarities, and Fisher's Exact Test enrichment statistics.
-function comparisons2Distance(checkFileName, compareResults, sample2Species, window, topN = -1) {
+// This function aggregates pairwise comparisons by species/category without running Fisher tests.
+function aggregateSpeciesDistances(checkFileName, compareResults, sample2Species, window, topN = -1) {
     // Initialize an empty distance/enrichment bucket map
     const speciesBuckets = {};
 
@@ -327,10 +326,19 @@ function comparisons2Distance(checkFileName, compareResults, sample2Species, win
         }
         const bucket = speciesBuckets[otherSpecie];
         const matched = Number.isFinite(compareResult.nrGtCutoff) ? Math.max(0, compareResult.nrGtCutoff) : 0;
-        const qcA = Number.isFinite(compareResult.datasetAQC) ? Math.max(0, compareResult.datasetAQC) : 0;
-        const qcB = Number.isFinite(compareResult.datasetBQC) ? Math.max(0, compareResult.datasetBQC) : 0;
-        const effA = (Number.isFinite(topN) && topN > 0) ? Math.min(qcA, topN) : qcA;
-        const effB = (Number.isFinite(topN) && topN > 0) ? Math.min(qcB, topN) : qcB;
+        const hasEligibleCounts = Number.isFinite(compareResult.datasetACompared)
+            && Number.isFinite(compareResult.datasetBCompared);
+        let effA;
+        let effB;
+        if (hasEligibleCounts) {
+            effA = Math.max(0, compareResult.datasetACompared);
+            effB = Math.max(0, compareResult.datasetBCompared);
+        } else {
+            const qcA = Number.isFinite(compareResult.datasetAQC) ? Math.max(0, compareResult.datasetAQC) : 0;
+            const qcB = Number.isFinite(compareResult.datasetBQC) ? Math.max(0, compareResult.datasetBQC) : 0;
+            effA = (Number.isFinite(topN) && topN > 0) ? Math.min(qcA, topN) : qcA;
+            effB = (Number.isFinite(topN) && topN > 0) ? Math.min(qcB, topN) : qcB;
+        }
         const total = Math.max(effA + effB, matched);
         const comparisons = Number.isFinite(compareResult.nrComparisons) ? Math.max(0, compareResult.nrComparisons) : 0;
 
@@ -359,9 +367,16 @@ function comparisons2Distance(checkFileName, compareResults, sample2Species, win
         });
     }
 
-    // Sort the average distance map by distance and attach Fisher's exact enrichment stats
-    const sortedDistanceMap = averageDistanceMap.sort((a, b) => a.distance - b.distance);
-    return computeLibraryEnrichment(sortedDistanceMap);
+    // Sort the average distance map by distance
+    return averageDistanceMap.sort((a, b) => a.distance - b.distance);
+}
+
+// This function reads an array of results from comparisons and returns a sorted array
+// of species distances, similarities, and Fisher's Exact Test enrichment statistics.
+function comparisons2Distance(checkFileName, compareResults, sample2Species, window, topN = -1) {
+    return computeLibraryEnrichment(
+        aggregateSpeciesDistances(checkFileName, compareResults, sample2Species, window, topN)
+    );
 }
 
 function parseCompareMS2JSON(jsonFile) {
@@ -381,6 +396,8 @@ function parseCompareMS2JSON(jsonFile) {
         nrComparisons: Number.isFinite(data.nrComparisons) ? data.nrComparisons : 0,
         datasetAQC: Number.isFinite(data.datasetAQC) ? data.datasetAQC : 0,
         datasetBQC: Number.isFinite(data.datasetBQC) ? data.datasetBQC : 0,
+        datasetACompared: Number.isFinite(data.datasetACompared) ? data.datasetACompared : null,
+        datasetBCompared: Number.isFinite(data.datasetBCompared) ? data.datasetBCompared : null,
     };
 }
 
