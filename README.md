@@ -197,6 +197,10 @@ falling back to `min(QC, N)` only for legacy cached JSONs) and writes `<outBasen
 automatically, while the renderer and preload (`src/spectra2species.html`, `src/spectra2species.css`,
 `src/spectra2species.js`, `src/spectra2species-preload.js`) add a metric selector (**Similarity**, **Fisher enrichment (-log10 p)**,
 **Fold enrichment**), enrichment tooltips, an interactive summary table, and manual **Save enrichment TSV** export.
+To keep Electron's main process responsive during large library comparisons, `aggregateSpeciesDistances` streams
+similarity updates immediately as comparisons finish while `src/enrichment-runner.js` and
+`src/enrichment-worker.js` execute Fisher's exact test enumerations on a persistent worker thread with
+coalesced intermediate snapshots and a final synchronized enrichment update.
 
 ### 3.4 Heatmap
 

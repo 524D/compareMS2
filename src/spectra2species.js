@@ -60,7 +60,10 @@ window.s2sAPI.updateChart((distanceMap, compareDir, mzFile1, s2sFile) => {
     latestPayload = { distanceMap, compareDir, mzFile1, s2sFile };
     const exportBtn = document.getElementById('export-enrichment');
     if (exportBtn) {
-        exportBtn.disabled = !Array.isArray(distanceMap) || distanceMap.length === 0;
+        const hasFullEnrichment = Array.isArray(distanceMap)
+            && distanceMap.length > 0
+            && distanceMap.every(item => item && item.enrichment);
+        exportBtn.disabled = !hasFullEnrichment;
     }
     renderCurrentView();
 })
@@ -313,26 +316,26 @@ function renderEnrichmentTable(distanceMap) {
     }
 
     for (const item of distanceMap) {
-        const enr = item.enrichment || {};
+        const enr = item.enrichment;
         const tr = document.createElement('tr');
-        if (Number.isFinite(enr.pGreater) && enr.pGreater < 0.05) {
+        if (enr && Number.isFinite(enr.pGreater) && enr.pGreater < 0.05) {
             tr.className = 'enriched-row';
         }
 
-        const catTotal = (enr.a || 0) + (enr.b || 0);
-        const bgTotal = (enr.c || 0) + (enr.d || 0);
+        const catTotal = enr ? ((enr.a || 0) + (enr.b || 0)) : (item.total || 0);
+        const bgTotal = enr ? ((enr.c || 0) + (enr.d || 0)) : 0;
         const cells = [
             item.species || '',
             String(item.sampleCount || 1),
             Number.isFinite(item.similarity) ? item.similarity.toFixed(4) : 'NA',
-            `${enr.a ?? 0} / ${catTotal}`,
-            `${enr.c ?? 0} / ${bgTotal}`,
-            formatRatio(enr.foldEnrichment),
-            formatRatio(enr.oddsRatio),
-            formatRatio(enr.oddsRatioHA),
-            formatPValue(enr.pGreater),
-            formatPValue(enr.fdrGreater),
-            formatPValue(enr.pTwoSided),
+            `${enr ? (enr.a ?? 0) : (item.matched ?? 0)} / ${catTotal}`,
+            enr ? `${enr.c ?? 0} / ${bgTotal}` : '…',
+            enr ? formatRatio(enr.foldEnrichment) : '…',
+            enr ? formatRatio(enr.oddsRatio) : '…',
+            enr ? formatRatio(enr.oddsRatioHA) : '…',
+            enr ? formatPValue(enr.pGreater) : '…',
+            enr ? formatPValue(enr.fdrGreater) : '…',
+            enr ? formatPValue(enr.pTwoSided) : '…',
         ];
 
         for (const text of cells) {
@@ -403,16 +406,23 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile, metric = 'sim
                 if (!item) {
                     return '';
                 }
-                const enr = item.enrichment || {};
-                const catTotal = (enr.a || 0) + (enr.b || 0);
-                return [
+                const enr = item.enrichment;
+                const catTotal = enr ? ((enr.a || 0) + (enr.b || 0)) : (item.total || 0);
+                const lines = [
                     `<strong>${escapeHtml(item.species)}</strong>`,
                     `Similarity: ${Number.isFinite(item.similarity) ? item.similarity.toFixed(4) : 'NA'} (distance: ${Number.isFinite(item.distance) ? item.distance.toFixed(4) : 'NA'})`,
-                    `Matched (a / a+b): ${enr.a ?? 0} / ${catTotal}`,
-                    `Fold Enrichment: ${formatRatio(enr.foldEnrichment)} | Odds Ratio: ${formatRatio(enr.oddsRatio)} (HA: ${formatRatio(enr.oddsRatioHA)})`,
-                    `Fisher p (enrich): ${formatPValue(enr.pGreater)} | BH FDR: ${formatPValue(enr.fdrGreater)}`,
-                    `Fisher p (deplete): ${formatPValue(enr.pLess)} | Two-sided: ${formatPValue(enr.pTwoSided)}`
-                ].join('<br>');
+                    `Matched (a / a+b): ${enr ? (enr.a ?? 0) : (item.matched ?? 0)} / ${catTotal}`,
+                ];
+                if (enr) {
+                    lines.push(
+                        `Fold Enrichment: ${formatRatio(enr.foldEnrichment)} | Odds Ratio: ${formatRatio(enr.oddsRatio)} (HA: ${formatRatio(enr.oddsRatioHA)})`,
+                        `Fisher p (enrich): ${formatPValue(enr.pGreater)} | BH FDR: ${formatPValue(enr.fdrGreater)}`,
+                        `Fisher p (deplete): ${formatPValue(enr.pLess)} | Two-sided: ${formatPValue(enr.pTwoSided)}`
+                    );
+                } else {
+                    lines.push('Enrichment statistics: calculating...');
+                }
+                return lines.join('<br>');
             }
         },
         grid: {

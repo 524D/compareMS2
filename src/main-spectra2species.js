@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
 const { computeLibraryEnrichment, enrichmentToTSV } = require('./enrichment.js');
+const { createEnrichmentRunner } = require('./enrichment-runner.js');
 const { readSample2Species } = require('./sample2species.js');
 
 var generalParams = null;
@@ -128,9 +129,41 @@ async function runS2S(params, window) {
     // Track results as they complete
     const cmpFilesJSON = [];
     const compareResults = [];
+    const enrichmentCache = new Map();
     let completedTasks = 0;
     const totalTasks = comparisonTasks.length;
     let aborted = false;
+
+    function sendChartUpdate(distanceMap) {
+        safeWindowSend(window, 'updateChart', distanceMap,
+            path.basename(params.mgfDir),
+            path.basename(params.mzFile1),
+            params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+    }
+
+    const enrichmentRunner = createEnrichmentRunner({
+        onResult: (enrichedMap) => {
+            if (aborted || !isWindowValid(window)) {
+                return;
+            }
+            for (const item of enrichedMap) {
+                if (item && item.enrichment) {
+                    enrichmentCache.set(item.species, item.enrichment);
+                }
+            }
+            sendChartUpdate(enrichedMap);
+        },
+        onError: (err) => {
+            if (!aborted && isWindowValid(window)) {
+                elog(window, `Enrichment worker error: ${err.message}`);
+            }
+        },
+    });
+    if (window && typeof window.once === 'function') {
+        window.once('closed', () => {
+            enrichmentRunner.terminate().catch(() => {});
+        });
+    }
 
     // Function to execute a single comparison
     async function executeComparison(task) {
@@ -220,18 +253,19 @@ async function runS2S(params, window) {
             // Append the compare results
             compareResults.push(parseCompareMS2JSON(result.cmpFileJSON));
 
-            // Create a distance map (includes similarity & Fisher's exact enrichment stats)
-            const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window, params.topN);
-            if (distanceMap.length === 0) {
+            // Create lightweight similarity map immediately and run Fisher enrichment off-thread
+            const baseMap = aggregateSpeciesDistances(params.mzFile1, compareResults, sample2Species, window, params.topN);
+            if (baseMap.length === 0) {
                 llog(window, 'No distances found for sample: ' + result.sampleFile);
                 return;
             }
 
-            // Update the chart with current results
-            safeWindowSend(window, 'updateChart', distanceMap,
-                path.basename(params.mgfDir),
-                path.basename(params.mzFile1),
-                params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+            const previewMap = baseMap.map(item => ({
+                ...item,
+                enrichment: enrichmentCache.get(item.species) || null,
+            }));
+            sendChartUpdate(previewMap);
+            enrichmentRunner.schedule(baseMap);
         } else {
             errors++;
         }
@@ -242,8 +276,8 @@ async function runS2S(params, window) {
         safeWindowSend(window, 'progress-update', progress);
     }
 
-    // Execute all comparisons in parallel using Promise.all
-    // The parallelization manager will handle the actual concurrency control
+    // Execute all comparisons in parallel using Promise.all and finalize enrichment off-thread
+    let finalDistanceMap = [];
     try {
         await Promise.all(
             comparisonTasks.map(async (task) => {
@@ -252,17 +286,28 @@ async function runS2S(params, window) {
                 return result;
             })
         );
+
+        const finalBaseMap = compareResults.length > 0
+            ? aggregateSpeciesDistances(params.mzFile1, compareResults, sample2Species, window, params.topN)
+            : [];
+        if (finalBaseMap.length > 0) {
+            finalDistanceMap = await enrichmentRunner.computeFinal(finalBaseMap);
+            if (!aborted && isWindowValid(window)) {
+                sendChartUpdate(finalDistanceMap);
+            }
+        }
     } catch (error) {
         aborted = true;
         cleanupWindowResources(window.id);
-        safeWindowSend(window, 's2s-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
+        if (isWindowValid(window)) {
+            safeWindowSend(window, 's2s-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
+        }
         return;
+    } finally {
+        await enrichmentRunner.terminate().catch(() => {});
     }
 
     // Automatically write Fisher's exact enrichment table in TSV format
-    const finalDistanceMap = compareResults.length > 0
-        ? comparisons2Distance(params.mzFile1, compareResults, sample2Species, window, params.topN)
-        : [];
     let savedMsg = '';
     if (finalDistanceMap.length > 0) {
         const outBase = (params.outBasename && params.outBasename.trim()) ? params.outBasename.trim() : 'spectra2species';
