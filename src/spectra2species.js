@@ -211,38 +211,38 @@ function createCanvas(width, height) {
     return Object.assign(document.createElement('canvas'), { width: width, height: height })
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
+// Function saveAsPNG renders the chart synchronously without animation to a PNG ArrayBuffer
+// and sends it to the main process
 // Parameters option contains the chart "option" object as defined by ECharts
 function saveAsPNG(option, defaultName, imgFmt) {
     // Get the width and height from the HTML element with id 'main-chart'
     const mainElement = document.getElementById('main-chart');
     const width = mainElement.clientWidth || 1200;
-    const height = mainElement.clientHeight || 1000; // Default to 10000 
+    const height = mainElement.clientHeight || 1000;
 
     const canvas = createCanvas(width, height);
-    // ECharts can use the Canvas instance created by node-canvas as a container directly
     const chart = echarts.init(canvas);
-
-    chart.setOption(option);
-    //    chart.on('finished', () => {
-    // Sleep is a hack, eCharts doesn't seem to wait for the chart to be rendered
-    // before firing the 'finished' event (and before the 'rendered' event either)
-    sleep(500).then(() => {
-        canvas.toBlob(function (blob) {
-            blob.arrayBuffer().then(function (aBuffer) {
-                // FIXME: we don't have Node here
-                // Convert to Node.js Buffer
-                // const abuffer = Buffer.from(aBuffer);
-                window.s2sAPI.storeImage(defaultName, imgFmt, aBuffer);
-            });
+    let dataUrl;
+    try {
+        const exportOption = Object.assign({}, option, {
+            animation: false,
+            series: Array.isArray(option.series)
+                ? option.series.map(s => Object.assign({}, s, { animation: false }))
+                : option.series
         });
+        chart.setOption(exportOption);
+        dataUrl = chart.getDataURL({ type: 'png', backgroundColor: '#fff' });
+    } finally {
         chart.dispose();
-    });
-    return;
+    }
+
+    const base64 = dataUrl.split(',')[1];
+    const binStr = atob(base64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) {
+        bytes[i] = binStr.charCodeAt(i);
+    }
+    window.s2sAPI.storeImage(defaultName, imgFmt, bytes.buffer);
 }
 
 function escapeHtml(str) {

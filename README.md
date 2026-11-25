@@ -200,6 +200,8 @@ and other quality measures of the data.
 Also, it's possible to generate a heatmap based on two files. In addition the results for a single file, this
 shows the similarity of the two files.
 
+For both **spectra2species** (`src/spectra2species.js`) and **Heatmap** (`src/heatmap.js`), PNG image export renders synchronously on an offscreen ECharts canvas with animations disabled (`animation: false` top-level and per-series) and reads the buffer via `chart.getDataURL({ type: 'png', backgroundColor: '#fff' })`, eliminating the earlier `sleep(500)` mid-animation race so PNG exports match SVG exports identically.
+
 ### 3.5 Configuring compareMS2  
 
 The compareMS2 GUI can be configured using command line switches.
