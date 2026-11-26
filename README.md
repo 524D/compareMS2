@@ -146,8 +146,17 @@ sample files for the same species. In the comparisons, the results of all sample
 
 The content of the "Sample to species file" must a plain text file. Each line should contain a filename
 and a species name, separated by a TAB character. If the directory with samples contains
-a file with the exact name "spectra_to_species.txt", that file is automatically selected.
-CompareMS also works without "spectra_to_species.txt file". Also, not all species or files that are listed have to be present in the data set.
+a file with the exact name "sample_to_species.txt", that file is automatically selected.
+compareMS2 also works without a "sample_to_species.txt" file, and not all species or files that are listed have to be present in the data set.
+
+On the `dev` branch, sample-to-species parsing is implemented in `src/sample2species.js`
+(`sampleBaseName`, `parseSample2SpeciesContent`, `readSample2Species`) and used by `src/main-spectra2species.js`
+with parity to `compareMS2_to_distance_matrices`: it strips a leading UTF-8 BOM (`\uFEFF`), normalizes
+CRLF/CR/LF endings, collapses trailing or consecutive alignment tabs (`parts.length >= 2` non-empty
+trimmed fields while ignoring extra metadata columns beyond column 2 and rows with empty species names),
+extracts basenames across Windows (`\`) and POSIX (`/`) path prefixes, matches exact basename first with
+case-insensitive fallback, prunes unused mapping entries cleanly without colliding on species names, and
+guards cleared empty/unset paths in `src/main.js` and `src/main-phyltree.js`.
 
 ### 3.2. Phylogenetic tree
 
@@ -174,6 +183,25 @@ In spectra2species mode, a single MGF file is compared to a collection of other 
 indication of the similarity of a sample to other samples, and thus can help to identify the species of
 an unknown sample.
 
+On the `dev` branch, `spectra2species` also computes one-sided and two-sided **Fisher's Exact Test**
+enrichment analysis (`src/enrichment.js`, using a cached log-factorial table with Lanczos `logGamma`
+fallback for large counts, exact hypergeometric PMFs over 2×2 contingency tables, and Benjamini-Hochberg
+step-up FDR adjustment) across all library categories (`a` = matched spectra in category, `b` = unmatched
+spectra in category, `c` = matched spectra across other categories, `d` = unmatched spectra across other
+categories). Alongside the exact **Odds Ratio** (which can be `Inf` when a category has `0` unmatched
+spectra), the table and TSV export include a Haldane–Anscombe continuity-corrected odds ratio (**OR (HA)** /
+`odds_ratio_ha`, adding `0.5` to all cells when any cell is `0`). The main process (`src/main-spectra2species.js`)
+pools `nrGtCutoff` and filter-eligible compared spectrum counts per category (`datasetACompared` +
+`datasetBCompared`, excluding spectra removed by scan/RT range, intensity, peak-count, or Top-N filters,
+falling back to `min(QC, N)` only for legacy cached JSONs) and writes `<outBasename>_<query>_enrichment.tsv`
+automatically, while the renderer and preload (`src/spectra2species.html`, `src/spectra2species.css`,
+`src/spectra2species.js`, `src/spectra2species-preload.js`) add a metric selector (**Similarity**, **Fisher enrichment (-log10 p)**,
+**Fold enrichment**), enrichment tooltips, an interactive summary table, and manual **Save enrichment TSV** export.
+To keep Electron's main process responsive during large library comparisons, `aggregateSpeciesDistances` streams
+similarity updates immediately as comparisons finish while `src/enrichment-runner.js` and
+`src/enrichment-worker.js` execute Fisher's exact test enumerations on a persistent worker thread with
+coalesced intermediate snapshots and a final synchronized enrichment update.
+
 ### 3.4 Heatmap
 
 Selecting "Heatmap" and pressing "start" results in a heatmap being generated.
@@ -185,6 +213,8 @@ and other quality measures of the data.
 
 Also, it's possible to generate a heatmap based on two files. In addition the results for a single file, this
 shows the similarity of the two files.
+
+For both **spectra2species** (`src/spectra2species.js`) and **Heatmap** (`src/heatmap.js`), PNG image export renders synchronously on an offscreen ECharts canvas with animations disabled (`animation: false` top-level and per-series) and reads the buffer via `chart.getDataURL({ type: 'png', backgroundColor: '#fff' })`, eliminating the earlier `sleep(500)` mid-animation race so PNG exports match SVG exports identically.
 
 ### 3.5 Configuring compareMS2  
 
@@ -217,7 +247,11 @@ compareMS2 program icon to set these values.
 
 ### 3.6 Calculating distance matrices
 
-Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filenames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
+Distance matrices are calculated using a separate executable, compareMS2_to_distance_matrices. This can also average the distances for multiple replicates per species for more accurate molecular phylogenetic analysis. For this, a tab-delimited file with filenames and species names are required. If no such file is provided, one is created automatically, using the filenames as sample "species". When pairwise comparisons yield unavailable (`"INF"` / `null`) distances, `parseDistanceMatrix` (`src/main-phyltree.js`) substitutes a finite fallback (`maxFinite > 0 ? maxFinite * 2 : 1.0`) before UPGMA clustering so missing cells never act as `0` distance. The distance matrix can currently be saved in the MEGA or Nexus formats. [MEGA](https://www.megasoftware.net/) is recommended for creating trees from compareMS2 results.
+
+On the `dev` branch, the bundled Windows x64 binaries under `external_binaries/` were rebuilt from `compareMS2-cmd` using Go (`CGO_ENABLED=0`, `GOOS=windows`, `GOARCH=amd64`, `go build -ldflags="-s -w"`):
+- `external_binaries/compareMS2.exe` (`compareMS2-cmd` commits `f52bb46`, `b4aeafc`, `5f9e489`): includes two-pass Top-N `-N` tie/blank-line handling, `-W`/`-R` range exclusion from `PreCheckMGF`/`ReadMGF` storage, empty-dataset `-d 2` `"INF"` guard, and `datasetACompared`/`datasetBCompared` JSON outputs.
+- `external_binaries/compareMS2_to_distance_matrices.exe` (`compareMS2-cmd` commits `edc4522`, `10485e5`): includes UTF-8 BOM stripping, CRLF/CR/LF normalization, trailing/consecutive tab collapsing, extra-column safety, POSIX/Windows basename extraction, exact-then-lowercase sample-to-species matching, and unavailable (`"INF"`/`?`/`null`) distance support across NEXUS, MEGA, MEGA 12+, and JSON outputs.
 
 ### 3.7 Running compareMS2
 

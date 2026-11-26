@@ -2,17 +2,44 @@
 // Copyright Rob Marissen.
 
 // This file contains the part of the main process that relates to the spectra2species functionality.
-const { BrowserWindow, ipcMain } = require('electron');
+const { BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { llog, elog, setActivity, buildCmdArgs, getHashName, getCPUCount, safeWindowSend, isWindowValid, cleanupWindowResources, addActiveProcess, removeActiveProcess, compareDirName, getLogFilePath } = require('./main-common.js');
 const { getParallelizationManager } = require('./parallelization-manager.js');
+const { computeLibraryEnrichment, enrichmentToTSV } = require('./enrichment.js');
+const { createEnrichmentRunner } = require('./enrichment-runner.js');
+const { readSample2Species } = require('./sample2species.js');
 
 var generalParams = null;
 
 function initS2S(genParams) {
     generalParams = genParams;
+
+    ipcMain.on('export-s2s-enrichment', (event, defaultName, distanceMap) => {
+        const senderWindow = BrowserWindow.fromWebContents(event.sender);
+        const savePath = dialog.showSaveDialogSync(senderWindow, {
+            title: 'Save enrichment table',
+            defaultPath: (defaultName || 'spectra2species_enrichment') + '.tsv',
+            filters: [
+                { name: 'Tab-separated values', extensions: ['tsv', 'txt'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
+        });
+        if (savePath) {
+            try {
+                fs.writeFileSync(savePath, enrichmentToTSV(distanceMap), 'utf8');
+                if (senderWindow) {
+                    setActivity(senderWindow, 'Saved enrichment table to ' + path.basename(savePath));
+                }
+            } catch (err) {
+                if (senderWindow) {
+                    elog(senderWindow, 'Failed saving enrichment table: ' + err.message);
+                }
+            }
+        }
+    });
 }
 
 function readSampleFiles(mgfDir, window) {
@@ -25,51 +52,6 @@ function readSampleFiles(mgfDir, window) {
     // Filter files to only include .mfg files
     const sampleFiles = files.filter(file => file.endsWith('.mgf')); // Get the full path of the files
     return sampleFiles;
-}
-
-// Read the Sample2Species file
-// The file is expected to be a tab-separated file with two columns: sample name and species name
-// 
-// The sample name is the base name of the sample file.
-// If the sample name is not present in the file, it will be added with the species name equal to the sample name.
-function readSample2Species(fn, sampleFiles) {
-    const sample2Species = {};
-    const extraSamples = new Set(); // To collect all sample names
-    const sampleFilesBaseNames = sampleFiles.map(file => path.basename(file)); // Get base names of sample files
-    if (fs.existsSync(fn)) {
-        const sample2SpeciesRaw = fs.readFileSync(fn, 'utf8');
-        const lines = sample2SpeciesRaw.split('\n').filter(line => line.trim() !== ''); // Remove empty lines
-        for (const line of lines) {
-            const parts = line.split('\t');
-            if (parts.length === 2) {
-                const sample = parts[0].trim();
-                const species = parts[1].trim();
-                sample2Species[sample] = species;
-                extraSamples.add(species); // Add sample
-            }
-        }
-    }
-    // Remove the samples that exist in sampleFiles from the extraSamples set
-    for (const sampleFn of sampleFilesBaseNames) {
-        if (extraSamples.has(sampleFn)) {
-            extraSamples.delete(sampleFn);
-        }
-    }
-    // The remaining samples in extraSamples are not present in the sample2Species file
-    // Remove them from the sample2Species object
-    for (const sample of extraSamples) {
-        if (sample2Species.hasOwnProperty(sample)) {
-            delete sample2Species[sample];
-        }
-    }
-
-    // Ensure all samples in sampleFiles are present in the sample2Species
-    for (const sampleFn of sampleFilesBaseNames) {
-        if (!sample2Species.hasOwnProperty(sampleFn)) {
-            sample2Species[sampleFn] = sampleFn; // Use the sample name
-        }
-    }
-    return sample2Species;
 }
 
 // Function to show the spectra2species window
@@ -147,9 +129,41 @@ async function runS2S(params, window) {
     // Track results as they complete
     const cmpFilesJSON = [];
     const compareResults = [];
+    const enrichmentCache = new Map();
     let completedTasks = 0;
     const totalTasks = comparisonTasks.length;
     let aborted = false;
+
+    function sendChartUpdate(distanceMap) {
+        safeWindowSend(window, 'updateChart', distanceMap,
+            path.basename(params.mgfDir),
+            path.basename(params.mzFile1),
+            params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+    }
+
+    const enrichmentRunner = createEnrichmentRunner({
+        onResult: (enrichedMap) => {
+            if (aborted || !isWindowValid(window)) {
+                return;
+            }
+            for (const item of enrichedMap) {
+                if (item && item.enrichment) {
+                    enrichmentCache.set(item.species, item.enrichment);
+                }
+            }
+            sendChartUpdate(enrichedMap);
+        },
+        onError: (err) => {
+            if (!aborted && isWindowValid(window)) {
+                elog(window, `Enrichment worker error: ${err.message}`);
+            }
+        },
+    });
+    if (window && typeof window.once === 'function') {
+        window.once('closed', () => {
+            enrichmentRunner.terminate().catch(() => {});
+        });
+    }
 
     // Function to execute a single comparison
     async function executeComparison(task) {
@@ -239,23 +253,19 @@ async function runS2S(params, window) {
             // Append the compare results
             compareResults.push(parseCompareMS2JSON(result.cmpFileJSON));
 
-            // Create a distance map
-            const distanceMap = comparisons2Distance(params.mzFile1, compareResults, sample2Species, window);
-            if (distanceMap.length === 0) {
+            // Create lightweight similarity map immediately and run Fisher enrichment off-thread
+            const baseMap = aggregateSpeciesDistances(params.mzFile1, compareResults, sample2Species, window, params.topN);
+            if (baseMap.length === 0) {
                 llog(window, 'No distances found for sample: ' + result.sampleFile);
                 return;
             }
 
-            // Convert distances to similarities
-            distanceMap.forEach(item => {
-                item.similarity = distance2Similarity(item.distance);
-            });
-
-            // Update the chart with current results
-            safeWindowSend(window, 'updateChart', distanceMap,
-                path.basename(params.mgfDir),
-                path.basename(params.mzFile1),
-                params.s2sFile ? path.basename(params.s2sFile) : params.s2sFile);
+            const previewMap = baseMap.map(item => ({
+                ...item,
+                enrichment: enrichmentCache.get(item.species) || null,
+            }));
+            sendChartUpdate(previewMap);
+            enrichmentRunner.schedule(baseMap);
         } else {
             errors++;
         }
@@ -266,8 +276,8 @@ async function runS2S(params, window) {
         safeWindowSend(window, 'progress-update', progress);
     }
 
-    // Execute all comparisons in parallel using Promise.all
-    // The parallelization manager will handle the actual concurrency control
+    // Execute all comparisons in parallel using Promise.all and finalize enrichment off-thread
+    let finalDistanceMap = [];
     try {
         await Promise.all(
             comparisonTasks.map(async (task) => {
@@ -276,81 +286,163 @@ async function runS2S(params, window) {
                 return result;
             })
         );
+
+        const finalBaseMap = compareResults.length > 0
+            ? aggregateSpeciesDistances(params.mzFile1, compareResults, sample2Species, window, params.topN)
+            : [];
+        if (finalBaseMap.length > 0) {
+            finalDistanceMap = await enrichmentRunner.computeFinal(finalBaseMap);
+            if (!aborted && isWindowValid(window)) {
+                sendChartUpdate(finalDistanceMap);
+            }
+        }
     } catch (error) {
         aborted = true;
         cleanupWindowResources(window.id);
-        safeWindowSend(window, 's2s-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
+        if (isWindowValid(window)) {
+            safeWindowSend(window, 's2s-error', 'compareMS2 failed. Try running with fewer CPUs (under "Settings") or use a computer with more memory.');
+        }
         return;
+    } finally {
+        await enrichmentRunner.terminate().catch(() => {});
+    }
+
+    // Automatically write Fisher's exact enrichment table in TSV format
+    let savedMsg = '';
+    if (finalDistanceMap.length > 0) {
+        const outBase = (params.outBasename && params.outBasename.trim()) ? params.outBasename.trim() : 'spectra2species';
+        const queryStem = path.basename(params.mzFile1, path.extname(params.mzFile1));
+        const enrichmentTsvPath = path.join(params.mgfDir, `${outBase}_${queryStem}_enrichment.tsv`);
+        try {
+            fs.writeFileSync(enrichmentTsvPath, enrichmentToTSV(finalDistanceMap), 'utf8');
+            llog(window, 'Enrichment TSV saved to: ' + enrichmentTsvPath);
+            savedMsg = ` (saved ${path.basename(enrichmentTsvPath)})`;
+        } catch (err) {
+            elog(window, 'Failed writing enrichment TSV: ' + err.message);
+        }
     }
 
     // After all comparisons, send a message to the renderer process to indicate completion
     safeWindowSend(window, 'progress-update', 100);
-    setActivity(window, 'spectra2species comparison completed successfully.');
+    setActivity(window, 'spectra2species comparison completed successfully.' + savedMsg);
 }
 
 // Convert distance to similarity
 function distance2Similarity(distance) {
+    if (!Number.isFinite(distance) || distance < 0) {
+        return 0;
+    }
     const similarity = 1 / (1 + distance); // Convert distance to similarity
     // Round similarity to 4 decimal places
     return Math.round(similarity * 10000) / 10000;
 }
 
-// This function reads an array of results from comparisons and returns a maps of distances
-// for each specie in the sample2Species (as returned by readSample2Species).
-function comparisons2Distance(checkFileName, compareResults, sample2Species, window) {
-    // Initialize an empty distance map
-    const distanceMap = {};
+// This function aggregates pairwise comparisons by species/category without running Fisher tests.
+function aggregateSpeciesDistances(checkFileName, compareResults, sample2Species, window, topN = -1) {
+    // Initialize an empty distance/enrichment bucket map
+    const speciesBuckets = {};
 
     for (const compareResult of compareResults) {
         if ((checkFileName !== compareResult.sample1) && (checkFileName !== compareResult.sample2)) {
-            elog(window, `Check file ${checkFileName} does not match sample names ${sample1Base} or ${sample2Base}. This should never happen.`);
+            if (window) {
+                elog(window, `Check file ${checkFileName} does not match sample names ${compareResult.sample1} or ${compareResult.sample2}. This should never happen.`);
+            }
             continue; // Skip this comparison if the check file does not match the sample names
         }
         const otherFile = (checkFileName === compareResult.sample1 ? compareResult.sample2 : compareResult.sample1);
         const otherFileBase = path.basename(otherFile);
         // Check if the sample names are in the sample2Species map
-        if (!sample2Species.hasOwnProperty(otherFileBase)) {
-            elog(window, `Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
+        if (!Object.prototype.hasOwnProperty.call(sample2Species, otherFileBase)) {
+            if (window) {
+                elog(window, `Sample names ${otherFileBase} not found in sample2Species map. This should never happen.`);
+            }
             continue; // Skip this comparison if the sample names are not found
         }
         const otherSpecie = sample2Species[otherFileBase];
         const distance = compareResult.distance;
-        // If the other species is not in the distance map, initialize it
-        if (!distanceMap.hasOwnProperty(otherSpecie)) {
-            distanceMap[otherSpecie] = [];
+        // If the other species is not in the bucket map, initialize it
+        if (!Object.prototype.hasOwnProperty.call(speciesBuckets, otherSpecie)) {
+            speciesBuckets[otherSpecie] = {
+                distances: [],
+                matched: 0,
+                total: 0,
+                comparisons: 0,
+            };
         }
-        // Add the distance to the distance map
-        distanceMap[otherSpecie].push(distance);
+        const bucket = speciesBuckets[otherSpecie];
+        const matched = Number.isFinite(compareResult.nrGtCutoff) ? Math.max(0, compareResult.nrGtCutoff) : 0;
+        const hasEligibleCounts = Number.isFinite(compareResult.datasetACompared)
+            && Number.isFinite(compareResult.datasetBCompared);
+        let effA;
+        let effB;
+        if (hasEligibleCounts) {
+            effA = Math.max(0, compareResult.datasetACompared);
+            effB = Math.max(0, compareResult.datasetBCompared);
+        } else {
+            const qcA = Number.isFinite(compareResult.datasetAQC) ? Math.max(0, compareResult.datasetAQC) : 0;
+            const qcB = Number.isFinite(compareResult.datasetBQC) ? Math.max(0, compareResult.datasetBQC) : 0;
+            effA = (Number.isFinite(topN) && topN > 0) ? Math.min(qcA, topN) : qcA;
+            effB = (Number.isFinite(topN) && topN > 0) ? Math.min(qcB, topN) : qcB;
+        }
+        const total = Math.max(effA + effB, matched);
+        const comparisons = Number.isFinite(compareResult.nrComparisons) ? Math.max(0, compareResult.nrComparisons) : 0;
+
+        bucket.distances.push(distance);
+        bucket.matched += matched;
+        bucket.total += total;
+        bucket.comparisons += comparisons;
     }
-    // Create an average distance map from the distance map
+
+    // Create an average distance map from the buckets
     const averageDistanceMap = [];
-    for (const otherSpecie in distanceMap) {
-        const distances = distanceMap[otherSpecie];
-        // Calculate the average distance
-        const averageDistance = distances.reduce((sum, value) => sum + value, 0) / distances.length;
-        averageDistanceMap.push({ species: otherSpecie, distance: averageDistance });
+    for (const otherSpecie in speciesBuckets) {
+        const bucket = speciesBuckets[otherSpecie];
+        const hasInf = bucket.distances.some(v => !Number.isFinite(v));
+        const averageDistance = hasInf
+            ? Infinity
+            : bucket.distances.reduce((sum, value) => sum + value, 0) / bucket.distances.length;
+        averageDistanceMap.push({
+            species: otherSpecie,
+            distance: averageDistance,
+            similarity: distance2Similarity(averageDistance),
+            matched: bucket.matched,
+            total: bucket.total,
+            comparisons: bucket.comparisons,
+            sampleCount: bucket.distances.length,
+        });
     }
 
     // Sort the average distance map by distance
-    const sortedDistanceMap = averageDistanceMap.sort((a, b) => a.distance - b.distance);
+    return averageDistanceMap.sort((a, b) => a.distance - b.distance);
+}
 
-    return sortedDistanceMap;
-
+// This function reads an array of results from comparisons and returns a sorted array
+// of species distances, similarities, and Fisher's Exact Test enrichment statistics.
+function comparisons2Distance(checkFileName, compareResults, sample2Species, window, topN = -1) {
+    return computeLibraryEnrichment(
+        aggregateSpeciesDistances(checkFileName, compareResults, sample2Species, window, topN)
+    );
 }
 
 function parseCompareMS2JSON(jsonFile) {
-    // This function parses the JSON file created by compareMS2 and returns an array of objects
-    // with the following properties:  'sample1', 'sample2','distance'
+    // Parse JSON file created by compareMS2 with distance and spectral count metadata
     const jsonData = fs.readFileSync(jsonFile, 'utf8');
     const data = JSON.parse(jsonData);
 
-    file1 = data.datasetA;
-    file2 = data.datasetB;
-    distance = data.setDistance;
+    const rawDist = data.setDistance;
+    const parsedDist = (rawDist === 'INF' || rawDist === null || rawDist === undefined) ? Infinity : Number(rawDist);
+    const distance = Number.isFinite(parsedDist) ? parsedDist : Infinity;
+
     return {
-        sample1: file1,
-        sample2: file2,
-        distance: distance,
+        sample1: data.datasetA,
+        sample2: data.datasetB,
+        distance,
+        nrGtCutoff: Number.isFinite(data.nrGtCutoff) ? data.nrGtCutoff : 0,
+        nrComparisons: Number.isFinite(data.nrComparisons) ? data.nrComparisons : 0,
+        datasetAQC: Number.isFinite(data.datasetAQC) ? data.datasetAQC : 0,
+        datasetBQC: Number.isFinite(data.datasetBQC) ? data.datasetBQC : 0,
+        datasetACompared: Number.isFinite(data.datasetACompared) ? data.datasetACompared : null,
+        datasetBCompared: Number.isFinite(data.datasetBCompared) ? data.datasetBCompared : null,
     };
 }
 

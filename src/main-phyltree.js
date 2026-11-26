@@ -444,12 +444,23 @@ function parseDistanceMatrix(window, instanceId, params, df) {
     }
 
     // Build full distance matrix for UPGMA
-    // The JSON contains lower triangular matrix, convert to format expected by UPGMA
+    // The JSON contains lower triangular matrix, convert to format expected by UPGMA.
+    // Replace unavailable (null / non-finite) distances with a finite sentinel larger than any observed distance.
     const matrix = [[]]; // First element must be empty
     const distances = distanceMatrix.distances;
+    let maxFinite = 0;
+    for (let i = 0; i < distances.length; i++) {
+        for (let j = 0; j < distances[i].length; j++) {
+            const v = distances[i][j];
+            if (typeof v === 'number' && Number.isFinite(v) && v > maxFinite) {
+                maxFinite = v;
+            }
+        }
+    }
+    const unavailableFallback = maxFinite > 0 ? maxFinite * 2 : 1.0;
 
     for (let i = 0; i < distances.length; i++) {
-        matrix.push(distances[i]);
+        matrix.push(distances[i].map(v => (typeof v === 'number' && Number.isFinite(v) ? v : unavailableFallback)));
     }
 
     // Generate Newick tree using UPGMA
@@ -558,7 +569,7 @@ function runCompToDistExe(window, instanceId, params, state, formatFlags, output
         '-c', params.cutoff,
         ...formatFlags
     ];
-    if (fs.existsSync(params.s2sFile)) {
+    if (params.s2sFile && fs.existsSync(params.s2sFile)) {
         cmdArgs.push('-x', params.s2sFile);
     }
 

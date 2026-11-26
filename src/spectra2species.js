@@ -51,12 +51,21 @@ myChart.showLoading({
     lineWidth: 8,
 });
 
+var latestPayload = null;
+
 // The function updateChart is called by the main process through the preload script
 window.s2sAPI.updateChart((distanceMap, compareDir, mzFile1, s2sFile) => {
     // Hide the "loading" animation
     myChart.hideLoading();
-    const option = makeEChartsOption(distanceMap, compareDir, mzFile1, s2sFile);
-    myChart.setOption(option);
+    latestPayload = { distanceMap, compareDir, mzFile1, s2sFile };
+    const exportBtn = document.getElementById('export-enrichment');
+    if (exportBtn) {
+        const hasFullEnrichment = Array.isArray(distanceMap)
+            && distanceMap.length > 0
+            && distanceMap.every(item => item && item.enrichment);
+        exportBtn.disabled = !hasFullEnrichment;
+    }
+    renderCurrentView();
 })
 
 // Handle log messages from the main process
@@ -205,47 +214,173 @@ function createCanvas(width, height) {
     return Object.assign(document.createElement('canvas'), { width: width, height: height })
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Function saveAsPNG is renders the chart to a PNG buffer and sends it to the main process
+// Function saveAsPNG renders the chart synchronously without animation to a PNG ArrayBuffer
+// and sends it to the main process
 // Parameters option contains the chart "option" object as defined by ECharts
 function saveAsPNG(option, defaultName, imgFmt) {
     // Get the width and height from the HTML element with id 'main-chart'
     const mainElement = document.getElementById('main-chart');
     const width = mainElement.clientWidth || 1200;
-    const height = mainElement.clientHeight || 1000; // Default to 10000 
+    const height = mainElement.clientHeight || 1000;
 
     const canvas = createCanvas(width, height);
-    // ECharts can use the Canvas instance created by node-canvas as a container directly
     const chart = echarts.init(canvas);
-
-    chart.setOption(option);
-    //    chart.on('finished', () => {
-    // Sleep is a hack, eCharts doesn't seem to wait for the chart to be rendered
-    // before firing the 'finished' event (and before the 'rendered' event either)
-    sleep(500).then(() => {
-        canvas.toBlob(function (blob) {
-            blob.arrayBuffer().then(function (aBuffer) {
-                // FIXME: we don't have Node here
-                // Convert to Node.js Buffer
-                // const abuffer = Buffer.from(aBuffer);
-                window.s2sAPI.storeImage(defaultName, imgFmt, aBuffer);
-            });
+    let dataUrl;
+    try {
+        const exportOption = Object.assign({}, option, {
+            animation: false,
+            series: Array.isArray(option.series)
+                ? option.series.map(s => Object.assign({}, s, { animation: false }))
+                : option.series
         });
+        chart.setOption(exportOption);
+        dataUrl = chart.getDataURL({ type: 'png', backgroundColor: '#fff' });
+    } finally {
         chart.dispose();
-    });
-    return;
+    }
+
+    const base64 = dataUrl.split(',')[1];
+    const binStr = atob(base64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) {
+        bytes[i] = binStr.charCodeAt(i);
+    }
+    window.s2sAPI.storeImage(defaultName, imgFmt, bytes.buffer);
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatPValue(val) {
+    if (!Number.isFinite(val)) {
+        return val === Infinity ? 'Inf' : 'NA';
+    }
+    if (val < 0.0001 && val > 0) {
+        return val.toExponential(2);
+    }
+    return val.toFixed(4);
+}
+
+function formatRatio(val) {
+    if (val === Infinity) {
+        return 'Inf';
+    }
+    if (!Number.isFinite(val)) {
+        return 'NA';
+    }
+    return val.toFixed(2);
+}
+
+function getSelectedChartMetric() {
+    const el = document.getElementById('chart-metric');
+    return el ? el.value : 'similarity';
+}
+
+function getMetricValue(item, metric) {
+    const enr = item.enrichment || {};
+    if (metric === 'enrichment_neglog10p') {
+        return Number.isFinite(enr.negLog10P) ? enr.negLog10P : 0;
+    }
+    if (metric === 'fold_enrichment') {
+        return Number.isFinite(enr.foldEnrichment) ? Math.round(enr.foldEnrichment * 10000) / 10000 : 0;
+    }
+    return Number.isFinite(item.similarity) ? item.similarity : 0;
+}
+
+function renderCurrentView() {
+    if (!latestPayload) {
+        return;
+    }
+    const { distanceMap, compareDir, mzFile1, s2sFile } = latestPayload;
+    const metric = getSelectedChartMetric();
+    const chartOpt = makeEChartsOption(distanceMap, compareDir, mzFile1, s2sFile, metric);
+    myChart.setOption(chartOpt, true);
+    updateQScale();
+    renderEnrichmentTable(distanceMap);
+}
+
+function renderEnrichmentTable(distanceMap) {
+    const tbody = document.getElementById('enrichment-tbody');
+    if (!tbody) {
+        return;
+    }
+    tbody.replaceChildren();
+    if (!Array.isArray(distanceMap)) {
+        return;
+    }
+
+    for (const item of distanceMap) {
+        const enr = item.enrichment;
+        const tr = document.createElement('tr');
+        if (enr && Number.isFinite(enr.pGreater) && enr.pGreater < 0.05) {
+            tr.className = 'enriched-row';
+        }
+
+        const catTotal = enr ? ((enr.a || 0) + (enr.b || 0)) : (item.total || 0);
+        const bgTotal = enr ? ((enr.c || 0) + (enr.d || 0)) : 0;
+        const cells = [
+            item.species || '',
+            String(item.sampleCount || 1),
+            Number.isFinite(item.similarity) ? item.similarity.toFixed(4) : 'NA',
+            `${enr ? (enr.a ?? 0) : (item.matched ?? 0)} / ${catTotal}`,
+            enr ? `${enr.c ?? 0} / ${bgTotal}` : '…',
+            enr ? formatRatio(enr.foldEnrichment) : '…',
+            enr ? formatRatio(enr.oddsRatio) : '…',
+            enr ? formatRatio(enr.oddsRatioHA) : '…',
+            enr ? formatPValue(enr.pGreater) : '…',
+            enr ? formatPValue(enr.fdrGreater) : '…',
+            enr ? formatPValue(enr.pTwoSided) : '…',
+        ];
+
+        for (const text of cells) {
+            const td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+    }
 }
 
 // Create the echartData object for the eCharts bar chart
-function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
-    var maxVal = 1; // Set the maximum value for the visualMap to the maximum similarity value
-    if (distanceMap.length > 0) {
-        maxVal = Math.max(...distanceMap.map(item => item.similarity));
+function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile, metric = 'similarity') {
+    const values = distanceMap.map(item => getMetricValue(item, metric));
+    const rawMax = values.length > 0 ? Math.max(...values) : 0;
+    const maxVal = rawMax > 0 ? rawMax : 1;
+
+    let yAxisName = 'Similarity';
+    let seriesName = 'Similarity';
+    let markLine = undefined;
+    if (metric === 'enrichment_neglog10p') {
+        yAxisName = 'Fisher -log10(p)';
+        seriesName = 'Fisher -log10(p)';
+        if (distanceMap.length > 0) {
+            markLine = {
+                silent: true,
+                symbol: 'none',
+                lineStyle: { type: 'dashed', color: '#444' },
+                data: [{ yAxis: 1.301, name: 'p = 0.05' }]
+            };
+        }
+    } else if (metric === 'fold_enrichment') {
+        yAxisName = 'Fold Enrichment';
+        seriesName = 'Fold Enrichment';
+        if (distanceMap.length > 0) {
+            markLine = {
+                silent: true,
+                symbol: 'none',
+                lineStyle: { type: 'dashed', color: '#444' },
+                data: [{ yAxis: 1.0, name: 'Fold = 1.0' }]
+            };
+        }
     }
-    // Adjust the fond size according to the number of items in the distanceMap
+
+    // Adjust the font size according to the number of items in the distanceMap
     const fontSize = Math.max(10, 12 - Math.floor(distanceMap.length / 10)); // Decrease font size as the number of items increases, but not below 10
     var subText = 'comparing to directory: ' + dirName;
     if (s2sFile) {
@@ -262,6 +397,32 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
             trigger: 'axis',
             axisPointer: {
                 type: 'shadow' // Use shadow pointer for bar chart
+            },
+            formatter: (params) => {
+                if (!Array.isArray(params) || params.length === 0 || !params[0].data) {
+                    return '';
+                }
+                const item = params[0].data.item;
+                if (!item) {
+                    return '';
+                }
+                const enr = item.enrichment;
+                const catTotal = enr ? ((enr.a || 0) + (enr.b || 0)) : (item.total || 0);
+                const lines = [
+                    `<strong>${escapeHtml(item.species)}</strong>`,
+                    `Similarity: ${Number.isFinite(item.similarity) ? item.similarity.toFixed(4) : 'NA'} (distance: ${Number.isFinite(item.distance) ? item.distance.toFixed(4) : 'NA'})`,
+                    `Matched (a / a+b): ${enr ? (enr.a ?? 0) : (item.matched ?? 0)} / ${catTotal}`,
+                ];
+                if (enr) {
+                    lines.push(
+                        `Fold Enrichment: ${formatRatio(enr.foldEnrichment)} | Odds Ratio: ${formatRatio(enr.oddsRatio)} (HA: ${formatRatio(enr.oddsRatioHA)})`,
+                        `Fisher p (enrich): ${formatPValue(enr.pGreater)} | BH FDR: ${formatPValue(enr.fdrGreater)}`,
+                        `Fisher p (deplete): ${formatPValue(enr.pLess)} | Two-sided: ${formatPValue(enr.pTwoSided)}`
+                    );
+                } else {
+                    lines.push('Enrichment statistics: calculating...');
+                }
+                return lines.join('<br>');
             }
         },
         grid: {
@@ -284,7 +445,7 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
         },
         yAxis: {
             type: 'value',
-            name: 'Similarity',
+            name: yAxisName,
             nameLocation: 'middle',
             nameGap: 50, // Space between the axis name and the axis line
             nameTextStyle: {
@@ -295,14 +456,23 @@ function makeEChartsOption(distanceMap, dirName, mzFile1, s2sFile) {
             }
         },
         visualMap: {
+            calculable: true,
+            realtime: true,
+            min: 0,
             max: maxVal,
+            precision: 3,
+            right: 0,
+            top: 'center',
+            itemHeight: 300
         },
 
         series: [{
-            name: 'Similarity',
+            name: seriesName,
             type: 'bar',
-            data: distanceMap.map(item => ({
-                value: item.similarity,
+            markLine,
+            data: distanceMap.map((item, idx) => ({
+                value: values[idx],
+                item
             }))
         }]
     };
@@ -314,6 +484,29 @@ document.addEventListener("keydown", event => {
     if (key == "F11") {
         window.s2sAPI.toggleFullscreen();
     }
+});
+
+// Switch chart metric when selection changes
+document.getElementById("chart-metric").addEventListener("change", function () {
+    renderCurrentView();
+});
+
+// Toggle Fisher's exact enrichment table visibility
+document.getElementById("toggle-enrichment-table").addEventListener("change", function () {
+    const panel = document.getElementById("enrichment-panel");
+    if (panel) {
+        panel.style.display = this.checked ? "block" : "none";
+        myChart.resize();
+    }
+});
+
+// Export enrichment results to TSV
+document.getElementById("export-enrichment").addEventListener("click", function () {
+    if (!latestPayload) {
+        return;
+    }
+    const baseName = "spectra2species_enrichment_" + latestPayload.mzFile1.replace(/\.[^.]+$/, "");
+    window.s2sAPI.exportEnrichment(baseName, latestPayload.distanceMap);
 });
 
 // Set color scale when selection changes

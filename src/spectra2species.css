@@ -31,6 +31,55 @@
     min-height: 0;  /* flexbox fix to prevent overflow */
 }
 
+.control-item {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+}
+
+.chart-and-table-col {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+}
+
+#main-chart {
+    flex: 1 1 60%;
+    min-height: 260px;
+    height: auto;
+}
+
+#enrichment-panel {
+    flex: 0 1 40%;
+    min-height: 0;
+    overflow-y: auto;
+    border-top: 1px solid #ccc;
+    padding: 8px 12px;
+    font-size: 12px;
+    background-color: #fafafa;
+}
+
+.enrichment-header {
+    margin-bottom: 6px;
+}
+
+.enrichment-subtitle {
+    color: #555;
+    margin-left: 6px;
+}
+
+.enrichment-table th {
+    position: sticky;
+    top: 0;
+    background-color: #efefef;
+    z-index: 1;
+}
+
+.enrichment-table tr.enriched-row {
+    background-color: #e8f5e9;
+}
+
 #progress {
     width: 100%;
 }
